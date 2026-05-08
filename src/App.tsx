@@ -147,7 +147,11 @@ const sounds = new SoundEngine();
 export default function App() {
   const gameContainerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [gameState, setGameState] = useState<'start' | 'playing' | 'dead'>('start');
+  const [gameState, setGameState] = useState<'start' | 'playing' | 'dead' | 'win'>('start');
+  const [wave, setWave] = useState(1);
+  const [enemiesRemaining, setEnemiesRemaining] = useState(0);
+  const [score, setScore] = useState(0);
+  const [waveMessage, setWaveMessage] = useState('');
   const [mobileMode, setMobileMode] = useState(false);
   const [stats, setStats] = useState({ kills: 0, deaths: 0, shotsFired: 0, shotsHit: 0 });
 
@@ -219,6 +223,10 @@ interface Player {
     setHp(100);
     setStats({ kills: 0, deaths: 0, shotsFired: 0, shotsHit: 0 });
     setAmmo({ mag: WEAPONS[currentWeapon].magSize, reserve: 120 });
+    setScore(0);
+    setWave(1);
+    setEnemiesRemaining(0);
+    setWaveMessage('');
     player.current = { x: 128, y: 128, angle: 0, velX: 0, velY: 0, rotVel: 0, pitch: 0, radius: 16, isAds: false, adsProgress: 0 };
     enemies.current = [];
     setEnemiesState([]);
@@ -230,37 +238,56 @@ interface Player {
     const newMap = [...MAP.map(row => [...row])];
     mapData.current = newMap;
     setMapDataState([...newMap]);
-    spawnEnemies(5);
+    spawnWave(1);
     sounds.init();
   };
 
   const tracers = useRef<{ id: number, x1: number, y1: number, x2: number, y2: number, alpha: number }[]>([]);
   const nextTracerId = useRef(0);
 
-  const spawnEnemies = (count: number) => {
+  const spawnWave = (waveNum: number) => {
+    setWaveMessage(`WAVE ${waveNum}`);
+    setTimeout(() => setWaveMessage(''), 3000);
+    
+    // Gradual spawning
+    const count = 3 + waveNum * 2;
+    let spawnedCount = 0;
+    const interval = setInterval(() => {
+        if (spawnedCount >= count) {
+            clearInterval(interval);
+            return;
+        }
+        spawnEnemies(1, waveNum);
+        spawnedCount++;
+    }, 800);
+  };
+
+  const spawnEnemies = (count: number, currentWave: number = 1) => {
     const types: ('rusher' | 'rifleman' | 'sniper')[] = ['rusher', 'rifleman', 'sniper'];
     let spawned = 0;
     let attempts = 0;
     
-    while (spawned < count && attempts < 50) {
+    while (spawned < count && attempts < 100) {
         attempts++;
         const rx = Math.random() * (MAP[0].length * CELL_SIZE);
         const ry = Math.random() * (MAP.length * CELL_SIZE);
         
-        // Safety checks: Distance from player and collision
         const distToPlayer = Math.hypot(rx - player.current.x, ry - player.current.y);
         const mapX = Math.floor(rx / CELL_SIZE);
         const mapY = Math.floor(ry / CELL_SIZE);
         
-        if (distToPlayer > 400 && MAP[mapY]?.[mapX] === 0) {
+        if (distToPlayer > 500 && MAP[mapY]?.[mapX] === 0) {
             const type = types[Math.floor(Math.random() * types.length)];
+            const hpBuff = 1 + (currentWave - 1) * 0.15;
+            const speedBuff = 1 + (currentWave - 1) * 0.04;
+
             const newEnemy = {
                 id: Math.random(),
                 x: rx, y: ry,
                 type,
-                hp: type === 'rusher' ? 60 : type === 'rifleman' ? 100 : 80,
+                hp: (type === 'rusher' ? 60 : type === 'rifleman' ? 100 : 80) * hpBuff,
                 lastShot: Date.now() + Math.random() * 2000,
-                speed: type === 'rusher' ? 3.5 : type === 'rifleman' ? 2 : 1.5,
+                speed: (type === 'rusher' ? 3.5 : type === 'rifleman' ? 2 : 1.5) * speedBuff,
                 color: type === 'rusher' ? '#ef4444' : type === 'rifleman' ? '#eab308' : '#3b82f6'
             };
             enemies.current.push(newEnemy);
@@ -268,6 +295,7 @@ interface Player {
         }
     }
     setEnemiesState([...enemies.current]);
+    setEnemiesRemaining(enemies.current.length);
   };
 
   const graveyard = useRef<{ x: number, y: number, color: string, type: string }[]>([]);
@@ -346,7 +374,9 @@ interface Player {
               setHitMarker({ time: Date.now(), killed: true });
               sounds.playKill();
               setStats(prev => ({ ...prev, kills: prev.kills + 1 }));
-              setKillfeed(prev => [{ id: nextKillfeedId.current++, text: `ELIMINATED ${enemy.type.toUpperCase()}` }, ...prev].slice(0, 5));
+              const killScore = enemy.type === 'sniper' ? 500 : enemy.type === 'rifleman' ? 200 : 100;
+              setScore(prev => prev + killScore);
+              setKillfeed(prev => [{ id: nextKillfeedId.current++, text: `ELIMINATED ${enemy.type.toUpperCase()} (+${killScore})` }, ...prev].slice(0, 5));
               graveyard.current.push({ x: enemy.x, y: enemy.y, color: enemy.color, type: enemy.type });
               spawnParticles(enemy.x, enemy.y, 'explosion');
             } else {
@@ -483,6 +513,17 @@ interface Player {
     const now = Date.now();
     enemies.current = enemies.current.filter(e => !e.dead);
     
+    // Wave Management
+    if (gameState === 'playing' && enemies.current.length === 0 && waveMessage === '') {
+       if (wave >= 5) {
+         setGameState('win');
+       } else {
+         const nextWave = wave + 1;
+         setWave(nextWave);
+         spawnWave(nextWave);
+       }
+    }
+
     enemies.current.forEach(e => {
       const pDx = player.current.x - e.x;
       const pDy = player.current.y - e.y;
@@ -580,6 +621,7 @@ interface Player {
     renderTick.current++;
     if (renderTick.current % 2 === 0) {
       setEnemiesState([...enemies.current]);
+      setEnemiesRemaining(enemies.current.length);
       setDamageIndicators(prev => prev.map(ind => ({ ...ind, opacity: ind.opacity - 0.02 })).filter(ind => ind.opacity > 0));
     }
 
@@ -979,11 +1021,15 @@ interface Player {
             </div>
 
             {/* Health Bar Bottom */}
-            <div className="absolute bottom-6 left-6 w-48">
+            <div className="absolute bottom-6 left-6 w-48 pointer-events-none">
+               <div className="flex items-center gap-2 mb-2">
+                 <Users size={12} className="text-blue-400" />
+                 <span className="text-white font-black text-xs uppercase tracking-tighter">Units Detected: {enemiesRemaining}</span>
+               </div>
                <div className="h-4 bg-slate-900 rounded-full border border-slate-700 overflow-hidden">
                   <motion.div 
                     animate={{ width: `${hp}%` }}
-                    className={`h-full ${hp < 30 ? 'bg-red-500' : 'bg-blue-500'}`}
+                    className={`h-full ${hp < 30 ? 'bg-red-500 shadow-[0_0_10px_red]' : 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]'}`}
                   />
                </div>
                <div className="mt-2 flex justify-between text-[10px] text-slate-500 font-bold uppercase tracking-widest px-1">
@@ -991,15 +1037,55 @@ interface Player {
                   <span>{hp}%</span>
                </div>
             </div>
+
+            {/* Top Stats HUD */}
+            <div className="absolute top-6 left-6 flex flex-col gap-2 pointer-events-none z-50">
+               <div className="flex items-center gap-3 bg-slate-900/80 px-4 py-2 rounded-lg border-l-4 border-blue-500 backdrop-blur-md">
+                 <div className="flex flex-col">
+                   <span className="text-blue-400 font-black text-[9px] uppercase tracking-widest leading-none">Sector Wave</span>
+                   <span className="text-white font-black text-2xl tracking-tighter leading-none mt-1">{wave}<span className="text-slate-600 text-sm ml-1">/ 5</span></span>
+                 </div>
+               </div>
+            </div>
+
+            <div className="absolute top-6 right-6 flex flex-col items-end gap-2 pointer-events-none z-50">
+               <div className="bg-slate-900/80 px-4 py-2 rounded-lg border-r-4 border-yellow-500 backdrop-blur-md flex flex-col items-end">
+                  <span className="text-yellow-400 font-black text-[9px] uppercase tracking-widest leading-none">Score</span>
+                  <span className="text-white font-black text-2xl tracking-tighter mt-1">{score.toLocaleString()}</span>
+               </div>
+               <div className="bg-slate-900/60 px-3 py-1 rounded-lg backdrop-blur-sm text-[9px] font-black text-slate-400 flex gap-4 uppercase tracking-tighter">
+                 <span>Acc: {stats.shotsFired > 0 ? Math.round((stats.shotsHit / stats.shotsFired) * 100) : 0}%</span>
+                 <span className="text-slate-600">|</span>
+                 <span>Kills: {stats.kills}</span>
+               </div>
+            </div>
+
+            {/* Wave Announcement */}
+            {waveMessage && (
+               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-50 text-center animate-in zoom-in slide-in-from-top-12 duration-700">
+                 <motion.h2 
+                  initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                  className="text-8xl font-black text-white italic tracking-tighter drop-shadow-[0_0_30px_rgba(255,255,255,0.3)]"
+                 >
+                   {waveMessage}
+                 </motion.h2>
+                 <motion.p 
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
+                  className="text-yellow-500 font-black tracking-[0.5em] uppercase mt-2 drop-shadow-md text-sm"
+                 >
+                   Neutralize All Hostiles
+                 </motion.p>
+               </div>
+            )}
           </>
         )}
 
-        {/* Start / Dead Overlays */}
+        {/* Start / Dead / Win Overlays */}
         <AnimatePresence>
-          {(gameState === 'start' || gameState === 'dead') && (
+          {(gameState === 'start' || gameState === 'dead' || gameState === 'win') && (
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-slate-950/90 backdrop-blur-lg flex flex-col items-center justify-center p-8 text-center"
+              className="absolute inset-0 bg-slate-950/95 backdrop-blur-xl flex flex-col items-center justify-center p-8 text-center z-[100]"
             >
               {gameState === 'start' ? (
                 <>
@@ -1009,69 +1095,70 @@ interface Player {
                   >
                     <Zap className="text-yellow-500" size={40} />
                   </motion.div>
-                  <h1 className="text-5xl font-black text-white italic tracking-tighter mb-2 uppercase">Nano Banana</h1>
-                  <p className="text-slate-400 max-w-sm mb-12">High-fidelity 3D combat simulation. Experience the power of the Nano Engine with procedural tactical environments.</p>
+                  <h1 className="text-6xl font-black text-white italic tracking-tighter mb-2 uppercase">Nano Banana</h1>
+                  <p className="text-slate-400 max-w-sm mb-12 font-medium">Precision survival simulation. Neutralize target waves to secure the sector.</p>
                   
                   <div className="grid grid-cols-2 gap-4 mb-12 w-full max-w-md text-sm">
                     <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 text-left">
-                       <span className="block text-slate-500 uppercase text-[10px] font-bold mb-2">Controls</span>
-                       <ul className="space-y-1 text-slate-300">
-                          <li>WASD - Movement</li>
-                          <li>MOUSE - Aim & Fire</li>
-                          <li>1,2,3,4 - Change Weapon</li>
-                          <li>R - Reload</li>
+                       <span className="block text-slate-500 uppercase text-[10px] font-black mb-2 tracking-widest">Tactical HUD</span>
+                       <ul className="space-y-1 text-slate-300 font-bold">
+                          <li>WASD / Shift - Combat Move</li>
+                          <li>MOUSE - Aim & Engage</li>
+                          <li>1,2,3,4 - Arsenal Selector</li>
+                          <li>R - Tactical Reload</li>
                        </ul>
                     </div>
                     <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 text-left">
-                       <span className="block text-slate-500 uppercase text-[10px] font-bold mb-2">Features</span>
-                       <ul className="space-y-1 text-slate-300">
-                          <li>Advanced Enemy AI</li>
-                          <li>4 Weapon Classes</li>
-                          <li>Mobile Support</li>
-                          <li>Dynamic FX</li>
+                       <span className="block text-slate-500 uppercase text-[10px] font-black mb-2 tracking-widest">Orders</span>
+                       <ul className="space-y-1 text-slate-300 font-bold">
+                          <li>Survive 5 Intense Waves</li>
+                          <li>Eliminate All Hostiles</li>
+                          <li>Secure High Score</li>
+                          <li>Maintain Armor Integrity</li>
                        </ul>
                     </div>
                   </div>
 
                   <button 
                     onClick={initGame}
-                    className="px-12 py-4 bg-white text-slate-950 font-black uppercase text-xl rounded-full hover:bg-yellow-500 transition-colors shadow-[0_0_40px_rgba(255,255,255,0.2)]"
+                    className="px-14 py-5 bg-white text-slate-950 font-black uppercase text-xl rounded-full hover:bg-yellow-500 hover:scale-105 transition-all shadow-[0_10px_40px_rgba(255,255,255,0.1)] active:scale-95"
                   >
-                    Request Deployment
+                    Initiate Deployment
                   </button>
                 </>
               ) : (
-                <>
-                  <Skull className="text-red-500 mb-6" size={64} />
-                  <h2 className="text-4xl font-black text-white uppercase italic tracking-tighter mb-2">Mission Failed</h2>
-                  <p className="text-slate-500 mb-8 uppercase tracking-widest text-xs">Operator Terminated In Sector 7</p>
-                  
-                  <div className="grid grid-cols-3 gap-6 mb-12 border-y border-slate-800 py-8 w-full max-w-md">
-                    <div className="flex flex-col items-center">
-                       <span className="text-slate-500 text-[10px] font-bold uppercase mb-1">Kills</span>
-                       <span className="text-3xl font-black text-white">{stats.kills}</span>
+                <div className={`p-12 rounded-3xl border-4 ${gameState === 'win' ? 'border-yellow-500 bg-yellow-500/10' : 'border-red-500 bg-red-500/10'} shadow-2xl w-full max-w-lg`}>
+                    <h2 className={`text-8xl font-black italic tracking-tighter mb-2 ${gameState === 'win' ? 'text-yellow-500' : 'text-red-500'}`}>
+                       {gameState === 'win' ? 'SUCCESS' : 'FAILED'}
+                    </h2>
+                    <p className="text-slate-400 font-black uppercase tracking-[0.3em] mb-10 text-xs">{gameState === 'win' ? 'Sector Secured. All hostiles neutralized.' : 'Mission Aborted. Biological signature lost.'}</p>
+                    
+                    <div className="grid grid-cols-2 gap-4 text-left mb-10">
+                       <div className="bg-slate-900/80 p-5 rounded-2xl border border-white/5">
+                          <span className="block text-slate-500 text-[10px] uppercase font-black mb-1">Final Score</span>
+                          <span className="text-3xl font-black text-white">{score.toLocaleString()}</span>
+                       </div>
+                       <div className="bg-slate-900/80 p-5 rounded-2xl border border-white/5">
+                          <span className="block text-slate-500 text-[10px] uppercase font-black mb-1">Combat Wave</span>
+                          <span className="text-3xl font-black text-white">{wave}</span>
+                       </div>
+                       <div className="bg-slate-900/80 p-5 rounded-2xl border border-white/5">
+                          <span className="block text-slate-500 text-[10px] uppercase font-black mb-1">Accuracy</span>
+                          <span className="text-3xl font-black text-white">{stats.shotsFired > 0 ? Math.round((stats.shotsHit / stats.shotsFired) * 100) : 0}%</span>
+                       </div>
+                       <div className="bg-slate-900/80 p-5 rounded-2xl border border-white/5">
+                          <span className="block text-slate-500 text-[10px] uppercase font-black mb-1">Total Kills</span>
+                          <span className="text-3xl font-black text-white">{stats.kills}</span>
+                       </div>
                     </div>
-                    <div className="flex flex-col items-center">
-                       <span className="text-slate-500 text-[10px] font-bold uppercase mb-1">Accuracy</span>
-                       <span className="text-3xl font-black text-yellow-500">
-                         {stats.shotsFired > 0 ? Math.round((stats.shotsHit / stats.shotsFired) * 100) : 0}%
-                       </span>
-                    </div>
-                    <div className="flex flex-col items-center">
-                       <span className="text-slate-500 text-[10px] font-bold uppercase mb-1">Status</span>
-                       <span className="text-3xl font-black text-red-500 italic uppercase">KIA</span>
-                    </div>
-                  </div>
 
-                  <button 
-                    onClick={initGame}
-                    className="px-10 py-4 bg-red-500 text-white font-black uppercase text-xl rounded-full hover:bg-red-400 transition-colors shadow-2xl flex items-center gap-3"
-                  >
-                    <RefreshCcw size={24} />
-                    Re-Deploy
-                  </button>
-                  <p className="mt-8 text-slate-600 font-mono text-[10px]">RECOVERY_TOKEN: {Math.random().toString(36).substr(2, 9).toUpperCase()}</p>
-                </>
+                    <button 
+                      onClick={initGame}
+                      className={`w-full py-5 rounded-2xl text-xl font-black uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-95 shadow-xl ${gameState === 'win' ? 'bg-yellow-500 text-slate-950' : 'bg-red-600 text-white'}`}
+                    >
+                      Re-Deploy Target
+                    </button>
+                </div>
               )}
             </motion.div>
           )}
@@ -1086,52 +1173,7 @@ interface Player {
          <div className="flex items-center gap-2">
             <Zap size={16} /> 1-4 switch weapon
          </div>
-         <button 
-            onClick={() => setMobileMode(!mobileMode)}
-            className={`flex items-center gap-2 px-3 py-1 rounded-full border transition-all ${mobileMode ? 'border-blue-500 text-blue-500 bg-blue-500/10' : 'border-slate-800'}`}
-         >
-            <Smartphone size={16} /> Enable Touch UI
-         </button>
       </div>
-
-      {/* Mobile Virtual Controls Overlay */}
-      {mobileMode && gameState === 'playing' && (
-        <div className="fixed inset-0 pointer-events-none z-50">
-          {/* Virtual Joystick Target Area - Left Half */}
-          <div 
-             className="absolute bottom-10 left-10 w-48 h-48 rounded-full bg-slate-900/20 border-2 border-slate-700/30 flex items-center justify-center pointer-events-auto"
-             onPointerDown={(e) => {
-               const rect = e.currentTarget.getBoundingClientRect();
-               joystick.current = { active: true, startX: e.clientX, startY: e.clientY, curX: e.clientX, curY: e.clientY };
-               e.currentTarget.setPointerCapture(e.pointerId);
-             }}
-             onPointerMove={(e) => {
-               if (joystick.current.active) {
-                 joystick.current.curX = e.clientX;
-                 joystick.current.curY = e.clientY;
-               }
-             }}
-             onPointerUp={() => joystick.current.active = false}
-          >
-             <div className="w-12 h-12 bg-white/10 rounded-full border border-white/20" />
-          </div>
-
-          {/* Action Buttons - Right Half */}
-          <div className="absolute bottom-10 right-10 flex flex-col items-end gap-6 pointer-events-auto">
-             <button 
-                onPointerDown={handleShoot}
-                className="w-24 h-24 bg-red-600 rounded-full border-4 border-red-400 shadow-2xl flex items-center justify-center animate-pulse"
-             >
-                <Target size={40} className="text-white" />
-             </button>
-             <div className="flex gap-4">
-                <button onClick={reload} className="w-16 h-16 bg-slate-800 rounded-full border-2 border-slate-600 flex items-center justify-center">
-                  <RefreshCcw size={20} className="text-white" />
-                </button>
-             </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
