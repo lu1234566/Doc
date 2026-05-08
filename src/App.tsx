@@ -195,6 +195,7 @@ export default function App() {
   const [waveMessage, setWaveMessage] = useState('');
   const [mobileMode, setMobileMode] = useState(false);
   const [stats, setStats] = useState({ kills: 0, deaths: 0, shotsFired: 0, shotsHit: 0 });
+  const isRunEndingRef = useRef(false);
 
   // --- Meta Progression State ---
   const [tacticalCredits, setTacticalCredits] = useState(0);
@@ -208,10 +209,22 @@ export default function App() {
 
   // Load Meta Data
   useEffect(() => {
-    const savedCredits = localStorage.getItem('nano_credits');
-    const savedUpgrades = localStorage.getItem('nano_upgrades');
-    if (savedCredits) setTacticalCredits(parseInt(savedCredits));
-    if (savedUpgrades) setUpgradeLevels(JSON.parse(savedUpgrades));
+    try {
+      const savedCredits = localStorage.getItem('nano_credits');
+      const savedUpgrades = localStorage.getItem('nano_upgrades');
+      if (savedCredits) {
+        const parsed = parseInt(savedCredits);
+        if (!isNaN(parsed)) setTacticalCredits(parsed);
+      }
+      if (savedUpgrades) {
+        const parsed = JSON.parse(savedUpgrades);
+        if (parsed && typeof parsed === 'object') {
+          setUpgradeLevels(prev => ({ ...prev, ...parsed }));
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load meta progression", e);
+    }
   }, []);
 
   const saveMeta = (credits: number, upgrades: any) => {
@@ -285,6 +298,7 @@ interface Player {
   const renderTick = useRef(0);
 
   const initGame = () => {
+    isRunEndingRef.current = false;
     setGameState('playing');
     const maxHp = 100 + (upgradeLevels.armorPlating * 5);
     setHp(maxHp);
@@ -664,9 +678,11 @@ interface Player {
       const dist = Math.hypot(p.x - player.current.x, p.y - player.current.y);
       if (dist < 32) {
         if (p.type === 'health') {
-           setHp(prev => Math.min(100, prev + 25));
+           const maxHp = 100 + (upgradeLevels.armorPlating * 5);
+           setHp(prev => Math.min(maxHp, prev + 25));
         } else {
-           setAmmo(prev => ({ ...prev, reserve: Math.min(120, prev.reserve + 60) }));
+           const maxReserve = 120 + (upgradeLevels.ammoReserve * 20);
+           setAmmo(prev => ({ ...prev, reserve: Math.min(maxReserve, prev.reserve + 60) }));
         }
         sounds.playReload();
         setKillfeed(prev => [{ id: nextKillfeedId.current++, text: `+ ${p.type.toUpperCase()} SECURED` }, ...prev].slice(0, 5));
@@ -695,14 +711,17 @@ interface Player {
     // Wave Management
     if (gameState === 'playing' && enemies.current.length === 0 && !isSpawningRef.current && !isWaveTransitionRef.current) {
        if (waveRef.current >= 5) {
-         const finalCredits = Math.floor(stats.kills * 15 + waveRef.current * 100 + score / 5 + 1500);
-         setEarnedCredits(finalCredits);
-         setTacticalCredits(prev => {
-           const total = prev + finalCredits;
-           saveMeta(total, upgradeLevels);
-           return total;
-         });
-         setGameState('win');
+         if (!isRunEndingRef.current) {
+           isRunEndingRef.current = true;
+           const finalCredits = Math.floor(stats.kills * 15 + waveRef.current * 100 + score / 5 + 1500);
+           setEarnedCredits(finalCredits);
+           setTacticalCredits(prev => {
+             const total = prev + finalCredits;
+             saveMeta(total, upgradeLevels);
+             return total;
+           });
+           setGameState('win');
+         }
          if (spawnIntervalRef.current) {
            clearInterval(spawnIntervalRef.current);
            spawnIntervalRef.current = null;
@@ -783,11 +802,12 @@ interface Player {
                   const damage = e.type === 'sniper' ? 35 : e.type === 'rifleman' ? 12 : 8;
                   setHp(prev => {
                       const newHp = Math.max(0, prev - damage);
-                      if (newHp === 0 && gameState === 'playing') {
+                      if (newHp === 0 && gameState === 'playing' && !isRunEndingRef.current) {
+                        isRunEndingRef.current = true;
                         const runCredits = Math.floor(stats.kills * 10 + waveRef.current * 50 + score / 10);
                         setEarnedCredits(runCredits);
-                        setTacticalCredits(prev => {
-                          const total = prev + runCredits;
+                        setTacticalCredits(prevCred => {
+                          const total = prevCred + runCredits;
                           saveMeta(total, upgradeLevels);
                           return total;
                         });
