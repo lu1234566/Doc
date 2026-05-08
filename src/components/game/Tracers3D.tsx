@@ -1,0 +1,40 @@
+import React from 'react';
+import * as THREE from 'three';
+
+interface Tracer {
+  id: number;
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  alpha: number;
+}
+
+export function Tracers3D({ tracers, cellSize }: { tracers: Tracer[], cellSize: number }) {
+  const mapWidth = 24 * cellSize;
+  const mapHeight = 18 * cellSize;
+
+  return (
+    <>
+      {tracers.map((t) => {
+        const p1 = new THREE.Vector3(t.x1 - mapWidth / 2, cellSize / 2.5, t.y1 - mapHeight / 2);
+        const p2 = new THREE.Vector3(t.x2 - mapWidth / 2, cellSize / 2.5, t.y2 - mapHeight / 2);
+        
+        // Simple line simulation using a thin box or Line component
+        const midPoint = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5);
+        const distance = p1.distanceTo(p2);
+        
+        return (
+          <group key={t.id} position={midPoint}>
+            <mesh 
+              onUpdate={(self) => self.lookAt(p2)}
+            >
+              <boxGeometry args={[0.05, 0.05, distance]} />
+              <meshBasicMaterial color="#fef08a" transparent opacity={t.alpha * 0.6} />
+            </mesh>
+          </group>
+        );
+      })}
+    </>
+  );
+}

@@ -98,8 +98,8 @@ export function WeaponModel({ type, isReloading, isAds, recoilOffset, lastShotTi
               <meshStandardMaterial color="#1e293b" metalness={0.6} roughness={0.5} />
             </mesh>
             {/* Barrel */}
-            <mesh castShadow receiveShadow position={[0, 0.3, -1.3]}>
-              <cylinderGeometry args={[0.05, 0.05, 0.8, 16]} rotation={[Math.PI/2, 0, 0]} />
+            <mesh castShadow receiveShadow position={[0, 0.3, -1.3]} rotation={[Math.PI/2, 0, 0]}>
+              <cylinderGeometry args={[0.05, 0.05, 0.8, 16]} />
               <meshStandardMaterial color="#0f172a" metalness={0.9} roughness={0.2} />
             </mesh>
             {/* Grip */}
@@ -132,13 +132,13 @@ export function WeaponModel({ type, isReloading, isAds, recoilOffset, lastShotTi
               <meshStandardMaterial color="#334155" metalness={0.8} roughness={0.3} />
             </mesh>
             {/* Barrel */}
-            <mesh castShadow receiveShadow position={[0, 0.25, -0.8]}>
-              <cylinderGeometry args={[0.08, 0.08, 1.6, 16]} rotation={[Math.PI/2, 0, 0]} />
+            <mesh castShadow receiveShadow position={[0, 0.25, -0.8]} rotation={[Math.PI/2, 0, 0]}>
+              <cylinderGeometry args={[0.08, 0.08, 1.6, 16]} />
               <meshStandardMaterial color="#1e293b" metalness={0.9} roughness={0.2} />
             </mesh>
             {/* Underbarrel Tube */}
-            <mesh castShadow receiveShadow position={[0, 0.1, -0.7]}>
-              <cylinderGeometry args={[0.06, 0.06, 1.4, 16]} rotation={[Math.PI/2, 0, 0]} />
+            <mesh castShadow receiveShadow position={[0, 0.1, -0.7]} rotation={[Math.PI/2, 0, 0]}>
+              <cylinderGeometry args={[0.06, 0.06, 1.4, 16]} />
               <meshStandardMaterial color="#1e293b" />
             </mesh>
             {/* Pump */}
@@ -161,13 +161,13 @@ export function WeaponModel({ type, isReloading, isAds, recoilOffset, lastShotTi
               <meshStandardMaterial color="#1e293b" metalness={0.9} roughness={0.1} />
             </mesh>
             {/* Barrel */}
-            <mesh castShadow receiveShadow position={[0, 0.2, -1.0]}>
-              <cylinderGeometry args={[0.06, 0.04, 2.4, 16]} rotation={[Math.PI/2, 0, 0]} />
+            <mesh castShadow receiveShadow position={[0, 0.2, -1.0]} rotation={[Math.PI/2, 0, 0]}>
+              <cylinderGeometry args={[0.06, 0.04, 2.4, 16]} />
               <meshStandardMaterial color="#0f172a" metalness={0.9} roughness={0.2} />
             </mesh>
             {/* Scope */}
-            <mesh castShadow receiveShadow position={[0, 0.45, 0.2]}>
-              <cylinderGeometry args={[0.1, 0.12, 0.8, 16]} rotation={[Math.PI/2, 0, 0]} />
+            <mesh castShadow receiveShadow position={[0, 0.45, 0.2]} rotation={[Math.PI/2, 0, 0]}>
+              <cylinderGeometry args={[0.1, 0.12, 0.8, 16]} />
               <meshStandardMaterial color="#000" metalness={0.8} roughness={0.2} />
             </mesh>
             {/* Scope Mounts */}

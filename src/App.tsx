@@ -123,6 +123,7 @@ const sounds = new SoundEngine();
 
 // --- Main Component ---
 export default function App() {
+  const gameContainerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gameState, setGameState] = useState<'start' | 'playing' | 'dead'>('start');
   const [mobileMode, setMobileMode] = useState(false);
@@ -131,6 +132,8 @@ export default function App() {
   const [ammo, setAmmo] = useState({ mag: WEAPONS.rifle.magSize, reserve: 120 });
   const [hp, setHp] = useState(100);
   const [isReloading, setIsReloading] = useState(false);
+  const [hitMarker, setHitMarker] = useState(0);
+  const [lastDamageTaken, setLastDamageTaken] = useState(0);
 
   // Game Engine Refs
 interface Player {
@@ -171,6 +174,7 @@ interface Player {
   const touchLook = useRef({ active: false, lastX: 0, lastY: 0 });
 
   const [enemiesState, setEnemiesState] = useState<any[]>([]);
+  const renderTick = useRef(0);
 
   const initGame = () => {
     setGameState('playing');
@@ -181,6 +185,11 @@ interface Player {
     enemies.current = [];
     setEnemiesState([]);
     particles.current = [];
+    graveyard.current = [];
+    killfeed.length = 0;
+    setKillfeed([]);
+    keys.current = {};
+    mapData.current = [...MAP.map(row => [...row])];
     spawnEnemies(5);
     sounds.init();
   };
@@ -190,27 +199,35 @@ interface Player {
 
   const spawnEnemies = (count: number) => {
     const types: ('rusher' | 'rifleman' | 'sniper')[] = ['rusher', 'rifleman', 'sniper'];
-    for (let i = 0; i < count; i++) {
-        let rx, ry;
-        do {
-            rx = Math.floor(Math.random() * MAP[0].length) * CELL_SIZE + CELL_SIZE / 2;
-            ry = Math.floor(Math.random() * MAP.length) * CELL_SIZE + CELL_SIZE / 2;
-        } while (MAP[Math.floor(ry / CELL_SIZE)][Math.floor(rx / CELL_SIZE)] !== 0 || 
-                 Math.hypot(rx - player.current.x, ry - player.current.y) < 300);
+    let spawned = 0;
+    let attempts = 0;
+    
+    while (spawned < count && attempts < 50) {
+        attempts++;
+        const rx = Math.random() * (MAP[0].length * CELL_SIZE);
+        const ry = Math.random() * (MAP.length * CELL_SIZE);
         
-        const type = types[Math.floor(Math.random() * types.length)];
-        const newEnemy = {
-            id: Math.random(),
-            x: rx, y: ry,
-            type,
-            hp: type === 'rusher' ? 50 : 100,
-            lastShot: Date.now() + Math.random() * 2000,
-            speed: type === 'rusher' ? 3.5 : 2,
-            color: type === 'rusher' ? '#ef4444' : type === 'rifleman' ? '#eab308' : '#3b82f6'
-        };
-        enemies.current.push(newEnemy);
-        setEnemiesState(prev => [...prev, newEnemy]);
+        // Safety checks: Distance from player and collision
+        const distToPlayer = Math.hypot(rx - player.current.x, ry - player.current.y);
+        const mapX = Math.floor(rx / CELL_SIZE);
+        const mapY = Math.floor(ry / CELL_SIZE);
+        
+        if (distToPlayer > 400 && MAP[mapY]?.[mapX] === 0) {
+            const type = types[Math.floor(Math.random() * types.length)];
+            const newEnemy = {
+                id: Math.random(),
+                x: rx, y: ry,
+                type,
+                hp: type === 'rusher' ? 60 : type === 'rifleman' ? 100 : 80,
+                lastShot: Date.now() + Math.random() * 2000,
+                speed: type === 'rusher' ? 3.5 : type === 'rifleman' ? 2 : 1.5,
+                color: type === 'rusher' ? '#ef4444' : type === 'rifleman' ? '#eab308' : '#3b82f6'
+            };
+            enemies.current.push(newEnemy);
+            spawned++;
+        }
     }
+    setEnemiesState([...enemies.current]);
   };
 
   const graveyard = useRef<{ x: number, y: number, color: string, type: string }[]>([]);
@@ -220,13 +237,21 @@ interface Player {
     const now = Date.now();
     const weapon = WEAPONS[currentWeapon];
     if (now - lastShotTime.current < weapon.fireRate) return;
-    if (ammo.mag <= 0) {
+    
+    // Check ammo
+    let currentMag = 0;
+    setAmmo(prev => { 
+        currentMag = prev.mag;
+        return prev;
+    });
+
+    if (currentMag <= 0) {
       if (!isReloading && ammo.reserve > 0) reload();
       return;
     }
 
     lastShotTime.current = now;
-    setAmmo(prev => ({ ...prev, mag: prev.mag - 1 }));
+    setAmmo(prev => ({ ...prev, mag: Math.max(0, prev.mag - 1) }));
     setStats(prev => ({ ...prev, shotsFired: prev.shotsFired + 1 }));
     sounds.playShot(currentWeapon);
 
@@ -234,7 +259,7 @@ interface Player {
     recoilOffset.current += weapon.recoil / 50;
 
     // Raycast for Hit Detection
-    const spread = (Math.random() - 0.5) * weapon.spread;
+    const spread = (Math.random() - 0.5) * weapon.spread * (1 - player.current.adsProgress * 0.8);
     const shotAngle = player.current.angle + spread;
     const cos = Math.cos(shotAngle);
     const sin = Math.sin(shotAngle);
@@ -263,18 +288,20 @@ interface Player {
     }
     
     // Check enemies
-    for (const enemy of enemies.current) {
+    enemies.current.forEach(enemy => {
+        if (enemy.dead) return;
         const dx = enemy.x - player.current.x;
         const dy = enemy.y - player.current.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist > hitDist) continue;
+        if (dist > hitDist) return;
         
         const angleToEnemy = Math.atan2(dy, dx);
         const angleDiff = Math.atan2(Math.sin(angleToEnemy - shotAngle), Math.cos(angleToEnemy - shotAngle));
         
-        if (Math.abs(angleDiff) < 0.1) {
+        if (Math.abs(angleDiff) < 0.15 * (weapon.type === 'shotgun' ? 3 : 1)) {
             enemy.hp -= weapon.damage;
             hitSomething = true;
+            setHitMarker(Date.now());
             sounds.playHit();
             spawnParticles(enemy.x, enemy.y, 'blood');
             if (enemy.hp <= 0) {
@@ -285,7 +312,7 @@ interface Player {
               spawnParticles(enemy.x, enemy.y, 'explosion');
             }
         }
-    }
+    });
 
     if (hitSomething) {
       setStats(prev => ({ ...prev, shotsHit: prev.shotsHit + 1 }));
@@ -293,19 +320,42 @@ interface Player {
 
     // Spawn Shell Casing and Muzzle Flash
     spawnParticles(player.current.x, player.current.y, 'shell');
+
+    // Player Shot Tracer
+    tracers.current.push({
+      id: nextTracerId.current++,
+      x1: player.current.x,
+      y1: player.current.y,
+      x2: player.current.x + cos * hitDist,
+      y2: player.current.y + sin * hitDist,
+      alpha: 1
+    });
   };
 
   const reload = () => {
-    if (isReloading || ammo.mag === WEAPONS[currentWeapon].magSize || ammo.reserve <= 0) return;
+    // Prevent double reload and check conditions
+    let canReload = false;
+    setAmmo(prev => {
+        if (!isReloading && prev.mag < WEAPONS[currentWeapon].magSize && prev.reserve > 0) {
+            canReload = true;
+        }
+        return prev;
+    });
+    
+    if (!canReload) return;
+
     setIsReloading(true);
     sounds.playReload();
+
     setTimeout(() => {
-      const needed = WEAPONS[currentWeapon].magSize - ammo.mag;
-      const taken = Math.min(needed, ammo.reserve);
-      setAmmo(prev => ({
-        mag: prev.mag + taken,
-        reserve: prev.reserve - taken
-      }));
+      setAmmo(prev => {
+        const needed = WEAPONS[currentWeapon].magSize - prev.mag;
+        const taken = Math.min(needed, prev.reserve);
+        return {
+          mag: prev.mag + taken,
+          reserve: prev.reserve - taken
+        };
+      });
       setIsReloading(false);
     }, WEAPONS[currentWeapon].reloadTime);
   };
@@ -377,83 +427,107 @@ interface Player {
     }
 
     // Enemy AI
+    const now = Date.now();
     enemies.current = enemies.current.filter(e => !e.dead);
+    
     enemies.current.forEach(e => {
       const pDx = player.current.x - e.x;
       const pDy = player.current.y - e.y;
       const dist = Math.sqrt(pDx * pDx + pDy * pDy);
 
-      if (dist < 600) {
-        e.angle = Math.atan2(pDy, pDx);
-        
-        let hasLineOfSight = true;
-        const cos = Math.cos(e.angle);
-        const sin = Math.sin(e.angle);
-        for(let d = 0; d < dist; d += 16) {
-             const tx = Math.floor((e.x + cos * d) / CELL_SIZE);
-             const ty = Math.floor((e.y + sin * d) / CELL_SIZE);
-             if (tx >= 0 && tx < MAP[0].length && ty >= 0 && ty < MAP.length) {
-                 if (mapData.current[ty][tx] > 0 && mapData.current[ty][tx] !== 2) {
-                     hasLineOfSight = false;
-                     break;
-                 }
-             }
-        }
-
-        // Seek & Flank
-        let nx = e.x;
-        let ny = e.y;
-        if (e.type === 'rusher') {
-           nx += Math.cos(e.angle) * e.speed;
-           ny += Math.sin(e.angle) * e.speed;
-        } else if (dist > 200 || !hasLineOfSight) {
-           nx += Math.cos(e.angle) * e.speed;
-           ny += Math.sin(e.angle) * e.speed;
-        }
-
-        // Basic enemy collision
-        const txX = Math.floor(nx / CELL_SIZE);
-        const tyY = Math.floor(ny / CELL_SIZE);
-        const curTx = Math.floor(e.x / CELL_SIZE);
-        const curTy = Math.floor(e.y / CELL_SIZE);
-
-        if (txX >= 0 && txX < MAP[0].length && curTy >= 0 && curTy < MAP.length && mapData.current[curTy][txX] === 0) e.x = nx;
-        if (tyY >= 0 && tyY < MAP.length && curTx >= 0 && curTx < MAP[0].length && mapData.current[tyY][curTx] === 0) e.y = ny;
-
-        // Shoot
-        const now = Date.now();
-        if (hasLineOfSight && dist < 450 && now - e.lastShot > (e.type === 'sniper' ? 2500 : 1000)) {
-           e.lastShot = now;
-           setHp(h => {
-             const newH = h - (e.type === 'sniper' ? 40 : 12);
-             if (newH <= 0 && gameState === 'playing') setGameState('dead');
-             return newH;
-           });
-           
-           // Tracer from enemy to player
-           tracers.current.push({
-             id: nextTracerId.current++,
-             x1: e.x, y1: e.y,
-             x2: player.current.x, y2: player.current.y,
-             alpha: 1
-           });
-
-           // Add damage indicator
-           const angleToEnemy = Math.atan2(pDy, pDx);
-           const relativeAngle = angleToEnemy - player.current.angle;
-           setDamageIndicators(prev => [
-             ...prev, 
-             { id: nextDamageId.current++, angle: relativeAngle, opacity: 1 }
-           ].slice(-4));
-
-           spawnParticles(player.current.x, player.current.y, 'blood');
-           sounds.playShot(e.type === 'sniper' ? 'sniper' : 'pistol');
-        }
+      // Line of Sight Check (Simplified Raycast)
+      let hasLineOfSight = true;
+      const angleToPlayer = Math.atan2(pDy, pDx);
+      const cos = Math.cos(angleToPlayer);
+      const sin = Math.sin(angleToPlayer);
+      
+      const checkSteps = Math.min(dist / 16, 20);
+      for(let d = 1; d < checkSteps; d++) {
+           const tx = Math.floor((e.x + cos * d * 16) / CELL_SIZE);
+           const ty = Math.floor((e.y + sin * d * 16) / CELL_SIZE);
+           if (tx >= 0 && tx < MAP[0].length && ty >= 0 && ty < MAP.length) {
+               if (mapData.current[ty][tx] > 0 && mapData.current[ty][tx] !== 2) {
+                   hasLineOfSight = false;
+                   break;
+               }
+           }
       }
+
+      // Behavioral logic
+      let targetDist = 0;
+      if (e.type === 'rusher') targetDist = 64;
+      else if (e.type === 'rifleman') targetDist = 320;
+      else if (e.type === 'sniper') targetDist = 600;
+
+      let moveX = 0;
+      let moveY = 0;
+
+      if (hasLineOfSight) {
+          if (dist > targetDist + 32) {
+              moveX = cos * e.speed;
+              moveY = sin * e.speed;
+          } else if (dist < targetDist - 32) {
+              moveX = -cos * e.speed;
+              moveY = -sin * e.speed;
+          }
+
+          // Shoot
+          const fireRate = e.type === 'sniper' ? 3000 : e.type === 'rifleman' ? 800 : 1500;
+          if (now - e.lastShot > fireRate && dist < 1000) {
+              e.lastShot = now;
+              
+              // Damage cooldown for player (250ms)
+              if (now - lastDamageTaken > 250) {
+                  const damage = e.type === 'sniper' ? 35 : e.type === 'rifleman' ? 12 : 8;
+                  setHp(prev => {
+                      const newHp = Math.max(0, prev - damage);
+                      if (newHp === 0 && gameState === 'playing') setGameState('dead');
+                      return newHp;
+                  });
+                  setLastDamageTaken(now);
+                  
+                  // Damage indicator
+                  setDamageIndicators(prev => [
+                    ...prev, 
+                    { id: nextDamageId.current++, angle: angleToPlayer - player.current.angle + Math.PI, opacity: 1 }
+                  ].slice(-5));
+                  
+                  spawnParticles(player.current.x, player.current.y, 'blood');
+                  sounds.playShot(e.type === 'sniper' ? 'sniper' : 'pistol');
+              }
+              
+              // Tracer from enemy to player
+              tracers.current.push({
+                id: nextTracerId.current++,
+                x1: e.x, y1: e.y,
+                x2: player.current.x, y2: player.current.y,
+                alpha: 1
+              });
+          }
+      } else {
+          // No LOS: Move toward player
+          moveX = cos * e.speed;
+          moveY = sin * e.speed;
+      }
+
+      // Basic enemy collision
+      const nx = e.x + moveX;
+      const ny = e.y + moveY;
+      const txX = Math.floor(nx / CELL_SIZE);
+      const tyY = Math.floor(ny / CELL_SIZE);
+      const curTx = Math.floor(e.x / CELL_SIZE);
+      const curTy = Math.floor(e.y / CELL_SIZE);
+
+      if (txX >= 0 && txX < MAP[0].length && curTy >= 0 && curTy < MAP.length && mapData.current[curTy][txX] === 0) e.x = nx;
+      if (tyY >= 0 && tyY < MAP.length && curTx >= 0 && curTx < MAP[0].length && mapData.current[tyY][curTx] === 0) e.y = ny;
     });
 
-    // Sync internal state for 3D rendering
-    setEnemiesState([...enemies.current]);
+    // Sync internal state for 3D rendering (Throttle to ~30fps for UI/Render sync)
+    renderTick.current++;
+    if (renderTick.current % 2 === 0) {
+      setEnemiesState([...enemies.current]);
+      setDamageIndicators(prev => prev.map(ind => ({ ...ind, opacity: ind.opacity - 0.02 })).filter(ind => ind.opacity > 0));
+    }
 
     if (enemies.current.length < 4) spawnEnemies(2);
 
@@ -464,9 +538,6 @@ interface Player {
       p.x += p.vx; p.y += p.vy; p.life -= 0.02;
     });
     particles.current = particles.current.filter(p => p.life > 0);
-    
-    // Update damage indicators
-    setDamageIndicators(prev => prev.map(ind => ({ ...ind, opacity: ind.opacity - 0.01 })).filter(ind => ind.opacity > 0));
   };
 
   useEffect(() => {
@@ -490,16 +561,23 @@ interface Player {
     };
     const handleKeyUp = (e: KeyboardEvent) => keys.current[e.key.toLowerCase()] = false;
     const handleMouseDown = (e: MouseEvent) => {
-      if (document.pointerLockElement !== canvasRef.current && e.target === canvasRef.current) return;
+      if (gameState !== 'playing') return;
+      if (document.pointerLockElement !== gameContainerRef.current) {
+        togglePointerLock();
+        return;
+      }
       if (e.button === 2) keys.current['m_right'] = true;
-      if (e.button === 0) keys.current['m_left'] = true;
+      if (e.button === 0) {
+        keys.current['m_left'] = true;
+        handleShoot(); // Initial shot for semi and auto
+      }
     };
     const handleMouseUp = (e: MouseEvent) => {
       if (e.button === 2) keys.current['m_right'] = false;
       if (e.button === 0) keys.current['m_left'] = false;
     };
     const handleMouseMove = (e: MouseEvent) => {
-        if (gameState !== 'playing' || document.pointerLockElement !== canvasRef.current) return;
+        if (gameState !== 'playing' || document.pointerLockElement !== gameContainerRef.current) return;
         const speed = player.current.isAds ? 0.001 : 0.003;
         player.current.angle += e.movementX * speed;
         player.current.pitch = clamp(player.current.pitch - e.movementY * 0.5, -200, 200);
@@ -507,6 +585,7 @@ interface Player {
 
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
+    // Bind mouse events to window to capture even if out of container during drag/lock
     window.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mouseup', handleMouseUp);
     window.addEventListener('mousemove', handleMouseMove);
@@ -520,8 +599,8 @@ interface Player {
   }, [gameState, currentWeapon, isReloading]);
 
   const togglePointerLock = () => {
-    if (canvasRef.current) {
-        canvasRef.current.requestPointerLock();
+    if (gameContainerRef.current) {
+        gameContainerRef.current.requestPointerLock();
     }
   };
 
@@ -534,12 +613,17 @@ interface Player {
       </div>
 
       {/* Main Game Container */}
-      <div className="relative group shadow-2xl shadow-blue-900/20 border-4 border-slate-800 rounded-xl overflow-hidden aspect-[4/3] max-w-[800px] w-full bg-black">
+      <div 
+        ref={gameContainerRef}
+        className="relative group shadow-2xl shadow-blue-900/20 border-4 border-slate-800 rounded-xl overflow-hidden aspect-[4/3] max-w-[800px] w-full bg-black cursor-crosshair"
+        onClick={togglePointerLock}
+      >
         {gameState === 'playing' ? (
           <GameScene 
             player={player} 
             enemies={enemiesState}
             particles={particles.current}
+            tracers={tracers.current}
             mapData={MAP}
             cellSize={CELL_SIZE}
             currentWeapon={currentWeapon}
@@ -571,7 +655,24 @@ interface Player {
            ))}
 
            {hp < 30 && (
-             <div className="absolute inset-0 bg-red-600/10 animate-pulse pointer-events-none" />
+             <div className="absolute inset-0 bg-red-600/10 animate-pulse pointer-events-none z-50" />
+           )}
+
+           {/* Damage Flash */}
+           {Date.now() - lastDamageTaken < 100 && (
+             <div className="absolute inset-0 bg-red-600/20 pointer-events-none z-50" />
+           )}
+
+           {/* Hit Marker */}
+           {Date.now() - hitMarker < 100 && (
+             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-50">
+                <div className="relative w-8 h-8">
+                   <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-white rotate-45" />
+                   <div className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-white -rotate-45" />
+                   <div className="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 border-white -rotate-45" />
+                   <div className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-white rotate-45" />
+                </div>
+             </div>
            )}
 
            {/* Crosshair Overlay */}
