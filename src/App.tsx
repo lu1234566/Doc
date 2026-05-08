@@ -128,6 +128,17 @@ export default function App() {
   const [gameState, setGameState] = useState<'start' | 'playing' | 'dead'>('start');
   const [mobileMode, setMobileMode] = useState(false);
   const [stats, setStats] = useState({ kills: 0, deaths: 0, shotsFired: 0, shotsHit: 0 });
+
+  useEffect(() => {
+    const checkMobile = () => {
+      const isTouch = window.matchMedia("(pointer: coarse)").matches;
+      const isSmall = window.innerWidth < 1024;
+      setMobileMode(isTouch || isSmall);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   const [currentWeapon, setCurrentWeapon] = useState<WeaponType>('rifle');
   const [ammo, setAmmo] = useState({ mag: WEAPONS.rifle.magSize, reserve: 120 });
   const ammoRef = useRef(ammo);
@@ -378,6 +389,21 @@ interface Player {
     const isD = keys.current['d'];
     const isShift = keys.current['shift'];
 
+    // joystick input
+    if (joystick.current.active) {
+      const jDx = joystick.current.curX - joystick.current.startX;
+      const jDy = joystick.current.curY - joystick.current.startY;
+      const jDist = Math.sqrt(jDx * jDx + jDy * jDy);
+      const jAngle = Math.atan2(jDy, jDx);
+      const limitedDist = Math.min(50, jDist);
+      const intensity = limitedDist / 50;
+
+      // Adjust relative to player angle
+      const moveAngle = player.current.angle + jAngle + Math.PI / 2;
+      dx = Math.cos(moveAngle) * intensity;
+      dy = Math.sin(moveAngle) * intensity;
+    }
+
     if (isW) { dx += Math.cos(player.current.angle); dy += Math.sin(player.current.angle); }
     if (isS) { dx -= Math.cos(player.current.angle); dy -= Math.sin(player.current.angle); }
     if (isA) { dx += Math.sin(player.current.angle); dy -= Math.cos(player.current.angle); }
@@ -609,7 +635,7 @@ interface Player {
       {/* Main Game Container */}
       <div 
         ref={gameContainerRef}
-        className="relative group shadow-2xl shadow-blue-900/20 border-4 border-slate-800 rounded-xl overflow-hidden aspect-[4/3] max-w-[800px] w-full bg-black cursor-crosshair"
+        className="relative group shadow-2xl shadow-blue-900/20 border-4 border-slate-800 rounded-xl overflow-hidden aspect-[4/3] max-w-[800px] w-full bg-black cursor-crosshair touch-none"
         onClick={togglePointerLock}
       >
         {gameState === 'playing' ? (
@@ -633,6 +659,133 @@ interface Player {
             className="w-full h-full cursor-crosshair"
             onClick={togglePointerLock}
           />
+        )}
+
+        {/* Mobile Controls Overlay */}
+        {mobileMode && gameState === 'playing' && (
+          <div className="absolute inset-0 z-50 pointer-events-none select-none">
+            {/* Joystick Area */}
+            <div 
+              className="absolute bottom-10 left-10 w-40 h-40 flex items-center justify-center pointer-events-auto rounded-full bg-white/5 border border-white/10"
+              onTouchStart={(e) => {
+                const touch = e.touches[0];
+                const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                joystick.current = { 
+                  active: true, 
+                  startX: touch.clientX, 
+                  startY: touch.clientY,
+                  curX: touch.clientX, 
+                  curY: touch.clientY 
+                };
+              }}
+              onTouchMove={(e) => {
+                const touch = e.touches[0];
+                joystick.current.curX = touch.clientX;
+                joystick.current.curY = touch.clientY;
+              }}
+              onTouchEnd={() => {
+                joystick.current.active = false;
+              }}
+            >
+              {joystick.current.active && (
+                <div 
+                  className="absolute w-12 h-12 bg-white/20 rounded-full border border-white/30 backdrop-blur-sm shadow-lg pointer-events-none"
+                  style={{
+                    transform: `translate(${clamp(joystick.current.curX - joystick.current.startX, -50, 50)}px, ${clamp(joystick.current.curY - joystick.current.startY, -50, 50)}px)`
+                  }}
+                />
+              )}
+              {!joystick.current.active && <div className="w-12 h-12 bg-white/10 rounded-full border border-white/5" />}
+              <Move className="absolute text-white/10 pointer-events-none" size={40} />
+            </div>
+
+            {/* Look Area */}
+            <div 
+              className="absolute inset-y-0 right-0 w-2/3 pointer-events-auto"
+              onTouchStart={(e) => {
+                const touch = e.touches[0];
+                touchLook.current = { active: true, lastX: touch.clientX, lastY: touch.clientY };
+              }}
+              onTouchMove={(e) => {
+                if (!touchLook.current.active) return;
+                const touch = e.touches[0];
+                const dx = touch.clientX - touchLook.current.lastX;
+                const dy = touch.clientY - touchLook.current.lastY;
+                
+                const sensitivity = player.current.isAds ? 0.003 : 0.006;
+                player.current.angle += dx * sensitivity;
+                player.current.pitch = clamp(player.current.pitch - dy * 1.5, -200, 200);
+                
+                touchLook.current.lastX = touch.clientX;
+                touchLook.current.lastY = touch.clientY;
+              }}
+              onTouchEnd={() => {
+                touchLook.current.active = false;
+              }}
+            />
+
+            {/* Action Buttons */}
+            <div className="absolute right-10 bottom-32 flex flex-col items-end gap-6 pointer-events-none">
+              
+              <div className="flex gap-4">
+                 {/* ADS Button */}
+                 <button 
+                  className={`w-16 h-16 rounded-full flex items-center justify-center border-2 backdrop-blur-md pointer-events-auto transition-transform active:scale-95 ${player.current.isAds ? 'bg-yellow-500/40 border-yellow-500 text-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.3)]' : 'bg-slate-900/60 border-slate-700 text-slate-400'}`}
+                  onTouchStart={() => {
+                    player.current.isAds = !player.current.isAds;
+                    keys.current['c'] = player.current.isAds;
+                  }}
+                >
+                  <Target size={28} />
+                </button>
+
+                {/* Reload Button */}
+                <button 
+                  className="w-16 h-16 rounded-full bg-slate-900/60 border-2 border-slate-700 text-white flex items-center justify-center backdrop-blur-md pointer-events-auto active:scale-95 transition-transform"
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    reload();
+                  }}
+                >
+                  <RefreshCcw size={28} className={isReloading ? 'animate-spin text-yellow-500' : ''} />
+                </button>
+              </div>
+
+              {/* Fire Button */}
+              <button 
+                className="w-24 h-24 rounded-full bg-red-600/30 border-4 border-red-500/50 text-red-500 flex items-center justify-center backdrop-blur-xl pointer-events-auto active:scale-90 transition-all shadow-[0_0_30px_rgba(239,68,68,0.2)] active:border-red-500 active:bg-red-500/50"
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  keys.current['m_left'] = true;
+                  handleShoot();
+                }}
+                onTouchEnd={() => {
+                  keys.current['m_left'] = false;
+                }}
+              >
+                <div className="w-12 h-12 rounded-full border-2 border-red-400/30 flex items-center justify-center">
+                   <Target size={32} />
+                </div>
+              </button>
+            </div>
+            
+            {/* Weapon Selector (Mobile) */}
+            <div className="absolute top-24 left-10 flex flex-col gap-2 pointer-events-auto">
+              {(['pistol', 'rifle', 'shotgun', 'sniper'] as WeaponType[]).map(weapon => (
+                <button
+                  key={weapon}
+                  onClick={() => {
+                    setCurrentWeapon(weapon);
+                    setAmmo({ mag: WEAPONS[weapon].magSize, reserve: 120 });
+                    setIsReloading(false);
+                  }}
+                  className={`px-4 py-2 rounded-lg border backdrop-blur-md text-[10px] font-black uppercase tracking-widest transition-all ${currentWeapon === weapon ? 'bg-yellow-500 border-yellow-400 text-slate-950 shadow-lg' : 'bg-slate-900/60 border-slate-700 text-slate-400'}`}
+                >
+                  {WEAPONS[weapon].name}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
 
         {/* Global Damage Indicators Overlays */}
