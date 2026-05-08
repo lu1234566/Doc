@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import * as THREE from 'three';
-import { useTexture } from '@react-three/drei';
 
 interface MapProps {
   mapData: number[][];
@@ -8,52 +7,70 @@ interface MapProps {
 }
 
 export function World({ mapData, cellSize }: MapProps) {
-  // Use high-quality materials
-  const wallMaterial = new THREE.MeshStandardMaterial({
-    color: '#334155',
-    metalness: 0.2,
-    roughness: 0.8,
-  });
+  const materials = useMemo(() => ({
+    wall: new THREE.MeshStandardMaterial({
+      color: '#334155',
+      metalness: 0.18,
+      roughness: 0.82,
+    }),
+    door: new THREE.MeshStandardMaterial({
+      color: '#f59e0b',
+      metalness: 0.45,
+      roughness: 0.45,
+      emissive: '#3b1700',
+      emissiveIntensity: 0.18,
+    }),
+    barrel: new THREE.MeshStandardMaterial({
+      color: '#ef4444',
+      metalness: 0.65,
+      roughness: 0.32,
+      emissive: '#330000',
+      emissiveIntensity: 0.2,
+    }),
+    floor: new THREE.MeshStandardMaterial({
+      color: '#1e293b',
+      metalness: 0.08,
+      roughness: 0.92,
+    }),
+    ceiling: new THREE.MeshStandardMaterial({
+      color: '#020617',
+      metalness: 0,
+      roughness: 1,
+    }),
+  }), []);
 
-  const floorMaterial = new THREE.MeshStandardMaterial({
-    color: '#1e293b',
-    metalness: 0.1,
-    roughness: 0.9,
-  });
-
-  const ceilingMaterial = new THREE.MeshStandardMaterial({
-    color: '#020617',
-    metalness: 0,
-    roughness: 1,
-  });
+  const mapWidth = mapData[0].length * cellSize;
+  const mapHeight = mapData.length * cellSize;
 
   const cells = useMemo(() => {
     const geometry: React.ReactNode[] = [];
-    
+
     mapData.forEach((row, y) => {
       row.forEach((cell, x) => {
-        const posX = x * cellSize;
-        const posZ = y * cellSize;
+        // Game logic uses tile centers. Visual geometry must use the same center,
+        // otherwise collision/raycasting and the 3D scene are offset by half a tile.
+        const posX = x * cellSize + cellSize / 2;
+        const posZ = y * cellSize + cellSize / 2;
 
-        if (cell === 1) { // Wall
+        if (cell === 1) {
           geometry.push(
-            <mesh key={`wall-${x}-${y}`} position={[posX, cellSize / 2, posZ]}>
+            <mesh key={`wall-${x}-${y}`} position={[posX, cellSize / 2, posZ]} castShadow receiveShadow>
               <boxGeometry args={[cellSize, cellSize, cellSize]} />
-              <primitive object={wallMaterial.clone()} />
+              <primitive object={materials.wall} />
             </mesh>
           );
-        } else if (cell === 2) { // Door (Orange)
+        } else if (cell === 2) {
           geometry.push(
-            <mesh key={`door-${x}-${y}`} position={[posX, cellSize / 2, posZ]}>
+            <mesh key={`door-${x}-${y}`} position={[posX, cellSize / 2, posZ]} castShadow receiveShadow>
               <boxGeometry args={[cellSize, cellSize, cellSize]} />
-              <meshStandardMaterial color="#f59e0b" metalness={0.5} roughness={0.5} />
+              <primitive object={materials.door} />
             </mesh>
           );
-        } else if (cell === 3) { // Barrel (Red)
+        } else if (cell === 3) {
           geometry.push(
-            <mesh key={`barrel-${x}-${y}`} position={[posX, cellSize / 3, posZ]}>
-              <cylinderGeometry args={[cellSize/3, cellSize/3, cellSize/1.5, 16]} />
-              <meshStandardMaterial color="#ef4444" metalness={0.8} roughness={0.2} />
+            <mesh key={`barrel-${x}-${y}`} position={[posX, cellSize / 3, posZ]} castShadow receiveShadow>
+              <cylinderGeometry args={[cellSize / 3, cellSize / 3, cellSize / 1.5, 18]} />
+              <primitive object={materials.barrel} />
             </mesh>
           );
         }
@@ -61,23 +78,18 @@ export function World({ mapData, cellSize }: MapProps) {
     });
 
     return geometry;
-  }, [mapData, cellSize]);
-
-  const mapWidth = mapData[0].length * cellSize;
-  const mapHeight = mapData.length * cellSize;
+  }, [mapData, cellSize, materials]);
 
   return (
     <group position={[-mapWidth / 2, 0, -mapHeight / 2]}>
-      {/* Floor */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[mapWidth / 2, 0, mapHeight / 2]} receiveShadow>
-        <planeGeometry args={[mapWidth * 2, mapHeight * 2]} />
-        <primitive object={floorMaterial} />
+        <planeGeometry args={[mapWidth, mapHeight]} />
+        <primitive object={materials.floor} />
       </mesh>
 
-      {/* Ceiling */}
       <mesh rotation={[Math.PI / 2, 0, 0]} position={[mapWidth / 2, cellSize, mapHeight / 2]}>
-        <planeGeometry args={[mapWidth * 2, mapHeight * 2]} />
-        <primitive object={ceilingMaterial} />
+        <planeGeometry args={[mapWidth, mapHeight]} />
+        <primitive object={materials.ceiling} />
       </mesh>
 
       {cells}
