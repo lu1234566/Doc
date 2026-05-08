@@ -45,6 +45,15 @@ const UPGRADES: Record<string, Upgrade> = {
   }
 };
 
+const DIFFICULTIES = {
+  recruit: { name: 'Recruit', hpMult: 0.8, dmgMult: 0.85, creditMult: 0.8, color: '#4ade80' },
+  normal: { name: 'Normal', hpMult: 1.0, dmgMult: 1.0, creditMult: 1.0, color: '#facc15' },
+  veteran: { name: 'Veteran', hpMult: 1.3, dmgMult: 1.2, creditMult: 1.5, color: '#fb923c' },
+  nightmare: { name: 'Nightmare', hpMult: 1.7, dmgMult: 1.5, creditMult: 2.2, color: '#f43f5e' }
+};
+
+type DifficultyKey = keyof typeof DIFFICULTIES;
+
 interface Weapon {
   name: string;
   type: WeaponType;
@@ -209,12 +218,14 @@ export default function App() {
     scavenger: 0
   });
   const [earnedCredits, setEarnedCredits] = useState(0);
+  const [difficulty, setDifficulty] = useState<DifficultyKey>('normal');
 
   // Load Meta Data
   useEffect(() => {
     try {
       const savedCredits = localStorage.getItem('nano_credits');
       const savedUpgrades = localStorage.getItem('nano_upgrades');
+      const savedDifficulty = localStorage.getItem('nano_difficulty');
       if (savedCredits) {
         const parsed = parseInt(savedCredits);
         if (!isNaN(parsed)) setTacticalCredits(parsed);
@@ -224,6 +235,9 @@ export default function App() {
         if (parsed && typeof parsed === 'object') {
           setUpgradeLevels(prev => ({ ...prev, ...parsed }));
         }
+      }
+      if (savedDifficulty && DIFFICULTIES[savedDifficulty as DifficultyKey]) {
+        setDifficulty(savedDifficulty as DifficultyKey);
       }
     } catch (e) {
       console.error("Failed to load meta progression", e);
@@ -424,9 +438,10 @@ interface Player {
         
         if (distToPlayer > 500 && MAP[mapY]?.[mapX] === 0) {
             const type = isBoss ? 'rifleman' : types[Math.floor(Math.random() * types.length)];
+            const diffMult = DIFFICULTIES[difficulty].hpMult;
             const hpBuff = 1 + (currentWave - 1) * 0.15;
             const speedBuff = 1 + (currentWave - 1) * 0.04;
-            const finalHp = (type === 'rusher' ? 60 : type === 'rifleman' ? 100 : 80) * hpBuff * (isBoss ? 20 : 1);
+            const finalHp = (type === 'rusher' ? 60 : type === 'rifleman' ? 100 : 80) * hpBuff * (isBoss ? 20 : 1) * diffMult;
 
             const newEnemy = {
                 id: Math.random(),
@@ -716,7 +731,8 @@ interface Player {
        if (waveRef.current >= 5) {
          if (!isRunEndingRef.current) {
            isRunEndingRef.current = true;
-           const finalCredits = Math.floor(stats.kills * 15 + waveRef.current * 100 + score / 5 + 1500);
+           const diffMult = DIFFICULTIES[difficulty].creditMult;
+           const finalCredits = Math.floor((stats.kills * 15 + waveRef.current * 100 + score / 5 + 1500) * diffMult);
            setEarnedCredits(finalCredits);
            setTacticalCredits(prev => {
              const total = prev + finalCredits;
@@ -802,12 +818,14 @@ interface Player {
               
               // Damage cooldown for player (250ms)
               if (now - lastDamageTaken.current > 250) {
-                  const damage = e.type === 'sniper' ? 35 : e.type === 'rifleman' ? 12 : 8;
+                  const baseDamage = e.type === 'sniper' ? 35 : e.type === 'rifleman' ? 12 : 8;
+                  const damage = baseDamage * DIFFICULTIES[difficulty].dmgMult;
                   setHp(prev => {
                       const newHp = Math.max(0, prev - damage);
                       if (newHp === 0 && gameStateRef.current === 'playing' && !isRunEndingRef.current) {
                         isRunEndingRef.current = true;
-                        const runCredits = Math.floor(stats.kills * 10 + waveRef.current * 50 + score / 10);
+                        const diffMult = DIFFICULTIES[difficulty].creditMult;
+                        const runCredits = Math.floor((stats.kills * 10 + waveRef.current * 50 + score / 10) * diffMult);
                         setEarnedCredits(runCredits);
                         setTacticalCredits(prevCred => {
                           const total = prevCred + runCredits;
@@ -1346,11 +1364,17 @@ interface Player {
             </div>
 
             {/* Top Stats HUD */}
-            <div className="absolute top-6 left-6 flex flex-col gap-2 pointer-events-none z-50">
+            <div className="absolute top-6 left-6 flex items-start gap-2 pointer-events-none z-50">
                <div className="flex items-center gap-3 bg-slate-900/80 px-4 py-2 rounded-lg border-l-4 border-blue-500 backdrop-blur-md">
                  <div className="flex flex-col">
                    <span className="text-blue-400 font-black text-[9px] uppercase tracking-widest leading-none">Sector Wave</span>
                    <span className="text-white font-black text-2xl tracking-tighter leading-none mt-1">{wave}<span className="text-slate-600 text-sm ml-1">/ 5</span></span>
+                 </div>
+               </div>
+               <div className="flex items-center gap-3 bg-slate-900/80 px-4 py-2 rounded-lg border-l-4 backdrop-blur-md" style={{ borderColor: DIFFICULTIES[difficulty].color }}>
+                 <div className="flex flex-col">
+                   <span className="font-black text-[9px] uppercase tracking-widest leading-none opacity-60" style={{ color: DIFFICULTIES[difficulty].color }}>Protocol</span>
+                   <span className="text-white font-black text-xs italic tracking-tighter leading-none mt-1 uppercase">{difficulty}</span>
                  </div>
                </div>
             </div>
@@ -1486,6 +1510,27 @@ interface Player {
                     </div>
                   </div>
 
+                  <div className="flex flex-wrap justify-center gap-2 mb-8 max-w-lg">
+                    {(Object.keys(DIFFICULTIES) as DifficultyKey[]).map((key) => (
+                      <button
+                        key={key}
+                        onClick={() => {
+                          setDifficulty(key);
+                          localStorage.setItem('nano_difficulty', key);
+                          sounds.playHit();
+                        }}
+                        className={`px-4 py-2 rounded-xl border-2 font-black uppercase text-[10px] tracking-widest transition-all ${
+                          difficulty === key 
+                            ? 'bg-white text-slate-950 border-white scale-110 shadow-[0_0_15px_rgba(255,255,255,0.3)]' 
+                            : 'bg-slate-900/50 text-slate-500 border-white/5 hover:border-white/20'
+                        }`}
+                      >
+                        {key}
+                        <div className="text-[8px] font-bold opacity-60 mt-0.5">x{DIFFICULTIES[key].creditMult} CR</div>
+                      </button>
+                    ))}
+                  </div>
+
                   <div className="flex flex-col gap-4 w-full max-w-xs">
                     <button 
                       onClick={initGame}
@@ -1506,6 +1551,9 @@ interface Player {
                     <h2 className={`text-8xl font-black italic tracking-tighter mb-2 ${gameState === 'win' ? 'text-yellow-500' : 'text-red-500'}`}>
                        {gameState === 'win' ? 'SUCCESS' : 'FAILED'}
                     </h2>
+                    <div className="mb-4 inline-block px-3 py-1 rounded-full bg-slate-900 border border-white/10 text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: DIFFICULTIES[difficulty].color }}>
+                      {DIFFICULTIES[difficulty].name} PROTOCOL
+                    </div>
                     <p className="text-slate-400 font-black uppercase tracking-[0.3em] mb-10 text-xs">{gameState === 'win' ? 'Sector Secured. All hostiles neutralized.' : 'Mission Aborted. Biological signature lost.'}</p>
                     
                     <div className="bg-slate-900/80 px-6 py-5 rounded-2xl border-2 border-yellow-500/30 mb-8 text-left flex justify-between items-center">
