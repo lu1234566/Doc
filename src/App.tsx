@@ -226,6 +226,12 @@ export default function App() {
     shotgun: { damage: 0, reload: 0, stability: 0 },
     sniper: { damage: 0, reload: 0, stability: 0 }
   });
+  const [weaponMags, setWeaponMags] = useState<Record<WeaponType, number>>({
+    pistol: WEAPONS.pistol.magSize,
+    rifle: WEAPONS.rifle.magSize,
+    shotgun: WEAPONS.shotgun.magSize,
+    sniper: WEAPONS.sniper.magSize
+  });
   const [earnedCredits, setEarnedCredits] = useState(0);
   const [difficulty, setDifficulty] = useState<DifficultyKey>('normal');
   const [upgradeTab, setUpgradeTab] = useState<'biological' | 'weapon'>('biological');
@@ -370,6 +376,12 @@ interface Player {
     setEnemiesRemaining(0);
     setBossHp(null);
     setWaveMessage('');
+    setWeaponMags({
+      pistol: WEAPONS.pistol.magSize,
+      rifle: WEAPONS.rifle.magSize,
+      shotgun: WEAPONS.shotgun.magSize,
+      sniper: WEAPONS.sniper.magSize
+    });
     pickups.current = [];
     player.current = { x: 128, y: 128, angle: 0, velX: 0, velY: 0, rotVel: 0, pitch: 0, radius: 16, isAds: false, adsProgress: 0 };
     enemies.current = [];
@@ -624,6 +636,7 @@ interface Player {
     setIsReloading(true);
     sounds.playReload();
 
+    const reloadingWeapon = currentWeapon;
     if (reloadTimeoutRef.current) clearTimeout(reloadTimeoutRef.current);
     const reloadReduction = upgradeLevels.quickReload * 0.05;
     const weaponReloadReduction = weaponUpgradeLevels[currentWeapon].reload * 0.04;
@@ -631,10 +644,14 @@ interface Player {
     
     reloadTimeoutRef.current = setTimeout(() => {
       setAmmo(prev => {
-        const needed = WEAPONS[currentWeapon].magSize - prev.mag;
+        const weaponStats = WEAPONS[reloadingWeapon];
+        const needed = weaponStats.magSize - prev.mag;
         const taken = Math.min(needed, prev.reserve);
+        const newMag = prev.mag + taken;
+        // Also update the stored mag for this weapon
+        setWeaponMags(mags => ({ ...mags, [reloadingWeapon]: newMag }));
         return {
-          mag: prev.mag + taken,
+          mag: newMag,
           reserve: prev.reserve - taken
         };
       });
@@ -996,8 +1013,14 @@ interface Player {
         const weaponMap: Record<string, WeaponType> = { '1': 'pistol', '2': 'rifle', '3': 'shotgun', '4': 'sniper' };
         const next = weaponMap[e.key];
         if (next === currentWeapon) return;
+        
+        // Sync current mag before swap
+        const currentMag = ammoRef.current.mag;
+        setWeaponMags(prev => ({ ...prev, [currentWeapon]: currentMag }));
+        
         setCurrentWeapon(next);
-        setAmmo(prev => ({ ...prev, mag: WEAPONS[next].magSize }));
+        setAmmo(prev => ({ ...prev, mag: weaponMags[next] }));
+        
         setIsReloading(false);
         if (reloadTimeoutRef.current) {
           clearTimeout(reloadTimeoutRef.current);
@@ -1241,9 +1264,16 @@ interface Player {
                 <button
                   key={weapon}
                   onClick={() => {
+                    // Sync mag before swap
+                    const currentMag = ammoRef.current.mag;
+                    setWeaponMags(prev => ({ ...prev, [currentWeapon]: currentMag }));
                     setCurrentWeapon(weapon);
-                    setAmmo({ mag: WEAPONS[weapon].magSize, reserve: 120 });
+                    setAmmo(prev => ({ ...prev, mag: weaponMags[weapon] }));
                     setIsReloading(false);
+                    if (reloadTimeoutRef.current) {
+                      clearTimeout(reloadTimeoutRef.current);
+                      reloadTimeoutRef.current = null;
+                    }
                   }}
                   className={`px-4 py-2 rounded-lg border backdrop-blur-md text-[10px] font-black uppercase tracking-widest transition-all ${currentWeapon === weapon ? 'bg-yellow-500 border-yellow-400 text-slate-950 shadow-lg' : 'bg-slate-900/60 border-slate-700 text-slate-400'}`}
                 >
@@ -1518,10 +1548,10 @@ interface Player {
                                 className={`mt-auto py-2 rounded-xl flex items-center justify-center gap-2 font-black uppercase text-xs transition-all ${
                                   isMax ? 'bg-slate-800 text-slate-500 cursor-not-allowed' :
                                   canAfford ? 'bg-white text-slate-950 hover:scale-105 active:scale-95' :
-                                  'bg-red-500/10 text-red-500 border border-red-500/20 opacity-50'
+                                  'bg-red-500/10 text-red-500 border border-red-500/20'
                                 }`}
                               >
-                                {isMax ? 'MAXED' : (
+                                {isMax ? 'MAXED' : !canAfford ? 'CREDITS NEEDED' : (
                                   <>
                                     <Coins size={12} />
                                     <span>{cost.toLocaleString()}</span>
@@ -1583,10 +1613,10 @@ interface Player {
                                     className={`py-2 px-6 rounded-xl flex items-center justify-center gap-2 font-black uppercase text-xs transition-all ${
                                       isMax ? 'bg-slate-800 text-slate-500 cursor-not-allowed' :
                                       canAfford ? 'bg-white text-slate-950 hover:scale-105 active:scale-95' :
-                                      'bg-red-500/10 text-red-500 border border-red-500/20 opacity-50'
+                                      'bg-red-500/10 text-red-500 border border-red-500/20'
                                     }`}
                                   >
-                                    {isMax ? 'MAX' : (
+                                    {isMax ? 'MAX' : !canAfford ? 'CREDITS NEEDED' : (
                                       <>
                                         <Coins size={12} />
                                         <span>{cost.toLocaleString()}</span>
