@@ -668,8 +668,8 @@ interface Player {
             <div 
               className="absolute bottom-10 left-10 w-40 h-40 flex items-center justify-center pointer-events-auto rounded-full bg-white/5 border border-white/10"
               onTouchStart={(e) => {
+                e.preventDefault();
                 const touch = e.touches[0];
-                const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
                 joystick.current = { 
                   active: true, 
                   startX: touch.clientX, 
@@ -679,11 +679,19 @@ interface Player {
                 };
               }}
               onTouchMove={(e) => {
+                e.preventDefault();
                 const touch = e.touches[0];
                 joystick.current.curX = touch.clientX;
                 joystick.current.curY = touch.clientY;
               }}
-              onTouchEnd={() => {
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                joystick.current.active = false;
+                joystick.current.curX = joystick.current.startX;
+                joystick.current.curY = joystick.current.startY;
+              }}
+              onTouchCancel={(e) => {
+                e.preventDefault();
                 joystick.current.active = false;
               }}
             >
@@ -701,25 +709,32 @@ interface Player {
 
             {/* Look Area */}
             <div 
-              className="absolute inset-y-0 right-0 w-2/3 pointer-events-auto"
+              className="absolute inset-y-0 right-0 w-3/5 pointer-events-auto"
               onTouchStart={(e) => {
+                e.preventDefault();
                 const touch = e.touches[0];
                 touchLook.current = { active: true, lastX: touch.clientX, lastY: touch.clientY };
               }}
               onTouchMove={(e) => {
+                e.preventDefault();
                 if (!touchLook.current.active) return;
                 const touch = e.touches[0];
                 const dx = touch.clientX - touchLook.current.lastX;
                 const dy = touch.clientY - touchLook.current.lastY;
                 
-                const sensitivity = player.current.isAds ? 0.003 : 0.006;
+                const sensitivity = player.current.isAds ? 0.002 : 0.005;
                 player.current.angle += dx * sensitivity;
-                player.current.pitch = clamp(player.current.pitch - dy * 1.5, -200, 200);
+                player.current.pitch = clamp(player.current.pitch - dy * 1.0, -150, 150);
                 
                 touchLook.current.lastX = touch.clientX;
                 touchLook.current.lastY = touch.clientY;
               }}
-              onTouchEnd={() => {
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                touchLook.current.active = false;
+              }}
+              onTouchCancel={(e) => {
+                e.preventDefault();
                 touchLook.current.active = false;
               }}
             />
@@ -731,9 +746,9 @@ interface Player {
                  {/* ADS Button */}
                  <button 
                   className={`w-16 h-16 rounded-full flex items-center justify-center border-2 backdrop-blur-md pointer-events-auto transition-transform active:scale-95 ${player.current.isAds ? 'bg-yellow-500/40 border-yellow-500 text-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.3)]' : 'bg-slate-900/60 border-slate-700 text-slate-400'}`}
-                  onTouchStart={() => {
-                    player.current.isAds = !player.current.isAds;
-                    keys.current['c'] = player.current.isAds;
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    keys.current['c'] = !keys.current['c'];
                   }}
                 >
                   <Target size={28} />
@@ -759,7 +774,12 @@ interface Player {
                   keys.current['m_left'] = true;
                   handleShoot();
                 }}
-                onTouchEnd={() => {
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  keys.current['m_left'] = false;
+                }}
+                onTouchCancel={(e) => {
+                  e.preventDefault();
                   keys.current['m_left'] = false;
                 }}
               >
