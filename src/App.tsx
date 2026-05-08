@@ -154,6 +154,7 @@ export default function App() {
   const isSpawningRef = useRef(false);
   const spawnIntervalRef = useRef<number | null>(null);
   const reloadTimeoutRef = useRef<number | null>(null);
+  const waveTransitionTimeoutRef = useRef<number | null>(null);
   const [enemiesRemaining, setEnemiesRemaining] = useState(0);
   const [score, setScore] = useState(0);
   const [waveMessage, setWaveMessage] = useState('');
@@ -241,6 +242,10 @@ interface Player {
       clearTimeout(reloadTimeoutRef.current);
       reloadTimeoutRef.current = null;
     }
+    if (waveTransitionTimeoutRef.current) {
+      clearTimeout(waveTransitionTimeoutRef.current);
+      waveTransitionTimeoutRef.current = null;
+    }
     setIsReloading(false);
     setEnemiesRemaining(0);
     setWaveMessage('');
@@ -265,15 +270,23 @@ interface Player {
   const nextTracerId = useRef(0);
 
   const spawnWave = (waveNum: number) => {
-    if (spawnIntervalRef.current) clearInterval(spawnIntervalRef.current);
+    if (spawnIntervalRef.current) {
+      clearInterval(spawnIntervalRef.current);
+      spawnIntervalRef.current = null;
+    }
+    if (waveTransitionTimeoutRef.current) {
+      clearTimeout(waveTransitionTimeoutRef.current);
+      waveTransitionTimeoutRef.current = null;
+    }
     
     isWaveTransitionRef.current = true;
     setWaveMessage(`WAVE ${waveNum}`);
     
-    setTimeout(() => {
+    waveTransitionTimeoutRef.current = setTimeout(() => {
       setWaveMessage('');
       isWaveTransitionRef.current = false;
-    }, 3000);
+      waveTransitionTimeoutRef.current = null;
+    }, 3000) as unknown as number;
     
     waveRef.current = waveNum;
     isSpawningRef.current = true;
@@ -552,9 +565,21 @@ interface Player {
     if (gameState === 'playing' && enemies.current.length === 0 && !isSpawningRef.current && !isWaveTransitionRef.current) {
        if (waveRef.current >= 5) {
          setGameState('win');
-         if (spawnIntervalRef.current) clearInterval(spawnIntervalRef.current);
-         if (reloadTimeoutRef.current) clearTimeout(reloadTimeoutRef.current);
+         if (spawnIntervalRef.current) {
+           clearInterval(spawnIntervalRef.current);
+           spawnIntervalRef.current = null;
+         }
+         if (reloadTimeoutRef.current) {
+           clearTimeout(reloadTimeoutRef.current);
+           reloadTimeoutRef.current = null;
+         }
+         if (waveTransitionTimeoutRef.current) {
+           clearTimeout(waveTransitionTimeoutRef.current);
+           waveTransitionTimeoutRef.current = null;
+         }
          setIsReloading(false);
+         setWaveMessage('');
+         isWaveTransitionRef.current = false;
          keys.current = {};
          joystick.current.active = false;
          touchLook.current.active = false;
@@ -618,9 +643,21 @@ interface Player {
                       const newHp = Math.max(0, prev - damage);
                       if (newHp === 0 && gameState === 'playing') {
                         setGameState('dead');
-                        if (spawnIntervalRef.current) clearInterval(spawnIntervalRef.current);
-                        if (reloadTimeoutRef.current) clearTimeout(reloadTimeoutRef.current);
+                        if (spawnIntervalRef.current) {
+                          clearInterval(spawnIntervalRef.current);
+                          spawnIntervalRef.current = null;
+                        }
+                        if (reloadTimeoutRef.current) {
+                          clearTimeout(reloadTimeoutRef.current);
+                          reloadTimeoutRef.current = null;
+                        }
+                        if (waveTransitionTimeoutRef.current) {
+                          clearTimeout(waveTransitionTimeoutRef.current);
+                          waveTransitionTimeoutRef.current = null;
+                        }
                         setIsReloading(false);
+                        setWaveMessage('');
+                        isWaveTransitionRef.current = false;
                         keys.current = {};
                         joystick.current.active = false;
                         touchLook.current.active = false;
@@ -687,7 +724,12 @@ interface Player {
     const loop = setInterval(() => {
       update();
     }, TICK_RATE);
-    return () => clearInterval(loop);
+    return () => {
+      clearInterval(loop);
+      if (spawnIntervalRef.current) clearInterval(spawnIntervalRef.current);
+      if (reloadTimeoutRef.current) clearTimeout(reloadTimeoutRef.current);
+      if (waveTransitionTimeoutRef.current) clearTimeout(waveTransitionTimeoutRef.current);
+    };
   }, [gameState, currentWeapon, hp, ammo]);
 
   useEffect(() => {
