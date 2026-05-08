@@ -149,6 +149,10 @@ export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gameState, setGameState] = useState<'start' | 'playing' | 'dead' | 'win'>('start');
   const [wave, setWave] = useState(1);
+  const waveRef = useRef(1);
+  const isWaveTransitionRef = useRef(false);
+  const isSpawningRef = useRef(false);
+  const spawnIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [enemiesRemaining, setEnemiesRemaining] = useState(0);
   const [score, setScore] = useState(0);
   const [waveMessage, setWaveMessage] = useState('');
@@ -225,6 +229,10 @@ interface Player {
     setAmmo({ mag: WEAPONS[currentWeapon].magSize, reserve: 120 });
     setScore(0);
     setWave(1);
+    waveRef.current = 1;
+    isWaveTransitionRef.current = false;
+    isSpawningRef.current = false;
+    if (spawnIntervalRef.current) clearInterval(spawnIntervalRef.current);
     setEnemiesRemaining(0);
     setWaveMessage('');
     player.current = { x: 128, y: 128, angle: 0, velX: 0, velY: 0, rotVel: 0, pitch: 0, radius: 16, isAds: false, adsProgress: 0 };
@@ -246,15 +254,26 @@ interface Player {
   const nextTracerId = useRef(0);
 
   const spawnWave = (waveNum: number) => {
+    if (spawnIntervalRef.current) clearInterval(spawnIntervalRef.current);
+    
+    isWaveTransitionRef.current = true;
     setWaveMessage(`WAVE ${waveNum}`);
-    setTimeout(() => setWaveMessage(''), 3000);
+    
+    setTimeout(() => {
+      setWaveMessage('');
+      isWaveTransitionRef.current = false;
+    }, 3000);
+    
+    waveRef.current = waveNum;
+    isSpawningRef.current = true;
     
     // Gradual spawning
     const count = 3 + waveNum * 2;
     let spawnedCount = 0;
-    const interval = setInterval(() => {
+    spawnIntervalRef.current = setInterval(() => {
         if (spawnedCount >= count) {
-            clearInterval(interval);
+            if (spawnIntervalRef.current) clearInterval(spawnIntervalRef.current);
+            isSpawningRef.current = false;
             return;
         }
         spawnEnemies(1, waveNum);
@@ -514,11 +533,11 @@ interface Player {
     enemies.current = enemies.current.filter(e => !e.dead);
     
     // Wave Management
-    if (gameState === 'playing' && enemies.current.length === 0 && waveMessage === '') {
-       if (wave >= 5) {
+    if (gameState === 'playing' && enemies.current.length === 0 && !isSpawningRef.current && !isWaveTransitionRef.current) {
+       if (waveRef.current >= 5) {
          setGameState('win');
        } else {
-         const nextWave = wave + 1;
+         const nextWave = waveRef.current + 1;
          setWave(nextWave);
          spawnWave(nextWave);
        }
@@ -621,11 +640,9 @@ interface Player {
     renderTick.current++;
     if (renderTick.current % 2 === 0) {
       setEnemiesState([...enemies.current]);
-      setEnemiesRemaining(enemies.current.length);
+      setEnemiesRemaining(Math.max(0, enemies.current.length));
       setDamageIndicators(prev => prev.map(ind => ({ ...ind, opacity: ind.opacity - 0.02 })).filter(ind => ind.opacity > 0));
     }
-
-    if (enemies.current.length < 4) spawnEnemies(2);
 
     // Update Tracers
     tracers.current.forEach(t => t.alpha -= 0.05);
