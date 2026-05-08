@@ -74,19 +74,41 @@ class SoundEngine {
     if (!this.ctx) return;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
     
-    osc.type = weapon === 'sniper' ? 'sawtooth' : 'square';
-    osc.frequency.setValueAtTime(weapon === 'sniper' ? 100 : 150, this.ctx.currentTime);
+    osc.type = weapon === 'sniper' ? 'sawtooth' : weapon === 'shotgun' ? 'sawtooth' : 'square';
+    
+    const freq = weapon === 'sniper' ? 80 : weapon === 'shotgun' ? 120 : weapon === 'rifle' ? 180 : 220;
+    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
     osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.1);
     
-    gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + (weapon === 'sniper' ? 0.3 : 0.1));
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(weapon === 'sniper' ? 400 : 800, this.ctx.currentTime);
     
-    osc.connect(gain);
+    gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + (weapon === 'sniper' ? 0.4 : weapon === 'shotgun' ? 0.3 : 0.1));
+    
+    osc.connect(filter);
+    filter.connect(gain);
     gain.connect(this.ctx.destination);
     
     osc.start();
-    osc.stop(this.ctx.currentTime + 0.3);
+    osc.stop(this.ctx.currentTime + 0.5);
+  }
+
+  playKill() {
+    if (!this.ctx) return;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(400, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(200, this.ctx.currentTime + 0.2);
+    gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.2);
   }
 
   playReload() {
@@ -144,8 +166,9 @@ export default function App() {
   const ammoRef = useRef(ammo);
   const [hp, setHp] = useState(100);
   const [isReloading, setIsReloading] = useState(false);
-  const [hitMarker, setHitMarker] = useState(0);
+  const [hitMarker, setHitMarker] = useState({ time: 0, killed: false });
   const lastDamageTaken = useRef(0);
+  const screenShake = useRef(0);
 
   useEffect(() => { ammoRef.current = ammo; }, [ammo]);
 
@@ -266,8 +289,10 @@ interface Player {
     setStats(prev => ({ ...prev, shotsFired: prev.shotsFired + 1 }));
     sounds.playShot(currentWeapon);
 
-    // Apply Recoil
-    recoilOffset.current += weapon.recoil / 50;
+    // Apply Recoil & Shake
+    const recoilForce = weapon.recoil * (1 - player.current.adsProgress * 0.6);
+    recoilOffset.current += recoilForce / 40;
+    screenShake.current = Math.min(15, screenShake.current + recoilForce / 4);
 
     // Raycast for Hit Detection
     const spread = (Math.random() - 0.5) * weapon.spread * (1 - player.current.adsProgress * 0.8);
@@ -313,15 +338,19 @@ interface Player {
         if (Math.abs(angleDiff) < 0.15 * (weapon.type === 'shotgun' ? 3 : 1)) {
             enemy.hp -= weapon.damage;
             hitSomething = true;
-            setHitMarker(Date.now());
+            
             sounds.playHit();
             spawnParticles(enemy.x, enemy.y, 'blood');
             if (enemy.hp <= 0) {
               enemy.dead = true;
+              setHitMarker({ time: Date.now(), killed: true });
+              sounds.playKill();
               setStats(prev => ({ ...prev, kills: prev.kills + 1 }));
               setKillfeed(prev => [{ id: nextKillfeedId.current++, text: `ELIMINATED ${enemy.type.toUpperCase()}` }, ...prev].slice(0, 5));
               graveyard.current.push({ x: enemy.x, y: enemy.y, color: enemy.color, type: enemy.type });
               spawnParticles(enemy.x, enemy.y, 'explosion');
+            } else {
+              setHitMarker({ time: Date.now(), killed: false });
             }
         }
     });
@@ -438,9 +467,13 @@ interface Player {
     if (tryMove(Math.floor(nx / CELL_SIZE), Math.floor(player.current.y / CELL_SIZE))) player.current.x = nx;
     if (tryMove(Math.floor(player.current.x / CELL_SIZE), Math.floor(ny / CELL_SIZE))) player.current.y = ny;
 
-    // Apply Recoil Decay
-    recoilOffset.current *= 0.9;
-    player.current.pitch = clamp(player.current.pitch - recoilOffset.current * 5, -100, 100);
+    // Apply Recoil Decay & Shake
+    recoilOffset.current *= 0.85;
+    screenShake.current *= 0.9;
+    
+    // Add shake to player pitch slightly for visual bounce
+    const shakeAmount = (Math.random() - 0.5) * screenShake.current;
+    player.current.pitch = clamp(player.current.pitch - recoilOffset.current * 8 + shakeAmount, -150, 150);
 
     if (keys.current['m_left'] && WEAPONS[currentWeapon].isAuto) {
       handleShoot();
@@ -505,11 +538,12 @@ interface Player {
                       return newHp;
                   });
                   lastDamageTaken.current = now;
+                  screenShake.current = Math.min(20, screenShake.current + damage / 2);
                   
                   // Damage indicator
                   setDamageIndicators(prev => [
                     ...prev, 
-                    { id: nextDamageId.current++, angle: angleToPlayer - player.current.angle + Math.PI, opacity: 1 }
+                    { id: nextDamageId.current++, angle: angleToPlayer - player.current.angle + Math.PI, opacity: 1.2 }
                   ].slice(-5));
                   
                   spawnParticles(player.current.x, player.current.y, 'blood');
@@ -826,18 +860,21 @@ interface Player {
            )}
 
            {/* Damage Flash */}
-           {Date.now() - lastDamageTaken.current < 100 && (
-             <div className="absolute inset-0 bg-red-600/20 pointer-events-none z-50" />
+           {Date.now() - lastDamageTaken.current < 200 && (
+             <div 
+              className="absolute inset-0 pointer-events-none z-50 transition-opacity duration-300" 
+              style={{ background: `radial-gradient(circle, transparent 40%, rgba(220, 38, 38, ${0.4 * (1 - (Date.now() - lastDamageTaken.current) / 200)}) 100%)` }}
+             />
            )}
 
            {/* Hit Marker */}
-           {Date.now() - hitMarker < 100 && (
+           {Date.now() - hitMarker.time < 120 && (
              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-50">
                 <div className="relative w-8 h-8">
-                   <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-white rotate-45" />
-                   <div className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-white -rotate-45" />
-                   <div className="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 border-white -rotate-45" />
-                   <div className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-white rotate-45" />
+                   <div className={`absolute top-0 left-0 w-3 h-[2px] ${hitMarker.killed ? 'bg-red-500 shadow-[0_0_8px_red]' : 'bg-white'} rotate-45 origin-left`} />
+                   <div className={`absolute top-0 right-0 w-3 h-[2px] ${hitMarker.killed ? 'bg-red-500 shadow-[0_0_8px_red]' : 'bg-white'} -rotate-45 origin-right`} />
+                   <div className={`absolute bottom-0 left-0 w-3 h-[2px] ${hitMarker.killed ? 'bg-red-500 shadow-[0_0_8px_red]' : 'bg-white'} -rotate-45 origin-left`} />
+                   <div className={`absolute bottom-0 right-0 w-3 h-[2px] ${hitMarker.killed ? 'bg-red-500 shadow-[0_0_8px_red]' : 'bg-white'} rotate-45 origin-right`} />
                 </div>
              </div>
            )}
