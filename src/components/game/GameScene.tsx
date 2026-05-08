@@ -6,6 +6,7 @@ import { World } from './World';
 import { Enemy3D } from './Enemy3D';
 import { Particles3D } from './Particles3D';
 import { Tracers3D } from './Tracers3D';
+import { Pickups3D } from './Pickups3D';
 import { Weapon3D } from '../../Weapon3D';
 
 interface GameSceneProps {
@@ -13,6 +14,7 @@ interface GameSceneProps {
   enemies: any[];
   particles: any[];
   tracers: any[];
+  pickups: any[];
   mapData: number[][];
   cellSize: number;
   currentWeapon: string;
@@ -53,6 +55,7 @@ export function GameScene({
   isReloading,
   recoilOffset,
   lastShotTime,
+  pickups,
 }: GameSceneProps) {
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
@@ -85,6 +88,7 @@ export function GameScene({
 
         <Particles3D particles={particles} cellSize={cellSize} mapData={mapData} />
         <Tracers3D tracers={tracers} cellSize={cellSize} mapData={mapData} />
+        <Pickups3D pickups={pickups} cellSize={cellSize} mapData={mapData} />
 
         {enemies.map((enemy) => (
            <Enemy3D 

@@ -10,17 +10,15 @@ interface EnemyProps {
   hp: number;
   color: string;
   cellSize: number;
+  isBoss?: boolean;
 }
 
-export function Enemy3D({ x, y, type, color, cellSize }: EnemyProps) {
+export function Enemy3D({ x, y, type, color, cellSize, isBoss }: EnemyProps) {
   const meshRef = useRef<THREE.Group>(null);
+  const scale = isBoss ? 4 : 1;
 
-  // Convert game coordinates to 3D scene coordinates
-  // Game logic: rx = x * cellSize + cellSize / 2
-  // We need to match World's global offset: -mapWidth/2, -mapHeight/2
-  
   return (
-    <group position={[x, cellSize / 2, y]}>
+    <group position={[x, (cellSize / 2) * scale, y]} scale={scale}>
       <Float speed={5} rotationIntensity={0.2} floatIntensity={0.5}>
         <group ref={meshRef}>
           {/* Main Body */}

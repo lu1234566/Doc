@@ -177,6 +177,8 @@ export default function App() {
   const [hp, setHp] = useState(100);
   const [isReloading, setIsReloading] = useState(false);
   const [hitMarker, setHitMarker] = useState({ time: 0, killed: false });
+  const [bossHp, setBossHp] = useState<{ current: number, max: number } | null>(null);
+  const pickups = useRef<{ id: number, x: number, y: number, type: 'health' | 'ammo', rotation: number }[]>([]);
   const lastDamageTaken = useRef(0);
   const screenShake = useRef(0);
 
@@ -248,7 +250,9 @@ interface Player {
     }
     setIsReloading(false);
     setEnemiesRemaining(0);
+    setBossHp(null);
     setWaveMessage('');
+    pickups.current = [];
     player.current = { x: 128, y: 128, angle: 0, velX: 0, velY: 0, rotVel: 0, pitch: 0, radius: 16, isAds: false, adsProgress: 0 };
     enemies.current = [];
     setEnemiesState([]);
@@ -300,7 +304,16 @@ interface Player {
               clearInterval(spawnIntervalRef.current);
               spawnIntervalRef.current = null;
             }
-            isSpawningRef.current = false;
+            
+            if (waveNum === 5) {
+              isSpawningRef.current = true;
+              setTimeout(() => {
+                spawnEnemies(1, 5, true);
+                isSpawningRef.current = false;
+              }, 4000);
+            } else {
+              isSpawningRef.current = false;
+            }
             return;
         }
         spawnEnemies(1, waveNum);
@@ -308,7 +321,7 @@ interface Player {
     }, 800) as unknown as number;
   };
 
-  const spawnEnemies = (count: number, currentWave: number = 1) => {
+  const spawnEnemies = (count: number, currentWave: number = 1, isBoss: boolean = false) => {
     const types: ('rusher' | 'rifleman' | 'sniper')[] = ['rusher', 'rifleman', 'sniper'];
     let spawned = 0;
     let attempts = 0;
@@ -323,19 +336,27 @@ interface Player {
         const mapY = Math.floor(ry / CELL_SIZE);
         
         if (distToPlayer > 500 && MAP[mapY]?.[mapX] === 0) {
-            const type = types[Math.floor(Math.random() * types.length)];
+            const type = isBoss ? 'rifleman' : types[Math.floor(Math.random() * types.length)];
             const hpBuff = 1 + (currentWave - 1) * 0.15;
             const speedBuff = 1 + (currentWave - 1) * 0.04;
+            const finalHp = (type === 'rusher' ? 60 : type === 'rifleman' ? 100 : 80) * hpBuff * (isBoss ? 20 : 1);
 
             const newEnemy = {
                 id: Math.random(),
                 x: rx, y: ry,
                 type,
-                hp: (type === 'rusher' ? 60 : type === 'rifleman' ? 100 : 80) * hpBuff,
+                isBoss,
+                hp: finalHp,
+                maxHp: finalHp,
                 lastShot: Date.now() + Math.random() * 2000,
-                speed: (type === 'rusher' ? 3.5 : type === 'rifleman' ? 2 : 1.5) * speedBuff,
-                color: type === 'rusher' ? '#ef4444' : type === 'rifleman' ? '#eab308' : '#3b82f6'
+                speed: (type === 'rusher' ? 3.5 : type === 'rifleman' ? 2 : 1.5) * speedBuff * (isBoss ? 0.7 : 1),
+                color: isBoss ? '#f43f5e' : (type === 'rusher' ? '#ef4444' : type === 'rifleman' ? '#eab308' : '#3b82f6')
             };
+            
+            if (isBoss) {
+              setBossHp({ current: finalHp, max: finalHp });
+            }
+
             enemies.current.push(newEnemy);
             spawned++;
         }
@@ -413,6 +434,10 @@ interface Player {
             enemy.hp -= weapon.damage;
             hitSomething = true;
             
+            if (enemy.isBoss) {
+              setBossHp({ current: Math.max(0, enemy.hp), max: enemy.maxHp });
+            }
+
             sounds.playHit();
             spawnParticles(enemy.x, enemy.y, 'blood');
             if (enemy.hp <= 0) {
@@ -420,11 +445,25 @@ interface Player {
               setHitMarker({ time: Date.now(), killed: true });
               sounds.playKill();
               setStats(prev => ({ ...prev, kills: prev.kills + 1 }));
-              const killScore = enemy.type === 'sniper' ? 500 : enemy.type === 'rifleman' ? 200 : 100;
+              const killScore = enemy.isBoss ? 5000 : (enemy.type === 'sniper' ? 500 : enemy.type === 'rifleman' ? 200 : 100);
               setScore(prev => prev + killScore);
-              setKillfeed(prev => [{ id: nextKillfeedId.current++, text: `ELIMINATED ${enemy.type.toUpperCase()} (+${killScore})` }, ...prev].slice(0, 5));
+              setKillfeed(prev => [{ id: nextKillfeedId.current++, text: `${enemy.isBoss ? 'TITAN' : enemy.type.toUpperCase()} NEUTRALIZED (+${killScore})` }, ...prev].slice(0, 5));
               graveyard.current.push({ x: enemy.x, y: enemy.y, color: enemy.color, type: enemy.type });
               spawnParticles(enemy.x, enemy.y, 'explosion');
+
+              // Chance for pickup
+              if (Math.random() < 0.35 || enemy.isBoss) {
+                 const type = Math.random() > 0.5 ? 'health' : 'ammo';
+                 pickups.current.push({
+                   id: Math.random(),
+                   x: enemy.x,
+                   y: enemy.y,
+                   type,
+                   rotation: 0
+                 });
+              }
+
+              if (enemy.isBoss) setBossHp(null);
             } else {
               setHitMarker({ time: Date.now(), killed: false });
             }
@@ -544,6 +583,22 @@ interface Player {
 
     if (tryMove(Math.floor(nx / CELL_SIZE), Math.floor(player.current.y / CELL_SIZE))) player.current.x = nx;
     if (tryMove(Math.floor(player.current.x / CELL_SIZE), Math.floor(ny / CELL_SIZE))) player.current.y = ny;
+
+    // Pickup Collection
+    pickups.current.forEach((p, i) => {
+      const dist = Math.hypot(p.x - player.current.x, p.y - player.current.y);
+      if (dist < 32) {
+        if (p.type === 'health') {
+           setHp(prev => Math.min(100, prev + 25));
+        } else {
+           setAmmo(prev => ({ ...prev, reserve: Math.min(120, prev.reserve + 60) }));
+        }
+        sounds.playReload();
+        pickups.current.splice(i, 1);
+        setKillfeed(prev => [{ id: nextKillfeedId.current++, text: `+ ${p.type.toUpperCase()} SECURED` }, ...prev].slice(0, 5));
+      }
+      p.rotation += 0.05;
+    });
 
     // Apply Recoil Decay & Shake
     recoilOffset.current *= 0.85;
@@ -809,18 +864,38 @@ interface Player {
         onClick={togglePointerLock}
       >
         {gameState === 'playing' ? (
-          <GameScene 
-            player={player} 
-            enemies={enemiesState}
-            particles={particles.current}
-            tracers={tracers.current}
-            mapData={mapDataState}
-            cellSize={CELL_SIZE}
-            currentWeapon={currentWeapon}
-            isReloading={isReloading}
-            recoilOffset={recoilOffset.current}
-            lastShotTime={lastShotTime.current}
-          />
+          <>
+            <GameScene 
+              player={player} 
+              enemies={enemiesState}
+              particles={particles.current}
+              tracers={tracers.current}
+              mapData={mapDataState}
+              cellSize={CELL_SIZE}
+              currentWeapon={currentWeapon}
+              isReloading={isReloading}
+              recoilOffset={recoilOffset.current}
+              lastShotTime={lastShotTime.current}
+              pickups={pickups.current}
+            />
+
+            {/* Boss Health Bar */}
+            {bossHp && (
+              <div className="absolute top-20 left-1/2 -translate-x-1/2 w-80 z-50 pointer-events-none">
+                 <div className="flex justify-between items-end mb-1">
+                    <span className="text-red-500 font-black text-xs uppercase tracking-widest italic">Sector Guardian: TITAN</span>
+                    <span className="text-white font-mono text-[9px]">{Math.ceil(bossHp.current)} / {bossHp.max}</span>
+                 </div>
+                 <div className="h-2 bg-slate-900/80 rounded-full border border-red-500/30 overflow-hidden backdrop-blur-md">
+                    <motion.div 
+                      initial={{ width: '100%' }}
+                      animate={{ width: `${(bossHp.current / bossHp.max) * 100}%` }}
+                      className="h-full bg-gradient-to-r from-red-600 to-rose-400 shadow-[0_0_15px_rgba(239,68,68,0.5)]"
+                    />
+                 </div>
+              </div>
+            )}
+          </>
         ) : (
           <canvas 
             ref={canvasRef} 
