@@ -182,6 +182,9 @@ export default function App() {
   const gameContainerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gameState, setGameState] = useState<'start' | 'playing' | 'dead' | 'win' | 'upgrades'>('start');
+  const gameStateRef = useRef(gameState);
+  useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
+
   const [wave, setWave] = useState(1);
   const waveRef = useRef(1);
   const isWaveTransitionRef = useRef(false);
@@ -389,7 +392,7 @@ interface Player {
               isSpawningRef.current = true;
               if (bossSpawnTimeoutRef.current) clearTimeout(bossSpawnTimeoutRef.current);
               bossSpawnTimeoutRef.current = setTimeout(() => {
-                if (gameState === 'playing' && waveRef.current === 5) {
+                if (gameStateRef.current === 'playing' && waveRef.current === 5) {
                   spawnEnemies(1, 5, true);
                 }
                 isSpawningRef.current = false;
@@ -452,7 +455,7 @@ interface Player {
   const graveyard = useRef<{ x: number, y: number, color: string, type: string }[]>([]);
 
   const handleShoot = () => {
-    if (gameState !== 'playing' || isReloading) return;
+    if (gameStateRef.current !== 'playing' || isReloading) return;
     const now = Date.now();
     const weapon = WEAPONS[currentWeapon];
     if (now - lastShotTime.current < weapon.fireRate) return;
@@ -576,7 +579,7 @@ interface Player {
 
   const reload = () => {
     // Prevent double reload and check conditions
-    if (isReloading || ammoRef.current.mag >= WEAPONS[currentWeapon].magSize || ammoRef.current.reserve <= 0 || gameState !== 'playing') return;
+    if (isReloading || ammoRef.current.mag >= WEAPONS[currentWeapon].magSize || ammoRef.current.reserve <= 0 || gameStateRef.current !== 'playing') return;
 
     setIsReloading(true);
     sounds.playReload();
@@ -614,7 +617,7 @@ interface Player {
   };
 
   const update = () => {
-    if (gameState !== 'playing') return;
+    if (gameStateRef.current !== 'playing') return;
 
     // Player Movement
     let dx = 0; let dy = 0;
@@ -709,7 +712,7 @@ interface Player {
     enemies.current = enemies.current.filter(e => !e.dead);
     
     // Wave Management
-    if (gameState === 'playing' && enemies.current.length === 0 && !isSpawningRef.current && !isWaveTransitionRef.current) {
+    if (gameStateRef.current === 'playing' && enemies.current.length === 0 && !isSpawningRef.current && !isWaveTransitionRef.current) {
        if (waveRef.current >= 5) {
          if (!isRunEndingRef.current) {
            isRunEndingRef.current = true;
@@ -802,7 +805,7 @@ interface Player {
                   const damage = e.type === 'sniper' ? 35 : e.type === 'rifleman' ? 12 : 8;
                   setHp(prev => {
                       const newHp = Math.max(0, prev - damage);
-                      if (newHp === 0 && gameState === 'playing' && !isRunEndingRef.current) {
+                      if (newHp === 0 && gameStateRef.current === 'playing' && !isRunEndingRef.current) {
                         isRunEndingRef.current = true;
                         const runCredits = Math.floor(stats.kills * 10 + waveRef.current * 50 + score / 10);
                         setEarnedCredits(runCredits);
