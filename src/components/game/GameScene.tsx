@@ -1,6 +1,6 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Sky, PointerLockControls, Stars, PerspectiveCamera, ContactShadows } from '@react-three/drei';
+import { Sky, Stars, PerspectiveCamera, ContactShadows } from '@react-three/drei';
 import * as THREE from 'three';
 import { World } from './World';
 import { Enemy3D } from './Enemy3D';
@@ -21,16 +21,12 @@ interface GameSceneProps {
   lastShotTime: number;
 }
 
-function PlayerController({ player, cellSize }: { player: any, cellSize: number }) {
+function PlayerController({ player, cellSize, mapData }: { player: any, cellSize: number, mapData: number[][] }) {
   const { camera } = useThree();
+  const mapWidth = mapData[0].length * cellSize;
+  const mapHeight = mapData.length * cellSize;
 
   useFrame(() => {
-    // Sync React-Three-Fiber camera with our game engine player object
-    // Note: In 3D we usually reverse z/y or handle mappings
-    // Map Game (x, y) to 3D (x, z)
-    const mapWidth = 24 * cellSize; // Hardcoded based on MAP constant
-    const mapHeight = 18 * cellSize;
-
     camera.position.set(
       player.current.x - (mapWidth / 2),
       cellSize / 1.5, // Eye height
@@ -96,12 +92,12 @@ export function GameScene({
             {...enemy} 
             cellSize={cellSize} 
             // Correct coordinate transform
-            x={enemy.x - (24 * cellSize / 2)}
-            y={enemy.y - (18 * cellSize / 2)}
+            x={enemy.x - (mapData[0].length * cellSize / 2)}
+            y={enemy.y - (mapData.length * cellSize / 2)}
            />
         ))}
 
-        <PlayerController player={player} cellSize={cellSize} />
+        <PlayerController player={player} cellSize={cellSize} mapData={mapData} />
       </Canvas>
 
       {/* Overlay the Weapon UI Component - keeps it fixed and easy to handle HUD-wise */}

@@ -130,10 +130,13 @@ export default function App() {
   const [stats, setStats] = useState({ kills: 0, deaths: 0, shotsFired: 0, shotsHit: 0 });
   const [currentWeapon, setCurrentWeapon] = useState<WeaponType>('rifle');
   const [ammo, setAmmo] = useState({ mag: WEAPONS.rifle.magSize, reserve: 120 });
+  const ammoRef = useRef(ammo);
   const [hp, setHp] = useState(100);
   const [isReloading, setIsReloading] = useState(false);
   const [hitMarker, setHitMarker] = useState(0);
-  const [lastDamageTaken, setLastDamageTaken] = useState(0);
+  const lastDamageTaken = useRef(0);
+
+  useEffect(() => { ammoRef.current = ammo; }, [ammo]);
 
   // Game Engine Refs
 interface Player {
@@ -166,6 +169,7 @@ interface Player {
   const enemies = useRef<any[]>([]);
   const particles = useRef<any[]>([]);
   const mapData = useRef([...MAP.map(row => [...row])]);
+  const [mapDataState, setMapDataState] = useState([...MAP.map(row => [...row])]);
   const lastShotTime = useRef(0);
   const recoilOffset = useRef(0);
 
@@ -189,7 +193,9 @@ interface Player {
     killfeed.length = 0;
     setKillfeed([]);
     keys.current = {};
-    mapData.current = [...MAP.map(row => [...row])];
+    const newMap = [...MAP.map(row => [...row])];
+    mapData.current = newMap;
+    setMapDataState([...newMap]);
     spawnEnemies(5);
     sounds.init();
   };
@@ -239,14 +245,8 @@ interface Player {
     if (now - lastShotTime.current < weapon.fireRate) return;
     
     // Check ammo
-    let currentMag = 0;
-    setAmmo(prev => { 
-        currentMag = prev.mag;
-        return prev;
-    });
-
-    if (currentMag <= 0) {
-      if (!isReloading && ammo.reserve > 0) reload();
+    if (ammoRef.current.mag <= 0) {
+      if (!isReloading && ammoRef.current.reserve > 0) reload();
       return;
     }
 
@@ -275,6 +275,7 @@ interface Player {
             const cell = mapData.current[ty][tx];
             if (cell === 3) { // Barrel
                 if (mapData.current[ty]) mapData.current[ty][tx] = 0; // Explode!
+                setMapDataState([...mapData.current.map(row => [...row])]);
                 spawnParticles(player.current.x + cos * d, player.current.y + sin * d, 'explosion');
                 sounds.playShot('sniper'); // Loud explosion sound
                 hitDist = d;
@@ -334,15 +335,7 @@ interface Player {
 
   const reload = () => {
     // Prevent double reload and check conditions
-    let canReload = false;
-    setAmmo(prev => {
-        if (!isReloading && prev.mag < WEAPONS[currentWeapon].magSize && prev.reserve > 0) {
-            canReload = true;
-        }
-        return prev;
-    });
-    
-    if (!canReload) return;
+    if (isReloading || ammoRef.current.mag >= WEAPONS[currentWeapon].magSize || ammoRef.current.reserve <= 0) return;
 
     setIsReloading(true);
     sounds.playReload();
@@ -409,6 +402,7 @@ interface Player {
       if (cell === 0) return true;
       if (cell === 2) { // Door
         if (mapData.current[ty]) mapData.current[ty][tx] = 0; // Open
+        setMapDataState([...mapData.current.map(row => [...row])]);
         sounds.playReload();
         return true;
       }
@@ -477,14 +471,14 @@ interface Player {
               e.lastShot = now;
               
               // Damage cooldown for player (250ms)
-              if (now - lastDamageTaken > 250) {
+              if (now - lastDamageTaken.current > 250) {
                   const damage = e.type === 'sniper' ? 35 : e.type === 'rifleman' ? 12 : 8;
                   setHp(prev => {
                       const newHp = Math.max(0, prev - damage);
                       if (newHp === 0 && gameState === 'playing') setGameState('dead');
                       return newHp;
                   });
-                  setLastDamageTaken(now);
+                  lastDamageTaken.current = now;
                   
                   // Damage indicator
                   setDamageIndicators(prev => [
@@ -624,7 +618,7 @@ interface Player {
             enemies={enemiesState}
             particles={particles.current}
             tracers={tracers.current}
-            mapData={MAP}
+            mapData={mapDataState}
             cellSize={CELL_SIZE}
             currentWeapon={currentWeapon}
             isReloading={isReloading}
@@ -659,7 +653,7 @@ interface Player {
            )}
 
            {/* Damage Flash */}
-           {Date.now() - lastDamageTaken < 100 && (
+           {Date.now() - lastDamageTaken.current < 100 && (
              <div className="absolute inset-0 bg-red-600/20 pointer-events-none z-50" />
            )}
 
