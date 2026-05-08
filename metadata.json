@@ -1,6 +1,6 @@
 {
-  "name": "Call of Duty: Raycast Mobile",
-  "description": "A high-performance 3D FPS clone with multiple weapons, tactical enemy AI, and mobile-ready controls.",
+  "name": "Nano Banana: 3D Tactical",
+  "description": "Next-gen tactical 3D combat simulation powered by React Three Fiber. Realistic geometry, volumetric lighting, and tactical AI.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }

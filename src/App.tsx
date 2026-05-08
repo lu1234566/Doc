@@ -6,7 +6,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Target, Shield, Zap, Skull, Award, RefreshCcw, Smartphone, Terminal, Move } from 'lucide-react';
-import { Weapon3D } from './Weapon3D';
+import { GameScene } from './components/game/GameScene';
 
 // --- Types & Constants ---
 type WeaponType = 'pistol' | 'rifle' | 'shotgun' | 'sniper';
@@ -22,14 +22,15 @@ interface Weapon {
   spread: number;
   range: number;
   isScoped: boolean;
+  isAuto: boolean;
   color: string;
 }
 
 const WEAPONS: Record<WeaponType, Weapon> = {
-  pistol: { name: 'P-99', type: 'pistol', damage: 20, fireRate: 250, reloadTime: 1200, magSize: 12, recoil: 5, spread: 0.05, range: 600, isScoped: false, color: '#94a3b8' },
-  rifle: { name: 'M4-A1', type: 'rifle', damage: 15, fireRate: 100, reloadTime: 2000, magSize: 30, recoil: 3, spread: 0.1, range: 800, isScoped: false, color: '#1e293b' },
-  shotgun: { name: 'KRM-262', type: 'shotgun', damage: 60, fireRate: 800, reloadTime: 2500, magSize: 6, recoil: 20, spread: 0.5, range: 300, isScoped: false, color: '#334155' },
-  sniper: { name: 'DL-Q33', type: 'sniper', damage: 100, fireRate: 1500, reloadTime: 3000, magSize: 5, recoil: 40, spread: 0.01, range: 1500, isScoped: true, color: '#0f172a' },
+  pistol: { name: 'P-99', type: 'pistol', damage: 20, fireRate: 250, reloadTime: 1200, magSize: 12, recoil: 5, spread: 0.05, range: 600, isScoped: false, isAuto: false, color: '#94a3b8' },
+  rifle: { name: 'M4-A1', type: 'rifle', damage: 15, fireRate: 100, reloadTime: 2000, magSize: 30, recoil: 3, spread: 0.1, range: 800, isScoped: false, isAuto: true, color: '#1e293b' },
+  shotgun: { name: 'KRM-262', type: 'shotgun', damage: 60, fireRate: 800, reloadTime: 2500, magSize: 6, recoil: 20, spread: 0.5, range: 300, isScoped: false, isAuto: false, color: '#334155' },
+  sniper: { name: 'DL-Q33', type: 'sniper', damage: 100, fireRate: 1500, reloadTime: 3000, magSize: 5, recoil: 40, spread: 0.01, range: 1500, isScoped: true, isAuto: false, color: '#0f172a' },
 };
 
 const MAP = [
@@ -169,6 +170,8 @@ interface Player {
   const joystick = useRef({ active: false, startX: 0, startY: 0, curX: 0, curY: 0 });
   const touchLook = useRef({ active: false, lastX: 0, lastY: 0 });
 
+  const [enemiesState, setEnemiesState] = useState<any[]>([]);
+
   const initGame = () => {
     setGameState('playing');
     setHp(100);
@@ -176,6 +179,7 @@ interface Player {
     setAmmo({ mag: WEAPONS[currentWeapon].magSize, reserve: 120 });
     player.current = { x: 128, y: 128, angle: 0, velX: 0, velY: 0, rotVel: 0, pitch: 0, radius: 16, isAds: false, adsProgress: 0 };
     enemies.current = [];
+    setEnemiesState([]);
     particles.current = [];
     spawnEnemies(5);
     sounds.init();
@@ -195,7 +199,7 @@ interface Player {
                  Math.hypot(rx - player.current.x, ry - player.current.y) < 300);
         
         const type = types[Math.floor(Math.random() * types.length)];
-        enemies.current.push({
+        const newEnemy = {
             id: Math.random(),
             x: rx, y: ry,
             type,
@@ -203,7 +207,9 @@ interface Player {
             lastShot: Date.now() + Math.random() * 2000,
             speed: type === 'rusher' ? 3.5 : 2,
             color: type === 'rusher' ? '#ef4444' : type === 'rifleman' ? '#eab308' : '#3b82f6'
-        });
+        };
+        enemies.current.push(newEnemy);
+        setEnemiesState(prev => [...prev, newEnemy]);
     }
   };
 
@@ -366,6 +372,10 @@ interface Player {
     recoilOffset.current *= 0.9;
     player.current.pitch = clamp(player.current.pitch - recoilOffset.current * 5, -100, 100);
 
+    if (keys.current['m_left'] && WEAPONS[currentWeapon].isAuto) {
+      handleShoot();
+    }
+
     // Enemy AI
     enemies.current = enemies.current.filter(e => !e.dead);
     enemies.current.forEach(e => {
@@ -442,6 +452,9 @@ interface Player {
       }
     });
 
+    // Sync internal state for 3D rendering
+    setEnemiesState([...enemies.current]);
+
     if (enemies.current.length < 4) spawnEnemies(2);
 
     // Update Tracers
@@ -451,344 +464,14 @@ interface Player {
       p.x += p.vx; p.y += p.vy; p.life -= 0.02;
     });
     particles.current = particles.current.filter(p => p.life > 0);
-  };
-
-  const draw = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const zBuffer = new Array(RESOLUTION).fill(MAX_DEPTH);
-
-    // Floor & Ceiling with Gradients/Ripples
-    const floorGrad = ctx.createLinearGradient(0, canvas.height/2 + player.current.pitch, 0, canvas.height);
-    floorGrad.addColorStop(0, '#1e293b');
-    floorGrad.addColorStop(1, '#0f172a');
-    ctx.fillStyle = floorGrad;
-    ctx.fillRect(0, canvas.height/2 + player.current.pitch, canvas.width, canvas.height);
-
-    // Ceiling
-    const ceilGrad = ctx.createLinearGradient(0, 0, 0, canvas.height/2 + player.current.pitch);
-    ceilGrad.addColorStop(0, '#020617');
-    ceilGrad.addColorStop(1, '#1e293b');
-    ctx.fillStyle = ceilGrad;
-    ctx.fillRect(0, 0, canvas.width, canvas.height/2 + player.current.pitch);
-
-    // Water Puddles (Simulated)
-    const time = Date.now();
-    ctx.globalAlpha = 0.2;
-    for (let i = 0; i < 5; i++) {
-        const px = (Math.sin(time / 1000 + i) + 0.5) * canvas.width;
-        const py = (Math.cos(time / 1500 + i) + 0.5) * canvas.height / 4 + canvas.height * 0.6;
-        const ripple = Math.sin(time / 200 + i) * 10;
-        ctx.fillStyle = '#60a5fa';
-        ctx.beginPath();
-        ctx.ellipse(px, py + player.current.pitch, 50 + ripple, 20 + ripple/2, 0, 0, Math.PI * 2);
-        ctx.fill();
-    }
-    ctx.globalAlpha = 1.0;
-
-    // Raycasting Walls
-    for (let i = 0; i < RESOLUTION; i++) {
-        const rayAngle = (player.current.angle - FOV / 2) + (i / RESOLUTION) * FOV;
-        const cos = Math.cos(rayAngle);
-        const sin = Math.sin(rayAngle);
-
-        let dist = 0;
-        let hitWall = false;
-        let wallType = 0;
-
-        while (!hitWall && dist < MAX_DEPTH) {
-            dist += 4;
-            const testX = Math.floor((player.current.x + cos * dist) / CELL_SIZE);
-            const testY = Math.floor((player.current.y + sin * dist) / CELL_SIZE);
-
-            if (Number.isNaN(testX) || Number.isNaN(testY) || testX < 0 || testX >= MAP[0].length || testY < 0 || testY >= MAP.length) {
-                hitWall = true;
-                dist = MAX_DEPTH;
-            } else {
-                const cell = mapData.current[testY][testX];
-                if (cell > 0) {
-                    hitWall = true;
-                    wallType = cell;
-                }
-            }
-        }
-
-        // Correct Fish-eye
-        const correctedDist = dist * Math.cos(rayAngle - player.current.angle);
-        zBuffer[i] = correctedDist;
-        const wallHeight = (CELL_SIZE * canvas.height) / correctedDist;
-
-        // Render strips
-        const brightness = clamp(255 - (correctedDist / MAX_DEPTH) * 255, 0, 255);
-        ctx.fillStyle = 
-          wallType === 1 ? `rgb(${brightness},${brightness},${brightness})` : 
-          wallType === 2 ? `rgb(${brightness*0.6},${brightness*0.4},${brightness*0.3})` : // Doors
-          wallType === 3 ? `rgb(${brightness},${brightness*0.8},${0})` : // Barrels
-          `rgb(${brightness * 0.4},${brightness * 0.4},${brightness * 0.4})`;
-        
-        ctx.fillRect(i * (canvas.width / RESOLUTION), (canvas.height / 2) - (wallHeight / 2) + player.current.pitch, (canvas.width / RESOLUTION) + 1, wallHeight);
-    }
-
-    // Draw Dead Bodies (Graveyard)
-    const deadToDraw = graveyard.current
-        .map(e => ({ ...e, dx: e.x - player.current.x, dy: e.y - player.current.y }))
-        .map(e => ({ ...e, dist: Math.sqrt(e.dx*e.dx + e.dy*e.dy) }))
-        .filter(e => e.dist > 10 && e.dist < MAX_DEPTH)
-        .sort((a, b) => b.dist - a.dist);
-
-    for (const e of deadToDraw) {
-        let angleToEnemy = Math.atan2(e.dy, e.dx) - player.current.angle;
-        while (angleToEnemy < -Math.PI) angleToEnemy += 2 * Math.PI;
-        while (angleToEnemy > Math.PI) angleToEnemy -= 2 * Math.PI;
-
-        if (Math.abs(angleToEnemy) > FOV) continue;
-
-        const enemyDist = e.dist * Math.cos(angleToEnemy);
-        const screenX = (0.5 * (angleToEnemy / (FOV / 2)) + 0.5) * canvas.width;
-        
-        const spriteHeight = (CELL_SIZE * canvas.height) / enemyDist;
-        const spriteWidth = spriteHeight * 0.8;
-        const screenY = (canvas.height / 2) + player.current.pitch + (CELL_SIZE * 0.4 * canvas.height) / enemyDist;
-
-        const rayIdx = Math.floor((screenX / canvas.width) * RESOLUTION);
-        if (rayIdx >= 0 && rayIdx < RESOLUTION && enemyDist < zBuffer[rayIdx]) {
-            ctx.fillStyle = e.color + '88';
-            ctx.fillRect(screenX - spriteWidth / 2, screenY, spriteWidth, 10);
-        }
-    }
-
-    // Draw Enemies (Sprites)
-    const enemiesToDraw = enemies.current
-        .map(e => ({ ...e, dx: e.x - player.current.x, dy: e.y - player.current.y }))
-        .map(e => ({ ...e, dist: Math.sqrt(e.dx*e.dx + e.dy*e.dy) }))
-        .filter(e => e.dist > 10)
-        .sort((a, b) => b.dist - a.dist);
-
-    for (const e of enemiesToDraw) {
-        let angleToEnemy = Math.atan2(e.dy, e.dx) - player.current.angle;
-        while (angleToEnemy < -Math.PI) angleToEnemy += 2 * Math.PI;
-        while (angleToEnemy > Math.PI) angleToEnemy -= 2 * Math.PI;
-
-        if (Math.abs(angleToEnemy) > FOV) continue;
-
-        const enemyDist = e.dist * Math.cos(angleToEnemy);
-        const screenX = (0.5 * (angleToEnemy / (FOV / 2)) + 0.5) * canvas.width;
-        
-        const spriteHeight = (CELL_SIZE * canvas.height) / enemyDist;
-        const spriteWidth = spriteHeight * 0.6;
-        const screenY = (canvas.height / 2) - (spriteHeight / 2) + player.current.pitch + (CELL_SIZE * 0.2 * canvas.height) / enemyDist;
-
-        const startX = Math.max(0, Math.floor(screenX - spriteWidth / 2));
-        const endX = Math.min(canvas.width, Math.floor(screenX + spriteWidth / 2));
-
-        for (let x = startX; x < endX; x += 4) { // Render in strips
-            const rayIdx = Math.floor((x / canvas.width) * RESOLUTION);
-            if (rayIdx >= 0 && rayIdx < RESOLUTION && enemyDist < zBuffer[rayIdx]) {
-                ctx.fillStyle = e.type === 'rusher' ? '#ef4444' : e.type === 'sniper' ? '#eab308' : '#3b82f6';
-                ctx.fillRect(x, screenY, 5, spriteHeight);
-                
-                // Simple eye visor
-                ctx.fillStyle = '#0f172a';
-                ctx.fillRect(x, screenY + spriteHeight * 0.2, 5, spriteHeight * 0.1);
-            }
-        }
-    }
-
-    // Draw Particles
-    const particlesToDraw = particles.current
-        .map(p => ({ ...p, dx: p.x - player.current.x, dy: p.y - player.current.y }))
-        .map(p => ({ ...p, dist: Math.sqrt(p.dx*p.dx + p.dy*p.dy) }))
-        .filter(p => p.dist > 10)
-        .sort((a, b) => b.dist - a.dist);
-
-    for (const p of particlesToDraw) {
-        let angleTo = Math.atan2(p.dy, p.dx) - player.current.angle;
-        while (angleTo < -Math.PI) angleTo += 2 * Math.PI;
-        while (angleTo > Math.PI) angleTo -= 2 * Math.PI;
-
-        if (Math.abs(angleTo) > FOV) continue;
-
-        const pDist = p.dist * Math.cos(angleTo);
-        const screenX = (0.5 * (angleTo / (FOV / 2)) + 0.5) * canvas.width;
-        
-        const size = (p.size * canvas.height) / pDist;
-        const screenY = (canvas.height / 2) + player.current.pitch + (CELL_SIZE * 0.2 * canvas.height) / pDist;
-
-        const rayIdx = Math.floor((screenX / canvas.width) * RESOLUTION);
-        if (rayIdx >= 0 && rayIdx < RESOLUTION && pDist < zBuffer[rayIdx]) {
-            ctx.fillStyle = p.color;
-            ctx.globalAlpha = Math.max(0, p.life);
-            ctx.fillRect(screenX - size/2, screenY - size/2, size, size);
-            ctx.globalAlpha = 1;
-        }
-    }
-
-    // Draw Tracers in 3D (Simulated lines)
-    tracers.current.forEach(t => {
-      ctx.save();
-      ctx.globalAlpha = t.alpha;
-      ctx.strokeStyle = '#fef08a';
-      ctx.lineWidth = 2;
-      // We draw from player center to a point (very rough approximation for "flash")
-      ctx.beginPath();
-      ctx.moveTo(canvas.width/2, canvas.height/2 + player.current.pitch);
-      ctx.lineTo(canvas.width/2 + (Math.random()-0.5)*100, canvas.height/2 + 200);
-      ctx.stroke();
-      ctx.restore();
-    });
-
-    // Holographic Mini-map
-    const mmSize = 150;
-    const mmPad = 30;
-    ctx.save();
-    ctx.translate(mmSize/2 + mmPad, mmSize/2 + mmPad);
     
-    // Draw Border
-    ctx.strokeStyle = 'cyan';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(0, 0, mmSize/2, 0, Math.PI * 2);
-    ctx.stroke();
-    
-    // Rotate map for player orientation
-    ctx.rotate(-player.current.angle - Math.PI / 2);
-    
-    // Clip map
-    ctx.beginPath();
-    ctx.arc(0, 0, mmSize/2, 0, Math.PI * 2);
-    ctx.clip();
-    
-    ctx.fillStyle = 'rgba(0, 255, 255, 0.1)';
-    ctx.fill();
-    
-    const scale = mmSize / (10 * CELL_SIZE);
-    ctx.translate(-player.current.x * scale, -player.current.y * scale);
-    
-    // Walls in Map
-    MAP.forEach((row, y) => {
-        row.forEach((cell, x) => {
-            if (cell !== 0) {
-                ctx.fillStyle = cell === 1 ? 'rgba(0, 255, 255, 0.4)' : cell === 2 ? 'orange' : 'red';
-                ctx.fillRect(x * CELL_SIZE * scale, y * CELL_SIZE * scale, CELL_SIZE * scale - 1, CELL_SIZE * scale - 1);
-            }
-        });
-    });
-    
-    // Enemies in Map
-    enemies.current.forEach(e => {
-        ctx.fillStyle = 'red';
-        ctx.beginPath();
-        ctx.arc(e.x * scale, e.y * scale, 3, 0, Math.PI * 2);
-        ctx.fill();
-    });
-    
-    ctx.restore();
-    
-    // Player on Map
-    ctx.fillStyle = 'white';
-    ctx.beginPath();
-    ctx.arc(mmSize/2 + mmPad, mmSize/2 + mmPad, 4, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Draw Weapon
-    const weapon = WEAPONS[currentWeapon];
-    const t = Date.now();
-    const isMoving = Math.abs(player.current.velX) + Math.abs(player.current.velY) > 0;
-    
-    // Sway & Bob
-    const bob = isMoving ? Math.sin(t / 150) * 5 : Math.sin(t / 500) * 2;
-    const swayX = Math.cos(t / 500) * 8 * (isMoving ? 1.5 : 1);
-    const swayY = Math.sin(t / 500) * 4 + bob;
-    
-    const ads = player.current.adsProgress;
-
-    // Sniper Scope Overlay
-    if (currentWeapon === 'sniper' && ads > 0.9) {
-        ctx.save();
-        ctx.fillStyle = '#000';
-        // Black out sides
-        const scopeRadius = canvas.height * 0.4;
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2 + player.current.pitch;
-        
-        ctx.beginPath();
-        ctx.rect(0, 0, canvas.width, canvas.height);
-        ctx.arc(centerX, centerY, scopeRadius, 0, Math.PI * 2, true);
-        ctx.fill();
-        
-        // Lens effect
-        const lensGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, scopeRadius);
-        lensGrad.addColorStop(0, 'transparent');
-        lensGrad.addColorStop(0.9, 'rgba(0, 255, 255, 0.05)');
-        lensGrad.addColorStop(1, 'rgba(0, 255, 255, 0.2)');
-        ctx.fillStyle = lensGrad;
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, scopeRadius, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Crosshairs
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(centerX - scopeRadius, centerY); ctx.lineTo(centerX + scopeRadius, centerY);
-        ctx.moveTo(centerX, centerY - scopeRadius); ctx.lineTo(centerX, centerY + scopeRadius);
-        ctx.stroke();
-        
-        ctx.restore();
-    }
-
-    // Crosshair
-    if (!(currentWeapon === 'sniper' && ads > 0.9)) {
-        ctx.strokeStyle = player.current.isAds ? 'rgba(34, 197, 94, 0.5)' : '#22c55e';
-        ctx.lineWidth = 2;
-        const cx = canvas.width / 2;
-        const cy = canvas.height / 2 + player.current.pitch;
-        const size = player.current.isAds ? 5 : 10;
-        ctx.beginPath();
-        ctx.moveTo(cx - size, cy); ctx.lineTo(cx + size, cy);
-        ctx.moveTo(cx, cy - size); ctx.lineTo(cx, cy + size);
-        ctx.stroke();
-    }
-
-    // Weapon rendering has been moved to 3D Component
-
-    // Damage Indicators
-    damageIndicators.forEach(ind => {
-      ctx.save();
-      ctx.translate(canvas.width / 2, canvas.height / 2);
-      ctx.rotate(ind.angle);
-      ctx.beginPath();
-      ctx.moveTo(80, -20);
-      ctx.lineTo(110, 0);
-      ctx.lineTo(80, 20);
-      ctx.strokeStyle = `rgba(239, 68, 68, ${ind.opacity})`;
-      ctx.lineWidth = 4;
-      ctx.stroke();
-      ctx.restore();
-    });
-
-    // Score Feed (Kill Messages)
-    ctx.font = 'bold 16px font-mono';
-    ctx.textAlign = 'right';
-    killfeed.forEach((msg, idx) => {
-      ctx.fillStyle = `rgba(255, 255, 255, ${1 - idx * 0.2})`;
-      ctx.fillText(msg.text, canvas.width - 20, 100 + idx * 30);
-    });
-
-    // Flash/Damage FX
-    if (hp < 30) {
-      ctx.fillStyle = 'rgba(239, 68, 68, 0.1)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
+    // Update damage indicators
+    setDamageIndicators(prev => prev.map(ind => ({ ...ind, opacity: ind.opacity - 0.01 })).filter(ind => ind.opacity > 0));
   };
 
   useEffect(() => {
     const loop = setInterval(() => {
       update();
-      draw();
     }, TICK_RATE);
     return () => clearInterval(loop);
   }, [gameState, currentWeapon, hp, ammo]);
@@ -807,10 +490,13 @@ interface Player {
     };
     const handleKeyUp = (e: KeyboardEvent) => keys.current[e.key.toLowerCase()] = false;
     const handleMouseDown = (e: MouseEvent) => {
+      if (document.pointerLockElement !== canvasRef.current && e.target === canvasRef.current) return;
       if (e.button === 2) keys.current['m_right'] = true;
+      if (e.button === 0) keys.current['m_left'] = true;
     };
     const handleMouseUp = (e: MouseEvent) => {
       if (e.button === 2) keys.current['m_right'] = false;
+      if (e.button === 0) keys.current['m_left'] = false;
     };
     const handleMouseMove = (e: MouseEvent) => {
         if (gameState !== 'playing' || document.pointerLockElement !== canvasRef.current) return;
@@ -849,71 +535,142 @@ interface Player {
 
       {/* Main Game Container */}
       <div className="relative group shadow-2xl shadow-blue-900/20 border-4 border-slate-800 rounded-xl overflow-hidden aspect-[4/3] max-w-[800px] w-full bg-black">
-        <canvas 
-          ref={canvasRef} 
-          width={800} 
-          height={600} 
-          className="w-full h-full cursor-crosshair"
-          onClick={togglePointerLock}
-          onMouseDown={(e) => { if (e.button === 0) handleShoot(); }}
-        />
+        {gameState === 'playing' ? (
+          <GameScene 
+            player={player} 
+            enemies={enemiesState}
+            particles={particles.current}
+            mapData={MAP}
+            cellSize={CELL_SIZE}
+            currentWeapon={currentWeapon}
+            isReloading={isReloading}
+            recoilOffset={recoilOffset.current}
+            lastShotTime={lastShotTime.current}
+          />
+        ) : (
+          <canvas 
+            ref={canvasRef} 
+            width={800} 
+            height={600} 
+            className="w-full h-full cursor-crosshair"
+            onClick={togglePointerLock}
+          />
+        )}
+
+        {/* Global Damage Indicators Overlays */}
+        <div className="absolute inset-0 pointer-events-none z-40 overflow-hidden">
+           {damageIndicators.map(ind => (
+             <div 
+              key={ind.id}
+              className="absolute top-1/2 left-1/2 w-32 h-1 bg-red-600/50 blur-sm rounded-full origin-left"
+              style={{ 
+                transform: `translate(-50%, -50%) rotate(${ind.angle}rad) translate(100px, 0)`,
+                opacity: ind.opacity 
+              }}
+             />
+           ))}
+
+           {hp < 30 && (
+             <div className="absolute inset-0 bg-red-600/10 animate-pulse pointer-events-none" />
+           )}
+
+           {/* Crosshair Overlay */}
+           {gameState === 'playing' && !(currentWeapon === 'sniper' && player.current.isAds) && (
+             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none flex items-center justify-center">
+                <div className={`w-8 h-[2px] bg-green-500 ${player.current.isAds ? 'opacity-50' : 'opacity-100'}`} />
+                <div className={`h-8 w-[2px] bg-green-500 absolute ${player.current.isAds ? 'opacity-50' : 'opacity-100'}`} />
+             </div>
+           )}
+
+           {/* Killfeed Overlay */}
+           <div className="absolute top-24 right-6 flex flex-col items-end gap-2 text-white font-mono font-bold text-sm pointer-events-none">
+              <AnimatePresence>
+                {killfeed.map((kill, i) => (
+                  <motion.div 
+                    key={kill.id}
+                    initial={{ x: 50, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 - i * 0.2 }}
+                    exit={{ opacity: 0 }}
+                    className="bg-slate-900/60 px-3 py-1 rounded-md border-r-2 border-red-500"
+                  >
+                    {kill.text}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+           </div>
+        </div>
 
         {/* HUD Elements */}
         {gameState === 'playing' && (
           <>
-            <Weapon3D 
-              type={currentWeapon} 
-              isReloading={isReloading} 
-              isAds={player.current.isAds} 
-              recoilOffset={recoilOffset.current} 
-            />
             {/* Top Stats */}
             <div className="absolute top-4 left-4 right-4 flex justify-between items-start pointer-events-none">
-              <div className="bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-lg border border-slate-700 flex items-center gap-4">
-                <div className="flex items-center gap-2 text-red-500">
-                  <Target size={16} />
-                  <span className="font-mono text-xl font-bold">{stats.kills}</span>
+              <div className="bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-lg border border-slate-700 flex items-center gap-4 shadow-xl">
+                <div className="flex items-center gap-3 pr-2">
+                   <div className="w-10 h-10 bg-yellow-500 rounded flex items-center justify-center shadow-lg shadow-yellow-500/20">
+                      <Zap className="text-slate-950" size={24} />
+                   </div>
+                   <div className="flex flex-col">
+                      <span className="text-xs font-black text-white uppercase tracking-tighter italic leading-none">Nano Banana</span>
+                      <span className="text-[9px] font-mono text-yellow-500/80 uppercase tracking-widest leading-none mt-1 font-bold">Protocol Active</span>
+                   </div>
                 </div>
-                <div className="h-6 w-px bg-slate-700" />
-                <div className="flex items-center gap-2 text-blue-400">
-                  <Shield size={16} />
-                  <span className="font-mono text-xl font-bold">{Math.round(hp)}%</span>
+                <div className="h-8 w-px bg-slate-700/50" />
+                <div className="flex items-center gap-4 px-2">
+                   <div className="flex items-center gap-2">
+                      <Skull size={18} className="text-slate-400" />
+                      <span className="font-mono text-xl font-black text-white leading-none">{stats.kills}</span>
+                   </div>
+                   <div className="flex items-center gap-2">
+                      <Shield size={18} className={hp < 30 ? 'text-red-500 animate-pulse' : 'text-blue-400'} />
+                      <span className={`font-mono text-xl font-black leading-none ${hp < 30 ? 'text-red-500' : 'text-white'}`}>{Math.round(hp)}%</span>
+                   </div>
                 </div>
               </div>
               
               <div className="flex flex-col items-end gap-2">
-                 <div className="bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-lg border border-slate-700 text-slate-300 text-sm font-mono flex items-center gap-2">
-                    <Terminal size={14} className="text-green-500" />
-                    SYSTEM_STABLE_V2.1 
+                 <div className="bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-lg border border-slate-700 text-slate-300 text-sm font-mono flex items-center gap-2 shadow-xl">
+                    <Terminal size={14} className="text-green-500 animate-pulse" />
+                    <span className="text-[10px] tracking-wider uppercase font-bold text-slate-400">System Integrity: </span>
+                    <span className="text-green-500 font-bold tracking-tighter">OPTIMAL</span>
                  </div>
               </div>
             </div>
 
             {/* Weapon & Ammo Card */}
-            <div className="absolute bottom-6 right-6 pointer-events-none">
-              <div className="bg-slate-900/90 backdrop-blur-xl border-l-4 border-yellow-500 p-4 rounded-xl flex items-center gap-6 shadow-2xl">
-                <div className="flex flex-col">
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold">Weapon System</span>
-                  <span className="text-2xl font-black text-white italic tracking-tighter uppercase">{WEAPONS[currentWeapon].name}</span>
+            <div className="absolute bottom-6 right-6 flex items-center gap-4">
+              <button 
+                onClick={reload}
+                className="w-14 h-14 bg-slate-900/90 backdrop-blur-xl border border-slate-700 hover:border-yellow-500 rounded-xl flex items-center justify-center shadow-2xl transition-colors pointer-events-auto group"
+              >
+                <RefreshCcw size={24} className={`text-slate-400 group-hover:text-yellow-500 ${isReloading ? 'animate-spin text-yellow-500' : ''}`} />
+              </button>
+              <div className="bg-slate-900/90 backdrop-blur-xl border-l-4 border-yellow-500 p-4 rounded-xl flex flex-col gap-2 shadow-2xl pointer-events-none">
+                <div className="flex items-center gap-6">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold">Weapon System</span>
+                    <span className="text-2xl font-black text-white italic tracking-tighter uppercase">{WEAPONS[currentWeapon].name}</span>
+                  </div>
+                  <div className="h-12 w-px bg-slate-700/50" />
+                  <div className="flex items-end gap-1">
+                    <span className={`text-5xl font-mono font-bold ${ammo.mag < 5 ? 'text-red-500 animate-pulse' : 'text-yellow-500'}`}>
+                      {isReloading ? '--' : ammo.mag}
+                    </span>
+                    <span className="text-xl font-mono text-slate-500 mb-1">/ {ammo.reserve}</span>
+                  </div>
                 </div>
-                <div className="h-12 w-px bg-slate-700/50" />
-                <div className="flex items-end gap-1">
-                  <span className={`text-5xl font-mono font-bold ${ammo.mag < 5 ? 'text-red-500 animate-pulse' : 'text-yellow-500'}`}>
-                    {isReloading ? '--' : ammo.mag}
-                  </span>
-                  <span className="text-xl font-mono text-slate-500 mb-1">/ {ammo.reserve}</span>
-                </div>
+                {isReloading && (
+                  <div className="h-1 bg-slate-800 rounded-full overflow-hidden w-full">
+                    <motion.div 
+                      key={lastShotTime.current} // To restart animation if interrupted, actually key mostly doesn't matter here
+                      initial={{ width: 0 }}
+                      animate={{ width: '100%' }}
+                      transition={{ duration: WEAPONS[currentWeapon].reloadTime / 1000 }}
+                      className="h-full bg-yellow-500" 
+                    />
+                  </div>
+                )}
               </div>
-              {isReloading && (
-                <div className="mt-2 h-1 bg-slate-800 rounded-full overflow-hidden">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: '100%' }}
-                    transition={{ duration: WEAPONS[currentWeapon].reloadTime / 1000 }}
-                    className="h-full bg-yellow-500" 
-                  />
-                </div>
-              )}
             </div>
 
             {/* Health Bar Bottom */}
@@ -943,12 +700,12 @@ interface Player {
                 <>
                   <motion.div 
                     initial={{ scale: 0.8 }} animate={{ scale: 1 }}
-                    className="w-20 h-20 bg-blue-500/20 rounded-full flex items-center justify-center mb-6 border-2 border-blue-500 shadow-[0_0_30px_rgba(59,130,246,0.3)]"
+                    className="w-20 h-20 bg-yellow-500/20 rounded-full flex items-center justify-center mb-6 border-2 border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.3)]"
                   >
-                    <Smartphone className="text-blue-500" size={40} />
+                    <Zap className="text-yellow-500" size={40} />
                   </motion.div>
-                  <h1 className="text-5xl font-black text-white italic tracking-tighter mb-2 uppercase">Raycast Ops</h1>
-                  <p className="text-slate-400 max-w-sm mb-12">Tactical 3D combat simulation with advanced AI, destructible environments, and mobile weapon progression.</p>
+                  <h1 className="text-5xl font-black text-white italic tracking-tighter mb-2 uppercase">Nano Banana</h1>
+                  <p className="text-slate-400 max-w-sm mb-12">High-fidelity 3D combat simulation. Experience the power of the Nano Engine with procedural tactical environments.</p>
                   
                   <div className="grid grid-cols-2 gap-4 mb-12 w-full max-w-md text-sm">
                     <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 text-left">
