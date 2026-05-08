@@ -5,11 +5,45 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Target, Shield, Zap, Skull, RefreshCcw, Terminal, Move, Users } from 'lucide-react';
+import { Target, Shield, Zap, Skull, RefreshCcw, Terminal, Move, Users, Coins, ArrowBigUp, ShoppingCart, ChevronLeft } from 'lucide-react';
 import { GameScene } from './components/game/GameScene';
 
 // --- Types & Constants ---
 type WeaponType = 'pistol' | 'rifle' | 'shotgun' | 'sniper';
+
+interface Upgrade {
+  name: string;
+  description: string;
+  costs: number[];
+  maxLevel: number;
+}
+
+const UPGRADES: Record<string, Upgrade> = {
+  armorPlating: { 
+    name: 'Armor Plating', 
+    description: '+5 Max HP per level', 
+    costs: [100, 200, 350, 500, 750], 
+    maxLevel: 5 
+  },
+  ammoReserve: { 
+    name: 'Ammo Reserve', 
+    description: '+20 Initial Reserve Ammo per level', 
+    costs: [100, 200, 350, 500, 750], 
+    maxLevel: 5 
+  },
+  quickReload: { 
+    name: 'Quick Reload', 
+    description: '-5% Reload Time per level', 
+    costs: [150, 300, 500, 800, 1200], 
+    maxLevel: 5 
+  },
+  scavenger: { 
+    name: 'Scavenger', 
+    description: '+5% Pickup Drop Chance per level', 
+    costs: [150, 300, 500, 800, 1200], 
+    maxLevel: 5 
+  }
+};
 
 interface Weapon {
   name: string;
@@ -147,7 +181,7 @@ const sounds = new SoundEngine();
 export default function App() {
   const gameContainerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [gameState, setGameState] = useState<'start' | 'playing' | 'dead' | 'win'>('start');
+  const [gameState, setGameState] = useState<'start' | 'playing' | 'dead' | 'win' | 'upgrades'>('start');
   const [wave, setWave] = useState(1);
   const waveRef = useRef(1);
   const isWaveTransitionRef = useRef(false);
@@ -155,11 +189,35 @@ export default function App() {
   const spawnIntervalRef = useRef<number | null>(null);
   const reloadTimeoutRef = useRef<number | null>(null);
   const waveTransitionTimeoutRef = useRef<number | null>(null);
+  const bossSpawnTimeoutRef = useRef<number | null>(null);
   const [enemiesRemaining, setEnemiesRemaining] = useState(0);
   const [score, setScore] = useState(0);
   const [waveMessage, setWaveMessage] = useState('');
   const [mobileMode, setMobileMode] = useState(false);
   const [stats, setStats] = useState({ kills: 0, deaths: 0, shotsFired: 0, shotsHit: 0 });
+
+  // --- Meta Progression State ---
+  const [tacticalCredits, setTacticalCredits] = useState(0);
+  const [upgradeLevels, setUpgradeLevels] = useState<Record<string, number>>({
+    armorPlating: 0,
+    ammoReserve: 0,
+    quickReload: 0,
+    scavenger: 0
+  });
+  const [earnedCredits, setEarnedCredits] = useState(0);
+
+  // Load Meta Data
+  useEffect(() => {
+    const savedCredits = localStorage.getItem('nano_credits');
+    const savedUpgrades = localStorage.getItem('nano_upgrades');
+    if (savedCredits) setTacticalCredits(parseInt(savedCredits));
+    if (savedUpgrades) setUpgradeLevels(JSON.parse(savedUpgrades));
+  }, []);
+
+  const saveMeta = (credits: number, upgrades: any) => {
+    localStorage.setItem('nano_credits', credits.toString());
+    localStorage.setItem('nano_upgrades', JSON.stringify(upgrades));
+  };
 
   useEffect(() => {
     const checkMobile = () => {
@@ -228,11 +286,15 @@ interface Player {
 
   const initGame = () => {
     setGameState('playing');
-    setHp(100);
+    const maxHp = 100 + (upgradeLevels.armorPlating * 5);
+    setHp(maxHp);
     setStats({ kills: 0, deaths: 0, shotsFired: 0, shotsHit: 0 });
-    setAmmo({ mag: WEAPONS[currentWeapon].magSize, reserve: 120 });
+    
+    const initialReserve = 120 + (upgradeLevels.ammoReserve * 20);
+    setAmmo({ mag: WEAPONS[currentWeapon].magSize, reserve: initialReserve });
     setScore(0);
     setWave(1);
+    setEarnedCredits(0);
     waveRef.current = 1;
     isWaveTransitionRef.current = false;
     isSpawningRef.current = false;
@@ -247,6 +309,10 @@ interface Player {
     if (waveTransitionTimeoutRef.current) {
       clearTimeout(waveTransitionTimeoutRef.current);
       waveTransitionTimeoutRef.current = null;
+    }
+    if (bossSpawnTimeoutRef.current) {
+      clearTimeout(bossSpawnTimeoutRef.current);
+      bossSpawnTimeoutRef.current = null;
     }
     setIsReloading(false);
     setEnemiesRemaining(0);
@@ -307,10 +373,14 @@ interface Player {
             
             if (waveNum === 5) {
               isSpawningRef.current = true;
-              setTimeout(() => {
-                spawnEnemies(1, 5, true);
+              if (bossSpawnTimeoutRef.current) clearTimeout(bossSpawnTimeoutRef.current);
+              bossSpawnTimeoutRef.current = setTimeout(() => {
+                if (gameState === 'playing' && waveRef.current === 5) {
+                  spawnEnemies(1, 5, true);
+                }
                 isSpawningRef.current = false;
-              }, 4000);
+                bossSpawnTimeoutRef.current = null;
+              }, 4000) as unknown as number;
             } else {
               isSpawningRef.current = false;
             }
@@ -452,7 +522,9 @@ interface Player {
               spawnParticles(enemy.x, enemy.y, 'explosion');
 
               // Chance for pickup
-              if (Math.random() < 0.35 || enemy.isBoss) {
+              const baseDropChance = 0.35;
+              const dropChance = baseDropChance + (upgradeLevels.scavenger * 0.05);
+              if (Math.random() < dropChance || enemy.isBoss) {
                  const type = Math.random() > 0.5 ? 'health' : 'ammo';
                  pickups.current.push({
                    id: Math.random(),
@@ -496,6 +568,9 @@ interface Player {
     sounds.playReload();
 
     if (reloadTimeoutRef.current) clearTimeout(reloadTimeoutRef.current);
+    const reloadReduction = upgradeLevels.quickReload * 0.05;
+    const finalReloadTime = WEAPONS[currentWeapon].reloadTime * (1 - reloadReduction);
+    
     reloadTimeoutRef.current = setTimeout(() => {
       setAmmo(prev => {
         const needed = WEAPONS[currentWeapon].magSize - prev.mag;
@@ -507,7 +582,7 @@ interface Player {
       });
       setIsReloading(false);
       reloadTimeoutRef.current = null;
-    }, WEAPONS[currentWeapon].reloadTime) as unknown as number;
+    }, finalReloadTime) as unknown as number;
   };
 
   const spawnParticles = (x: number, y: number, type: 'blood' | 'explosion' | 'shell') => {
@@ -585,7 +660,7 @@ interface Player {
     if (tryMove(Math.floor(player.current.x / CELL_SIZE), Math.floor(ny / CELL_SIZE))) player.current.y = ny;
 
     // Pickup Collection
-    pickups.current.forEach((p, i) => {
+    pickups.current = pickups.current.filter((p) => {
       const dist = Math.hypot(p.x - player.current.x, p.y - player.current.y);
       if (dist < 32) {
         if (p.type === 'health') {
@@ -594,10 +669,11 @@ interface Player {
            setAmmo(prev => ({ ...prev, reserve: Math.min(120, prev.reserve + 60) }));
         }
         sounds.playReload();
-        pickups.current.splice(i, 1);
         setKillfeed(prev => [{ id: nextKillfeedId.current++, text: `+ ${p.type.toUpperCase()} SECURED` }, ...prev].slice(0, 5));
+        return false;
       }
       p.rotation += 0.05;
+      return true;
     });
 
     // Apply Recoil Decay & Shake
@@ -619,6 +695,13 @@ interface Player {
     // Wave Management
     if (gameState === 'playing' && enemies.current.length === 0 && !isSpawningRef.current && !isWaveTransitionRef.current) {
        if (waveRef.current >= 5) {
+         const finalCredits = Math.floor(stats.kills * 15 + waveRef.current * 100 + score / 5 + 1500);
+         setEarnedCredits(finalCredits);
+         setTacticalCredits(prev => {
+           const total = prev + finalCredits;
+           saveMeta(total, upgradeLevels);
+           return total;
+         });
          setGameState('win');
          if (spawnIntervalRef.current) {
            clearInterval(spawnIntervalRef.current);
@@ -631,6 +714,10 @@ interface Player {
          if (waveTransitionTimeoutRef.current) {
            clearTimeout(waveTransitionTimeoutRef.current);
            waveTransitionTimeoutRef.current = null;
+         }
+         if (bossSpawnTimeoutRef.current) {
+           clearTimeout(bossSpawnTimeoutRef.current);
+           bossSpawnTimeoutRef.current = null;
          }
          setIsReloading(false);
          setWaveMessage('');
@@ -697,6 +784,13 @@ interface Player {
                   setHp(prev => {
                       const newHp = Math.max(0, prev - damage);
                       if (newHp === 0 && gameState === 'playing') {
+                        const runCredits = Math.floor(stats.kills * 10 + waveRef.current * 50 + score / 10);
+                        setEarnedCredits(runCredits);
+                        setTacticalCredits(prev => {
+                          const total = prev + runCredits;
+                          saveMeta(total, upgradeLevels);
+                          return total;
+                        });
                         setGameState('dead');
                         if (spawnIntervalRef.current) {
                           clearInterval(spawnIntervalRef.current);
@@ -709,6 +803,10 @@ interface Player {
                         if (waveTransitionTimeoutRef.current) {
                           clearTimeout(waveTransitionTimeoutRef.current);
                           waveTransitionTimeoutRef.current = null;
+                        }
+                        if (bossSpawnTimeoutRef.current) {
+                          clearTimeout(bossSpawnTimeoutRef.current);
+                          bossSpawnTimeoutRef.current = null;
                         }
                         setIsReloading(false);
                         setWaveMessage('');
@@ -775,6 +873,22 @@ interface Player {
     particles.current = particles.current.filter(p => p.life > 0);
   };
 
+  const buyUpgrade = (key: string) => {
+    const upgrade = UPGRADES[key];
+    const currentLevel = upgradeLevels[key];
+    if (currentLevel >= upgrade.maxLevel) return;
+    
+    const cost = upgrade.costs[currentLevel];
+    if (tacticalCredits >= cost) {
+      const nextCredits = tacticalCredits - cost;
+      const nextUpgrades = { ...upgradeLevels, [key]: currentLevel + 1 };
+      setTacticalCredits(nextCredits);
+      setUpgradeLevels(nextUpgrades);
+      saveMeta(nextCredits, nextUpgrades);
+      sounds.playReload();
+    }
+  };
+
   useEffect(() => {
     const loop = setInterval(() => {
       update();
@@ -784,6 +898,7 @@ interface Player {
       if (spawnIntervalRef.current) clearInterval(spawnIntervalRef.current);
       if (reloadTimeoutRef.current) clearTimeout(reloadTimeoutRef.current);
       if (waveTransitionTimeoutRef.current) clearTimeout(waveTransitionTimeoutRef.current);
+      if (bossSpawnTimeoutRef.current) clearTimeout(bossSpawnTimeoutRef.current);
     };
   }, [gameState, currentWeapon, hp, ammo]);
 
@@ -1249,14 +1364,74 @@ interface Player {
           </>
         )}
 
-        {/* Start / Dead / Win Overlays */}
+        {/* Start / Dead / Win / Upgrades Overlays */}
         <AnimatePresence>
-          {(gameState === 'start' || gameState === 'dead' || gameState === 'win') && (
+          {(gameState === 'start' || gameState === 'dead' || gameState === 'win' || gameState === 'upgrades') && (
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="absolute inset-0 bg-slate-950/95 backdrop-blur-xl flex flex-col items-center justify-center p-8 text-center z-[100]"
             >
-              {gameState === 'start' ? (
+              {gameState === 'upgrades' ? (
+                <div className="w-full max-w-2xl bg-slate-900/50 rounded-3xl border border-white/10 p-8">
+                   <div className="flex justify-between items-center mb-8">
+                     <div className="text-left">
+                       <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Tactical Upgrades</h2>
+                       <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">Enhance your biological unit</p>
+                     </div>
+                     <div className="bg-yellow-500/20 px-4 py-2 rounded-xl border border-yellow-500/30 flex items-center gap-2">
+                       <Coins size={18} className="text-yellow-500" />
+                       <span className="text-yellow-500 font-black">{tacticalCredits.toLocaleString()}</span>
+                     </div>
+                   </div>
+
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                     {Object.entries(UPGRADES).map(([key, upgrade]) => {
+                       const level = upgradeLevels[key];
+                       const isMax = level >= upgrade.maxLevel;
+                       const cost = isMax ? 0 : upgrade.costs[level];
+                       const canAfford = tacticalCredits >= cost;
+
+                       return (
+                         <div key={key} className="bg-slate-950/50 p-5 rounded-2xl border border-white/5 text-left flex flex-col">
+                            <div className="flex justify-between items-start mb-2">
+                              <span className="text-white font-black uppercase text-sm">{upgrade.name}</span>
+                              <div className="flex gap-1">
+                                {[...Array(upgrade.maxLevel)].map((_, i) => (
+                                  <div key={i} className={`w-1.5 h-1.5 rounded-full ${i < level ? 'bg-blue-500 shadow-[0_0_5px_#3b82f6]' : 'bg-slate-800'}`} />
+                                ))}
+                              </div>
+                            </div>
+                            <p className="text-slate-500 text-[10px] uppercase font-bold mb-4">{upgrade.description}</p>
+                            
+                            <button 
+                              disabled={isMax || !canAfford}
+                              onClick={() => buyUpgrade(key)}
+                              className={`mt-auto py-2 rounded-xl flex items-center justify-center gap-2 font-black uppercase text-xs transition-all ${
+                                isMax ? 'bg-slate-800 text-slate-500 cursor-not-allowed' :
+                                canAfford ? 'bg-white text-slate-950 hover:scale-105 active:scale-95' :
+                                'bg-red-500/10 text-red-500 border border-red-500/20 opacity-50'
+                              }`}
+                            >
+                              {isMax ? 'MAXED' : (
+                                <>
+                                  <Coins size={12} />
+                                  <span>{cost.toLocaleString()}</span>
+                                </>
+                              )}
+                            </button>
+                         </div>
+                       );
+                     })}
+                   </div>
+
+                   <button 
+                    onClick={() => setGameState('start')}
+                    className="flex items-center gap-2 text-slate-500 hover:text-white transition-colors font-black uppercase text-xs tracking-widest"
+                   >
+                     <ChevronLeft size={16} /> Return to Operations
+                   </button>
+                </div>
+              ) : gameState === 'start' ? (
                 <>
                   <motion.div 
                     initial={{ scale: 0.8 }} animate={{ scale: 1 }}
@@ -1288,45 +1463,72 @@ interface Player {
                     </div>
                   </div>
 
-                  <button 
-                    onClick={initGame}
-                    className="px-14 py-5 bg-white text-slate-950 font-black uppercase text-xl rounded-full hover:bg-yellow-500 hover:scale-105 transition-all shadow-[0_10px_40px_rgba(255,255,255,0.1)] active:scale-95"
-                  >
-                    Initiate Deployment
-                  </button>
+                  <div className="flex flex-col gap-4 w-full max-w-xs">
+                    <button 
+                      onClick={initGame}
+                      className="w-full py-5 bg-white text-slate-950 font-black uppercase text-xl rounded-full hover:bg-yellow-500 hover:scale-105 transition-all shadow-[0_10px_40px_rgba(255,255,255,0.1)] active:scale-95"
+                    >
+                      Initiate Deployment
+                    </button>
+                    <button 
+                      onClick={() => setGameState('upgrades')}
+                      className="w-full py-4 bg-slate-900 text-white font-black uppercase text-sm rounded-full border border-white/10 hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
+                    >
+                      <ShoppingCart size={16} /> Market & Upgrades
+                    </button>
+                  </div>
                 </>
               ) : (
-                <div className={`p-12 rounded-3xl border-4 ${gameState === 'win' ? 'border-yellow-500 bg-yellow-500/10' : 'border-red-500 bg-red-500/10'} shadow-2xl w-full max-w-lg`}>
+                <div className={`p-12 rounded-3xl border-4 ${gameState === 'win' ? 'border-yellow-500 bg-yellow-500/10' : 'border-red-500 bg-red-500/10'} shadow-2xl w-full max-w-xl`}>
                     <h2 className={`text-8xl font-black italic tracking-tighter mb-2 ${gameState === 'win' ? 'text-yellow-500' : 'text-red-500'}`}>
                        {gameState === 'win' ? 'SUCCESS' : 'FAILED'}
                     </h2>
                     <p className="text-slate-400 font-black uppercase tracking-[0.3em] mb-10 text-xs">{gameState === 'win' ? 'Sector Secured. All hostiles neutralized.' : 'Mission Aborted. Biological signature lost.'}</p>
                     
+                    <div className="bg-slate-900/80 px-6 py-5 rounded-2xl border-2 border-yellow-500/30 mb-8 text-left flex justify-between items-center">
+                        <div>
+                          <span className="block text-yellow-500 text-[10px] uppercase font-black mb-1 tracking-widest">Tactical Credits Earned</span>
+                          <span className="text-4xl font-black text-white">+{earnedCredits.toLocaleString()}</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="block text-slate-500 text-[10px] uppercase font-black mb-1">Total Balance</span>
+                          <span className="text-xl font-black text-slate-400">{tacticalCredits.toLocaleString()}</span>
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4 text-left mb-10">
-                       <div className="bg-slate-900/80 p-5 rounded-2xl border border-white/5">
+                       <div className="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
                           <span className="block text-slate-500 text-[10px] uppercase font-black mb-1">Final Score</span>
-                          <span className="text-3xl font-black text-white">{score.toLocaleString()}</span>
+                          <span className="text-2xl font-black text-white">{score.toLocaleString()}</span>
                        </div>
-                       <div className="bg-slate-900/80 p-5 rounded-2xl border border-white/5">
+                       <div className="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
                           <span className="block text-slate-500 text-[10px] uppercase font-black mb-1">Combat Wave</span>
-                          <span className="text-3xl font-black text-white">{wave}</span>
+                          <span className="text-2xl font-black text-white">{wave}</span>
                        </div>
-                       <div className="bg-slate-900/80 p-5 rounded-2xl border border-white/5">
+                       <div className="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
                           <span className="block text-slate-500 text-[10px] uppercase font-black mb-1">Accuracy</span>
-                          <span className="text-3xl font-black text-white">{stats.shotsFired > 0 ? Math.round((stats.shotsHit / stats.shotsFired) * 100) : 0}%</span>
+                          <span className="text-2xl font-black text-white">{stats.shotsFired > 0 ? Math.round((stats.shotsHit / stats.shotsFired) * 100) : 0}%</span>
                        </div>
-                       <div className="bg-slate-900/80 p-5 rounded-2xl border border-white/5">
+                       <div className="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
                           <span className="block text-slate-500 text-[10px] uppercase font-black mb-1">Total Kills</span>
-                          <span className="text-3xl font-black text-white">{stats.kills}</span>
+                          <span className="text-2xl font-black text-white">{stats.kills}</span>
                        </div>
                     </div>
 
-                    <button 
-                      onClick={initGame}
-                      className={`w-full py-5 rounded-2xl text-xl font-black uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-95 shadow-xl ${gameState === 'win' ? 'bg-yellow-500 text-slate-950' : 'bg-red-600 text-white'}`}
-                    >
-                      Re-Deploy Target
-                    </button>
+                    <div className="flex gap-4">
+                      <button 
+                        onClick={initGame}
+                        className={`flex-1 py-5 rounded-2xl text-xl font-black uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-95 shadow-xl ${gameState === 'win' ? 'bg-yellow-500 text-slate-950' : 'bg-red-600 text-white'}`}
+                      >
+                        Re-Deploy Target
+                      </button>
+                      <button 
+                        onClick={() => setGameState('start')}
+                        className="px-6 py-5 bg-slate-900 text-white rounded-2xl border border-white/10 hover:bg-slate-800 transition-all font-black uppercase text-xs"
+                      >
+                        Menu
+                      </button>
+                    </div>
                 </div>
               )}
             </motion.div>

@@ -44,7 +44,6 @@ export function Pickups3D({ pickups, cellSize, mapData }: Pickups3DProps) {
               color="white"
               anchorX="center"
               anchorY="middle"
-              font="https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKbxmcSA.woff"
             >
               {p.type.toUpperCase()}
             </Text>
