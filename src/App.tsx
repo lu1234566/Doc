@@ -379,12 +379,13 @@ interface Player {
   const initGame = () => {
     isRunEndingRef.current = false;
     setGameState('playing');
+    setCurrentWeapon('pistol');
     const maxHp = 100 + (upgradeLevels.armorPlating * 5);
     setHp(maxHp);
     setStats({ kills: 0, deaths: 0, shotsFired: 0, shotsHit: 0 });
     
     const initialReserve = 120 + (upgradeLevels.ammoReserve * 20);
-    setAmmo({ mag: WEAPONS[currentWeapon].magSize, reserve: initialReserve });
+    setAmmo({ mag: WEAPONS.pistol.magSize, reserve: initialReserve });
     setScore(0);
     setWave(1);
     setEarnedCredits(0);
@@ -520,6 +521,7 @@ interface Player {
               bossSpawnTimeoutRef.current = setTimeout(() => {
                 if (gameStateRef.current === 'playing' && waveRef.current === 5) {
                   spawnEnemies(1, 5, true);
+                  setEnemiesRemaining(prev => prev + 1);
                 }
                 isSpawningRef.current = false;
                 bossSpawnTimeoutRef.current = null;
