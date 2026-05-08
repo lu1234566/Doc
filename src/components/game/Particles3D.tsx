@@ -12,9 +12,9 @@ interface Particle {
   vy: number;
 }
 
-export function Particles3D({ particles, cellSize }: { particles: Particle[], cellSize: number }) {
-  const mapWidth = 24 * cellSize;
-  const mapHeight = 18 * cellSize;
+export function Particles3D({ particles, cellSize, mapData }: { particles: Particle[], cellSize: number, mapData: number[][] }) {
+  const mapWidth = mapData[0].length * cellSize;
+  const mapHeight = mapData.length * cellSize;
 
   return (
     <>

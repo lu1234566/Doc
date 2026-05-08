@@ -10,9 +10,9 @@ interface Tracer {
   alpha: number;
 }
 
-export function Tracers3D({ tracers, cellSize }: { tracers: Tracer[], cellSize: number }) {
-  const mapWidth = 24 * cellSize;
-  const mapHeight = 18 * cellSize;
+export function Tracers3D({ tracers, cellSize, mapData }: { tracers: Tracer[], cellSize: number, mapData: number[][] }) {
+  const mapWidth = mapData[0].length * cellSize;
+  const mapHeight = mapData.length * cellSize;
 
   return (
     <>

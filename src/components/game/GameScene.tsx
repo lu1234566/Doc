@@ -83,8 +83,8 @@ export function GameScene({
           color="#000000" 
         />
 
-        <Particles3D particles={particles} cellSize={cellSize} />
-        <Tracers3D tracers={tracers} cellSize={cellSize} />
+        <Particles3D particles={particles} cellSize={cellSize} mapData={mapData} />
+        <Tracers3D tracers={tracers} cellSize={cellSize} mapData={mapData} />
 
         {enemies.map((enemy) => (
            <Enemy3D 
