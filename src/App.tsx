@@ -45,6 +45,9 @@ const UPGRADES: Record<string, Upgrade> = {
   }
 };
 
+const WEAPON_UPGRADE_COSTS = [150, 300, 500, 800, 1200];
+const MAX_WEAPON_LEVEL = 5;
+
 const DIFFICULTIES = {
   recruit: { name: 'Recruit', hpMult: 0.8, dmgMult: 0.85, creditMult: 0.8, color: '#4ade80' },
   normal: { name: 'Normal', hpMult: 1.0, dmgMult: 1.0, creditMult: 1.0, color: '#facc15' },
@@ -217,8 +220,16 @@ export default function App() {
     quickReload: 0,
     scavenger: 0
   });
+  const [weaponUpgradeLevels, setWeaponUpgradeLevels] = useState<Record<WeaponType, { damage: number, reload: number, stability: number }>>({
+    pistol: { damage: 0, reload: 0, stability: 0 },
+    rifle: { damage: 0, reload: 0, stability: 0 },
+    shotgun: { damage: 0, reload: 0, stability: 0 },
+    sniper: { damage: 0, reload: 0, stability: 0 }
+  });
   const [earnedCredits, setEarnedCredits] = useState(0);
   const [difficulty, setDifficulty] = useState<DifficultyKey>('normal');
+  const [upgradeTab, setUpgradeTab] = useState<'biological' | 'weapon'>('biological');
+  const [selectedLabWeapon, setSelectedLabWeapon] = useState<WeaponType>('pistol');
 
   // Load Meta Data
   useEffect(() => {
@@ -226,6 +237,7 @@ export default function App() {
       const savedCredits = localStorage.getItem('nano_credits');
       const savedUpgrades = localStorage.getItem('nano_upgrades');
       const savedDifficulty = localStorage.getItem('nano_difficulty');
+      const savedWeaponUpgrades = localStorage.getItem('nano_weapon_upgrades');
       if (savedCredits) {
         const parsed = parseInt(savedCredits);
         if (!isNaN(parsed)) setTacticalCredits(parsed);
@@ -236,6 +248,12 @@ export default function App() {
           setUpgradeLevels(prev => ({ ...prev, ...parsed }));
         }
       }
+      if (savedWeaponUpgrades) {
+        const parsed = JSON.parse(savedWeaponUpgrades);
+        if (parsed && typeof parsed === 'object') {
+          setWeaponUpgradeLevels(prev => ({ ...prev, ...parsed }));
+        }
+      }
       if (savedDifficulty && DIFFICULTIES[savedDifficulty as DifficultyKey]) {
         setDifficulty(savedDifficulty as DifficultyKey);
       }
@@ -244,9 +262,12 @@ export default function App() {
     }
   }, []);
 
-  const saveMeta = (credits: number, upgrades: any) => {
+  const saveMeta = (credits: number, upgrades: any, weaponUpgrades?: any) => {
     localStorage.setItem('nano_credits', credits.toString());
     localStorage.setItem('nano_upgrades', JSON.stringify(upgrades));
+    if (weaponUpgrades) {
+      localStorage.setItem('nano_weapon_upgrades', JSON.stringify(weaponUpgrades));
+    }
   };
 
   useEffect(() => {
@@ -487,12 +508,15 @@ interface Player {
     sounds.playShot(currentWeapon);
 
     // Apply Recoil & Shake
-    const recoilForce = weapon.recoil * (1 - player.current.adsProgress * 0.6);
+    const weaponLevels = weaponUpgradeLevels[currentWeapon];
+    const stabilityMult = 1 - (weaponLevels.stability * 0.05);
+    const recoilForce = weapon.recoil * (1 - player.current.adsProgress * 0.6) * stabilityMult;
     recoilOffset.current += recoilForce / 40;
     screenShake.current = Math.min(15, screenShake.current + recoilForce / 4);
 
     // Raycast for Hit Detection
-    const spread = (Math.random() - 0.5) * weapon.spread * (1 - player.current.adsProgress * 0.8);
+    const spreadMult = 1 - (weaponLevels.stability * 0.05);
+    const spread = (Math.random() - 0.5) * weapon.spread * (1 - player.current.adsProgress * 0.8) * spreadMult;
     const shotAngle = player.current.angle + spread;
     const cos = Math.cos(shotAngle);
     const sin = Math.sin(shotAngle);
@@ -533,7 +557,8 @@ interface Player {
         const angleDiff = Math.atan2(Math.sin(angleToEnemy - shotAngle), Math.cos(angleToEnemy - shotAngle));
         
         if (Math.abs(angleDiff) < 0.15 * (weapon.type === 'shotgun' ? 3 : 1)) {
-            enemy.hp -= weapon.damage;
+            const damageMult = 1 + (weaponUpgradeLevels[currentWeapon].damage * 0.05);
+            enemy.hp -= weapon.damage * damageMult;
             hitSomething = true;
             
             if (enemy.isBoss) {
@@ -601,7 +626,8 @@ interface Player {
 
     if (reloadTimeoutRef.current) clearTimeout(reloadTimeoutRef.current);
     const reloadReduction = upgradeLevels.quickReload * 0.05;
-    const finalReloadTime = WEAPONS[currentWeapon].reloadTime * (1 - reloadReduction);
+    const weaponReloadReduction = weaponUpgradeLevels[currentWeapon].reload * 0.04;
+    const finalReloadTime = WEAPONS[currentWeapon].reloadTime * (1 - reloadReduction) * (1 - weaponReloadReduction);
     
     reloadTimeoutRef.current = setTimeout(() => {
       setAmmo(prev => {
@@ -736,7 +762,7 @@ interface Player {
            setEarnedCredits(finalCredits);
            setTacticalCredits(prev => {
              const total = prev + finalCredits;
-             saveMeta(total, upgradeLevels);
+             saveMeta(total, upgradeLevels, weaponUpgradeLevels);
              return total;
            });
            setGameState('win');
@@ -829,7 +855,7 @@ interface Player {
                         setEarnedCredits(runCredits);
                         setTacticalCredits(prevCred => {
                           const total = prevCred + runCredits;
-                          saveMeta(total, upgradeLevels);
+                          saveMeta(total, upgradeLevels, weaponUpgradeLevels);
                           return total;
                         });
                         setGameState('dead');
@@ -925,7 +951,26 @@ interface Player {
       const nextUpgrades = { ...upgradeLevels, [key]: currentLevel + 1 };
       setTacticalCredits(nextCredits);
       setUpgradeLevels(nextUpgrades);
-      saveMeta(nextCredits, nextUpgrades);
+      saveMeta(nextCredits, nextUpgrades, weaponUpgradeLevels);
+      sounds.playReload();
+    }
+  };
+
+  const buyWeaponUpgrade = (weapon: WeaponType, attribute: 'damage' | 'reload' | 'stability') => {
+    const currentLevels = weaponUpgradeLevels[weapon];
+    const currentLevel = currentLevels[attribute];
+    if (currentLevel >= MAX_WEAPON_LEVEL) return;
+
+    const cost = WEAPON_UPGRADE_COSTS[currentLevel];
+    if (tacticalCredits >= cost) {
+      const nextCredits = tacticalCredits - cost;
+      const nextWeaponUpgrades = {
+        ...weaponUpgradeLevels,
+        [weapon]: { ...currentLevels, [attribute]: currentLevel + 1 }
+      };
+      setTacticalCredits(nextCredits);
+      setWeaponUpgradeLevels(nextWeaponUpgrades);
+      saveMeta(nextCredits, upgradeLevels, nextWeaponUpgrades);
       sounds.playReload();
     }
   };
@@ -1419,11 +1464,11 @@ interface Player {
               className="absolute inset-0 bg-slate-950/95 backdrop-blur-xl flex flex-col items-center justify-center p-8 text-center z-[100]"
             >
               {gameState === 'upgrades' ? (
-                <div className="w-full max-w-2xl bg-slate-900/50 rounded-3xl border border-white/10 p-8">
-                   <div className="flex justify-between items-center mb-8">
+                <div className="w-full max-w-2xl bg-slate-900/50 rounded-3xl border border-white/10 p-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
+                   <div className="flex justify-between items-center mb-6">
                      <div className="text-left">
-                       <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Tactical Upgrades</h2>
-                       <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">Enhance your biological unit</p>
+                       <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Command Center</h2>
+                       <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">Upgrade biological and tactical equipment</p>
                      </div>
                      <div className="bg-yellow-500/20 px-4 py-2 rounded-xl border border-yellow-500/30 flex items-center gap-2">
                        <Coins size={18} className="text-yellow-500" />
@@ -1431,45 +1476,129 @@ interface Player {
                      </div>
                    </div>
 
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                     {Object.entries(UPGRADES).map(([key, upgrade]) => {
-                       const level = upgradeLevels[key];
-                       const isMax = level >= upgrade.maxLevel;
-                       const cost = isMax ? 0 : upgrade.costs[level];
-                       const canAfford = tacticalCredits >= cost;
-
-                       return (
-                         <div key={key} className="bg-slate-950/50 p-5 rounded-2xl border border-white/5 text-left flex flex-col">
-                            <div className="flex justify-between items-start mb-2">
-                              <span className="text-white font-black uppercase text-sm">{upgrade.name}</span>
-                              <div className="flex gap-1">
-                                {[...Array(upgrade.maxLevel)].map((_, i) => (
-                                  <div key={i} className={`w-1.5 h-1.5 rounded-full ${i < level ? 'bg-blue-500 shadow-[0_0_5px_#3b82f6]' : 'bg-slate-800'}`} />
-                                ))}
-                              </div>
-                            </div>
-                            <p className="text-slate-500 text-[10px] uppercase font-bold mb-4">{upgrade.description}</p>
-                            
-                            <button 
-                              disabled={isMax || !canAfford}
-                              onClick={() => buyUpgrade(key)}
-                              className={`mt-auto py-2 rounded-xl flex items-center justify-center gap-2 font-black uppercase text-xs transition-all ${
-                                isMax ? 'bg-slate-800 text-slate-500 cursor-not-allowed' :
-                                canAfford ? 'bg-white text-slate-950 hover:scale-105 active:scale-95' :
-                                'bg-red-500/10 text-red-500 border border-red-500/20 opacity-50'
-                              }`}
-                            >
-                              {isMax ? 'MAXED' : (
-                                <>
-                                  <Coins size={12} />
-                                  <span>{cost.toLocaleString()}</span>
-                                </>
-                              )}
-                            </button>
-                         </div>
-                       );
-                     })}
+                   {/* Tabs */}
+                   <div className="flex gap-2 mb-8 bg-slate-950/50 p-1 rounded-2xl border border-white/5">
+                     <button 
+                       onClick={() => setUpgradeTab('biological')}
+                       className={`flex-1 py-3 rounded-xl font-black uppercase text-xs tracking-widest transition-all ${upgradeTab === 'biological' ? 'bg-white text-slate-950 shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                     >
+                       Biological
+                     </button>
+                     <button 
+                       onClick={() => setUpgradeTab('weapon')}
+                       className={`flex-1 py-3 rounded-xl font-black uppercase text-xs tracking-widest transition-all ${upgradeTab === 'weapon' ? 'bg-white text-slate-950 shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                     >
+                       Weapon Lab
+                     </button>
                    </div>
+
+                   {upgradeTab === 'biological' ? (
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                       {Object.entries(UPGRADES).map(([key, upgrade]) => {
+                         const level = upgradeLevels[key];
+                         const isMax = level >= upgrade.maxLevel;
+                         const cost = isMax ? 0 : upgrade.costs[level];
+                         const canAfford = tacticalCredits >= cost;
+
+                         return (
+                           <div key={key} className="bg-slate-950/50 p-5 rounded-2xl border border-white/5 text-left flex flex-col">
+                              <div className="flex justify-between items-start mb-2">
+                                <span className="text-white font-black uppercase text-sm">{upgrade.name}</span>
+                                <div className="flex gap-1">
+                                  {[...Array(upgrade.maxLevel)].map((_, i) => (
+                                    <div key={i} className={`w-1.5 h-1.5 rounded-full ${i < level ? 'bg-blue-500 shadow-[0_0_5px_#3b82f6]' : 'bg-slate-800'}`} />
+                                  ))}
+                                </div>
+                              </div>
+                              <p className="text-slate-500 text-[10px] uppercase font-bold mb-4">{upgrade.description}</p>
+                              
+                              <button 
+                                disabled={isMax || !canAfford}
+                                onClick={() => buyUpgrade(key)}
+                                className={`mt-auto py-2 rounded-xl flex items-center justify-center gap-2 font-black uppercase text-xs transition-all ${
+                                  isMax ? 'bg-slate-800 text-slate-500 cursor-not-allowed' :
+                                  canAfford ? 'bg-white text-slate-950 hover:scale-105 active:scale-95' :
+                                  'bg-red-500/10 text-red-500 border border-red-500/20 opacity-50'
+                                }`}
+                              >
+                                {isMax ? 'MAXED' : (
+                                  <>
+                                    <Coins size={12} />
+                                    <span>{cost.toLocaleString()}</span>
+                                  </>
+                                )}
+                              </button>
+                           </div>
+                         );
+                       })}
+                     </div>
+                   ) : (
+                     <div className="space-y-6 mb-8">
+                        {/* Weapon Selector */}
+                        <div className="flex flex-wrap gap-2">
+                           {Object.keys(WEAPONS).map((wKey) => {
+                             const weapon = WEAPONS[wKey as WeaponType];
+                             const isSelected = selectedLabWeapon === wKey;
+                             return (
+                               <button
+                                 key={wKey}
+                                 onClick={() => setSelectedLabWeapon(wKey as WeaponType)}
+                                 className={`px-4 py-2 rounded-xl font-black uppercase text-[10px] tracking-widest border transition-all ${isSelected ? 'bg-blue-500 border-blue-400 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'bg-slate-950/50 border-white/5 text-slate-500 hover:border-white/20'}`}
+                               >
+                                 {weapon.name}
+                               </button>
+                             );
+                           })}
+                        </div>
+
+                        {/* Attribute Upgrades */}
+                        <div className="grid grid-cols-1 gap-3">
+                           {(['damage', 'reload', 'stability'] as const).map((attr) => {
+                             const level = weaponUpgradeLevels[selectedLabWeapon][attr];
+                             const isMax = level >= MAX_WEAPON_LEVEL;
+                             const cost = isMax ? 0 : WEAPON_UPGRADE_COSTS[level];
+                             const canAfford = tacticalCredits >= cost;
+                             
+                             const descriptions = {
+                               damage: '+5% Firepower per level',
+                               reload: '-4% Reload time per level',
+                               stability: '-5% Recoil/Spread per level'
+                             };
+
+                             return (
+                               <div key={attr} className="bg-slate-950/50 p-5 rounded-2xl border border-white/5 text-left flex items-center justify-between">
+                                  <div>
+                                    <span className="text-white font-black uppercase text-sm block mb-1">{attr}</span>
+                                    <p className="text-slate-500 text-[9px] uppercase font-bold mb-3">{descriptions[attr]}</p>
+                                    <div className="flex gap-1">
+                                      {[...Array(MAX_WEAPON_LEVEL)].map((_, i) => (
+                                        <div key={i} className={`w-3 h-1 rounded-full ${i < level ? 'bg-blue-500 shadow-[0_0_5px_#3b82f6]' : 'bg-slate-800'}`} />
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  <button
+                                    disabled={isMax || !canAfford}
+                                    onClick={() => buyWeaponUpgrade(selectedLabWeapon, attr)}
+                                    className={`py-2 px-6 rounded-xl flex items-center justify-center gap-2 font-black uppercase text-xs transition-all ${
+                                      isMax ? 'bg-slate-800 text-slate-500 cursor-not-allowed' :
+                                      canAfford ? 'bg-white text-slate-950 hover:scale-105 active:scale-95' :
+                                      'bg-red-500/10 text-red-500 border border-red-500/20 opacity-50'
+                                    }`}
+                                  >
+                                    {isMax ? 'MAX' : (
+                                      <>
+                                        <Coins size={12} />
+                                        <span>{cost.toLocaleString()}</span>
+                                      </>
+                                    )}
+                                  </button>
+                               </div>
+                             );
+                           })}
+                        </div>
+                     </div>
+                   )}
 
                    <button 
                     onClick={() => setGameState('start')}
