@@ -5,7 +5,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Target, Shield, Zap, Skull, RefreshCcw, Terminal, Move, Users, Coins, ArrowBigUp, ShoppingCart, ChevronLeft } from 'lucide-react';
+import { Target, Shield, Zap, Skull, RefreshCcw, Terminal, Move, Users, Coins, ArrowBigUp, ShoppingCart, ChevronLeft, BarChart3, HardDrive, Swords, Award } from 'lucide-react';
 import { GameScene } from './components/game/GameScene';
 
 // --- Types & Constants ---
@@ -210,6 +210,14 @@ export default function App() {
   const [waveMessage, setWaveMessage] = useState('');
   const [mobileMode, setMobileMode] = useState(false);
   const [stats, setStats] = useState({ kills: 0, deaths: 0, shotsFired: 0, shotsHit: 0 });
+  const [lifetimeStats, setLifetimeStats] = useState({
+    totalKills: 0,
+    totalDeaths: 0,
+    totalCredits: 0,
+    bestWave: 0,
+    totalWins: 0,
+    totalGames: 0
+  });
   const isRunEndingRef = useRef(false);
 
   // --- Meta Progression State ---
@@ -236,6 +244,7 @@ export default function App() {
   const [difficulty, setDifficulty] = useState<DifficultyKey>('normal');
   const [upgradeTab, setUpgradeTab] = useState<'biological' | 'weapon'>('biological');
   const [selectedLabWeapon, setSelectedLabWeapon] = useState<WeaponType>('pistol');
+  const [menuView, setMenuView] = useState<'main' | 'armory' | 'difficulty' | 'profile'>('main');
 
   // Load Meta Data
   useEffect(() => {
@@ -244,6 +253,8 @@ export default function App() {
       const savedUpgrades = localStorage.getItem('nano_upgrades');
       const savedDifficulty = localStorage.getItem('nano_difficulty');
       const savedWeaponUpgrades = localStorage.getItem('nano_weapon_upgrades');
+      const savedStats = localStorage.getItem('nano_stats');
+
       if (savedCredits) {
         const parsed = parseInt(savedCredits);
         if (!isNaN(parsed)) setTacticalCredits(parsed);
@@ -263,16 +274,39 @@ export default function App() {
       if (savedDifficulty && DIFFICULTIES[savedDifficulty as DifficultyKey]) {
         setDifficulty(savedDifficulty as DifficultyKey);
       }
+      if (savedStats) {
+        try {
+          const parsed = JSON.parse(savedStats);
+          if (parsed && typeof parsed === 'object') {
+            setLifetimeStats(prev => ({ 
+              ...prev, 
+              ...parsed,
+              // Ensure no NaNs or undefined values
+              totalKills: Number(parsed.totalKills) || 0,
+              totalDeaths: Number(parsed.totalDeaths) || 0,
+              totalCredits: Number(parsed.totalCredits) || 0,
+              bestWave: Number(parsed.bestWave) || 0,
+              totalWins: Number(parsed.totalWins) || 0,
+              totalGames: Number(parsed.totalGames) || 0
+            }));
+          }
+        } catch (e) {
+          console.error("Malformed stats in localStorage", e);
+        }
+      }
     } catch (e) {
       console.error("Failed to load meta progression", e);
     }
   }, []);
 
-  const saveMeta = (credits: number, upgrades: any, weaponUpgrades?: any) => {
+  const saveMeta = (credits: number, upgrades: any, weaponUpgrades?: any, lStats?: any) => {
     localStorage.setItem('nano_credits', credits.toString());
     localStorage.setItem('nano_upgrades', JSON.stringify(upgrades));
     if (weaponUpgrades) {
       localStorage.setItem('nano_weapon_upgrades', JSON.stringify(weaponUpgrades));
+    }
+    if (lStats) {
+      localStorage.setItem('nano_stats', JSON.stringify(lStats));
     }
   };
 
@@ -329,6 +363,7 @@ interface Player {
   const keys = useRef<Record<string, boolean>>({});
   const enemies = useRef<any[]>([]);
   const particles = useRef<any[]>([]);
+  const navGridRef = useRef<number[][]>([]);
   const mapData = useRef([...MAP.map(row => [...row])]);
   const [mapDataState, setMapDataState] = useState([...MAP.map(row => [...row])]);
   const lastShotTime = useRef(0);
@@ -387,6 +422,7 @@ interface Player {
     enemies.current = [];
     setEnemiesState([]);
     particles.current = [];
+    navGridRef.current = MAP.map(row => row.map(() => 999));
     graveyard.current = [];
     killfeed.length = 0;
     setKillfeed([]);
@@ -399,6 +435,49 @@ interface Player {
     spawnWave(1);
     sounds.init();
   };
+
+  useEffect(() => {
+    const updateNav = () => {
+      if (gameStateRef.current !== 'playing') return;
+      
+      const rows = MAP.length;
+      const cols = MAP[0].length;
+      const distMap = MAP.map(row => row.map(() => 999));
+      
+      const px = Math.floor(player.current.x / CELL_SIZE);
+      const py = Math.floor(player.current.y / CELL_SIZE);
+      
+      if (px < 0 || px >= cols || py < 0 || py >= rows) return;
+      
+      const queue: [number, number, number][] = [[px, py, 0]];
+      distMap[py][px] = 0;
+      
+      let head = 0;
+      while (head < queue.length) {
+        const [x, y, d] = queue[head++];
+        
+        const neighbors = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+        for (const [dx, dy] of neighbors) {
+          const nx = x + dx;
+          const ny = y + dy;
+          
+          if (nx >= 0 && nx < cols && ny >= 0 && ny < rows) {
+            // Treat doors (2) as walkable for pathfinding logic so enemies wait outside or approach
+            if (MAP[ny][nx] === 0 || MAP[ny][nx] === 2) {
+              if (distMap[ny][nx] > d + 1) {
+                distMap[ny][nx] = d + 1;
+                queue.push([nx, ny, d + 1]);
+              }
+            }
+          }
+        }
+      }
+      navGridRef.current = distMap;
+    };
+
+    const interval = setInterval(updateNav, 500);
+    return () => clearInterval(interval);
+  }, []);
 
   const tracers = useRef<{ id: number, x1: number, y1: number, x2: number, y2: number, alpha: number }[]>([]);
   const nextTracerId = useRef(0);
@@ -485,7 +564,11 @@ interface Player {
                 maxHp: finalHp,
                 lastShot: Date.now() + Math.random() * 2000,
                 speed: (type === 'rusher' ? 3.5 : type === 'rifleman' ? 2 : 1.5) * speedBuff * (isBoss ? 0.7 : 1),
-                color: isBoss ? '#f43f5e' : (type === 'rusher' ? '#ef4444' : type === 'rifleman' ? '#eab308' : '#3b82f6')
+                color: isBoss ? '#f43f5e' : (type === 'rusher' ? '#ef4444' : type === 'rifleman' ? '#eab308' : '#3b82f6'),
+                stuckFrames: 0,
+                lastX: rx,
+                lastY: ry,
+                targetAngle: 0
             };
             
             if (isBoss) {
@@ -777,9 +860,19 @@ interface Player {
            const diffMult = DIFFICULTIES[difficulty].creditMult;
            const finalCredits = Math.floor((stats.kills * 15 + waveRef.current * 100 + score / 5 + 1500) * diffMult);
            setEarnedCredits(finalCredits);
+           
+           const nextLStats = {
+             ...lifetimeStats,
+             totalKills: lifetimeStats.totalKills + stats.kills,
+             bestWave: Math.max(lifetimeStats.bestWave, waveRef.current),
+             totalWins: lifetimeStats.totalWins + 1,
+             totalGames: lifetimeStats.totalGames + 1,
+             totalCredits: lifetimeStats.totalCredits + finalCredits
+           };
+           setLifetimeStats(nextLStats);
            setTacticalCredits(prev => {
              const total = prev + finalCredits;
-             saveMeta(total, upgradeLevels, weaponUpgradeLevels);
+             saveMeta(total, upgradeLevels, weaponUpgradeLevels, nextLStats);
              return total;
            });
            setGameState('win');
@@ -824,12 +917,13 @@ interface Player {
       const cos = Math.cos(angleToPlayer);
       const sin = Math.sin(angleToPlayer);
       
-      const checkSteps = Math.min(dist / 16, 20);
+      const checkSteps = Math.min(dist / 16, 40);
       for(let d = 1; d < checkSteps; d++) {
            const tx = Math.floor((e.x + cos * d * 16) / CELL_SIZE);
            const ty = Math.floor((e.y + sin * d * 16) / CELL_SIZE);
            if (tx >= 0 && tx < MAP[0].length && ty >= 0 && ty < MAP.length) {
-               if (mapData.current[ty][tx] > 0 && mapData.current[ty][tx] !== 2) {
+               const cell = mapData.current[ty][tx];
+               if (cell === 1 || cell === 3) { // Wall or Barrel blocks LOS
                    hasLineOfSight = false;
                    break;
                }
@@ -838,9 +932,9 @@ interface Player {
 
       // Behavioral logic
       let targetDist = 0;
-      if (e.type === 'rusher') targetDist = 64;
-      else if (e.type === 'rifleman') targetDist = 320;
-      else if (e.type === 'sniper') targetDist = 600;
+      if (e.type === 'rusher') targetDist = 48;
+      else if (e.type === 'rifleman') targetDist = 280;
+      else if (e.type === 'sniper') targetDist = 550;
 
       let moveX = 0;
       let moveY = 0;
@@ -853,16 +947,30 @@ interface Player {
               moveX = -cos * e.speed;
               moveY = -sin * e.speed;
           }
+          
+          // Anti-Stuck: if trying to move but distance doesn't change
+          const dMoved = Math.hypot(e.x - e.lastX, e.y - e.lastY);
+          if ((moveX !== 0 || moveY !== 0) && dMoved < 0.1) {
+            e.stuckFrames++;
+          } else {
+            e.stuckFrames = Math.max(0, e.stuckFrames - 2);
+          }
 
-          // Shoot
-          const fireRate = e.type === 'sniper' ? 3000 : e.type === 'rifleman' ? 800 : 1500;
-          if (now - e.lastShot > fireRate && dist < 1000) {
+          if (e.stuckFrames > 60) {
+            // Strafe to break block
+            moveX = -sin * e.speed;
+            moveY = cos * e.speed;
+            if (e.stuckFrames > 120) e.stuckFrames = 0; 
+          }
+
+          // Shoot Logic
+          const fireRate = e.isBoss ? 600 : (e.type === 'sniper' ? 3000 : e.type === 'rifleman' ? 800 : 1500);
+          if (now - e.lastShot > fireRate && dist < 1200) {
               e.lastShot = now;
               
-              // Damage cooldown for player (250ms)
               if (now - lastDamageTaken.current > 250) {
                   const baseDamage = e.type === 'sniper' ? 35 : e.type === 'rifleman' ? 12 : 8;
-                  const damage = baseDamage * DIFFICULTIES[difficulty].dmgMult;
+                  const damage = (e.isBoss ? baseDamage * 2.5 : baseDamage) * DIFFICULTIES[difficulty].dmgMult;
                   setHp(prev => {
                       const newHp = Math.max(0, prev - damage);
                       if (newHp === 0 && gameStateRef.current === 'playing' && !isRunEndingRef.current) {
@@ -870,9 +978,19 @@ interface Player {
                         const diffMult = DIFFICULTIES[difficulty].creditMult;
                         const runCredits = Math.floor((stats.kills * 10 + waveRef.current * 50 + score / 10) * diffMult);
                         setEarnedCredits(runCredits);
+                        
+                        const nextLStats = {
+                          ...lifetimeStats,
+                          totalKills: lifetimeStats.totalKills + stats.kills,
+                          bestWave: Math.max(lifetimeStats.bestWave, waveRef.current),
+                          totalDeaths: lifetimeStats.totalDeaths + 1,
+                          totalGames: lifetimeStats.totalGames + 1,
+                          totalCredits: lifetimeStats.totalCredits + runCredits
+                        };
+                        setLifetimeStats(nextLStats);
                         setTacticalCredits(prevCred => {
                           const total = prevCred + runCredits;
-                          saveMeta(total, upgradeLevels, weaponUpgradeLevels);
+                          saveMeta(total, upgradeLevels, weaponUpgradeLevels, nextLStats);
                           return total;
                         });
                         setGameState('dead');
@@ -903,32 +1021,52 @@ interface Player {
                   });
                   lastDamageTaken.current = now;
                   screenShake.current = Math.min(20, screenShake.current + damage / 2);
-                  
-                  // Damage indicator
-                  setDamageIndicators(prev => [
-                    ...prev, 
-                    { id: nextDamageId.current++, angle: angleToPlayer - player.current.angle + Math.PI, opacity: 1.2 }
-                  ].slice(-5));
-                  
+                  setDamageIndicators(prev => [...prev, { id: nextDamageId.current++, angle: angleToPlayer - player.current.angle + Math.PI, opacity: 1.2 }].slice(-5));
                   spawnParticles(player.current.x, player.current.y, 'blood');
                   sounds.playShot(e.type === 'sniper' ? 'sniper' : 'pistol');
               }
-              
-              // Tracer from enemy to player
-              tracers.current.push({
-                id: nextTracerId.current++,
-                x1: e.x, y1: e.y,
-                x2: player.current.x, y2: player.current.y,
-                alpha: 1
-              });
+              tracers.current.push({ id: nextTracerId.current++, x1: e.x, y1: e.y, x2: player.current.x, y2: player.current.y, alpha: 1 });
           }
       } else {
-          // No LOS: Move toward player
-          moveX = cos * e.speed;
-          moveY = sin * e.speed;
+          // Pathfinding: No LOS
+          const curGridX = Math.floor(e.x / CELL_SIZE);
+          const curGridY = Math.floor(e.y / CELL_SIZE);
+          
+          if (navGridRef.current[curGridY]) {
+            let bestD = navGridRef.current[curGridY][curGridX] || 999;
+            let bestDir = { dx: 0, dy: 0 };
+            
+            const neighbors = [[0,1], [0,-1], [1,0], [-1,0], [1,1], [-1,-1], [1,-1], [-1,1]];
+            for (const [dx, dy] of neighbors) {
+              const nx = curGridX + dx;
+              const ny = curGridY + dy;
+              if (navGridRef.current[ny] && navGridRef.current[ny][nx] !== undefined) {
+                const d = navGridRef.current[ny][nx];
+                if (d < bestD) {
+                  bestD = d;
+                  bestDir = { dx, dy };
+                }
+              }
+            }
+            
+            if (bestDir.dx !== 0 || bestDir.dy !== 0) {
+               // Smooth movement towards the target cell
+               const targetX = (curGridX + bestDir.dx) * CELL_SIZE + CELL_SIZE/2;
+               const targetY = (curGridY + bestDir.dy) * CELL_SIZE + CELL_SIZE/2;
+               const angleToGrid = Math.atan2(targetY - e.y, targetX - e.x);
+               moveX = Math.cos(angleToGrid) * e.speed;
+               moveY = Math.sin(angleToGrid) * e.speed;
+            } else {
+               // Fallback: move toward player
+               moveX = cos * e.speed;
+               moveY = sin * e.speed;
+            }
+          }
       }
 
-      // Basic enemy collision
+      e.lastX = e.x;
+      e.lastY = e.y;
+
       const nx = e.x + moveX;
       const ny = e.y + moveY;
       const txX = Math.floor(nx / CELL_SIZE);
@@ -936,8 +1074,23 @@ interface Player {
       const curTx = Math.floor(e.x / CELL_SIZE);
       const curTy = Math.floor(e.y / CELL_SIZE);
 
-      if (txX >= 0 && txX < MAP[0].length && curTy >= 0 && curTy < MAP.length && mapData.current[curTy][txX] === 0) e.x = nx;
-      if (tyY >= 0 && tyY < MAP.length && curTx >= 0 && curTx < MAP[0].length && mapData.current[tyY][curTx] === 0) e.y = ny;
+      const tryEnemyMove = (tx: number, ty: number) => {
+        if (tx < 0 || tx >= MAP[0].length || ty < 0 || ty >= MAP.length) return false;
+        const cell = mapData.current[ty][tx];
+        if (cell === 0) return true;
+        if (cell === 2) {
+          if (mapData.current[ty]) mapData.current[ty][tx] = 0;
+          setMapDataState([...mapData.current.map(row => [...row])]);
+          return true;
+        }
+        return false;
+      };
+
+      if (tryEnemyMove(txX, curTy)) e.x = nx;
+      else if (txX !== curTx) e.stuckFrames++;
+
+      if (tryEnemyMove(curTx, tyY)) e.y = ny;
+      else if (tyY !== curTy) e.stuckFrames++;
     });
 
     // Sync internal state for 3D rendering (Throttle to ~30fps for UI/Render sync)
@@ -1638,73 +1791,326 @@ interface Player {
                    </button>
                 </div>
               ) : gameState === 'start' ? (
-                <>
-                  <motion.div 
-                    initial={{ scale: 0.8 }} animate={{ scale: 1 }}
-                    className="w-20 h-20 bg-yellow-500/20 rounded-full flex items-center justify-center mb-6 border-2 border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.3)]"
-                  >
-                    <Zap className="text-yellow-500" size={40} />
-                  </motion.div>
-                  <h1 className="text-6xl font-black text-white italic tracking-tighter mb-2 uppercase">Nano Banana</h1>
-                  <p className="text-slate-400 max-w-sm mb-12 font-medium">Precision survival simulation. Neutralize target waves to secure the sector.</p>
+                <div className="w-full h-full flex flex-col items-center justify-center relative">
+                  {/* Tactical Grid Background */}
+                  <div className="absolute inset-0 pointer-events-none opacity-20" style={{ backgroundImage: 'linear-gradient(#444 1px, transparent 1px), linear-gradient(90deg, #444 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
                   
-                  <div className="grid grid-cols-2 gap-4 mb-12 w-full max-w-md text-sm">
-                    <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 text-left">
-                       <span className="block text-slate-500 uppercase text-[10px] font-black mb-2 tracking-widest">Tactical HUD</span>
-                       <ul className="space-y-1 text-slate-300 font-bold">
-                          <li>WASD / Shift - Combat Move</li>
-                          <li>MOUSE - Aim & Engage</li>
-                          <li>1,2,3,4 - Arsenal Selector</li>
-                          <li>R - Tactical Reload</li>
-                       </ul>
-                    </div>
-                    <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 text-left">
-                       <span className="block text-slate-500 uppercase text-[10px] font-black mb-2 tracking-widest">Orders</span>
-                       <ul className="space-y-1 text-slate-300 font-bold">
-                          <li>Survive 5 Intense Waves</li>
-                          <li>Eliminate All Hostiles</li>
-                          <li>Secure High Score</li>
-                          <li>Maintain Armor Integrity</li>
-                       </ul>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap justify-center gap-2 mb-8 max-w-lg">
-                    {(Object.keys(DIFFICULTIES) as DifficultyKey[]).map((key) => (
-                      <button
-                        key={key}
-                        onClick={() => {
-                          setDifficulty(key);
-                          localStorage.setItem('nano_difficulty', key);
-                          sounds.playHit();
-                        }}
-                        className={`px-4 py-2 rounded-xl border-2 font-black uppercase text-[10px] tracking-widest transition-all ${
-                          difficulty === key 
-                            ? 'bg-white text-slate-950 border-white scale-110 shadow-[0_0_15px_rgba(255,255,255,0.3)]' 
-                            : 'bg-slate-900/50 text-slate-500 border-white/5 hover:border-white/20'
-                        }`}
+                  <AnimatePresence mode="wait">
+                    {menuView === 'main' && (
+                      <motion.div 
+                        key="main"
+                        initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.1 }}
+                        className="flex flex-col items-center z-10"
                       >
-                        {key}
-                        <div className="text-[8px] font-bold opacity-60 mt-0.5">x{DIFFICULTIES[key].creditMult} CR</div>
-                      </button>
-                    ))}
-                  </div>
+                        <motion.div 
+                          initial={{ y: -50 }} animate={{ y: 0 }}
+                          className="w-24 h-24 bg-yellow-500/20 rounded-2xl flex items-center justify-center mb-6 border-2 border-yellow-500 shadow-[0_0_40px_rgba(234,179,8,0.2)]"
+                        >
+                          <Zap className="text-yellow-500" size={48} />
+                        </motion.div>
+                        
+                        <h1 className="text-5xl md:text-7xl font-black text-white italic tracking-tighter mb-1 uppercase drop-shadow-[0_0_20px_rgba(255,255,255,0.2)] text-center">Nano Banana</h1>
+                        <div className="flex items-center gap-3 mb-10 text-yellow-500 font-bold tracking-[0.4em] uppercase text-xs">
+                          <div className="h-px w-8 bg-yellow-500/50" />
+                          3D Tactical Simulator
+                          <div className="h-px w-8 bg-yellow-500/50" />
+                        </div>
 
-                  <div className="flex flex-col gap-4 w-full max-w-xs">
-                    <button 
-                      onClick={initGame}
-                      className="w-full py-5 bg-white text-slate-950 font-black uppercase text-xl rounded-full hover:bg-yellow-500 hover:scale-105 transition-all shadow-[0_10px_40px_rgba(255,255,255,0.1)] active:scale-95"
-                    >
-                      Initiate Deployment
-                    </button>
-                    <button 
-                      onClick={() => setGameState('upgrades')}
-                      className="w-full py-4 bg-slate-900 text-white font-black uppercase text-sm rounded-full border border-white/10 hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
-                    >
-                      <ShoppingCart size={16} /> Market & Upgrades
-                    </button>
-                  </div>
-                </>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl px-4">
+                           <button 
+                            onClick={initGame}
+                            className="bg-white text-slate-950 p-6 rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-yellow-500 hover:scale-105 transition-all shadow-xl group border-b-4 border-slate-300 active:translate-y-1 active:border-b-0"
+                           >
+                             <Target size={32} className="mb-2" />
+                             <span className="font-black text-xl uppercase tracking-tighter italic">Start Mission</span>
+                             <span className="text-[10px] font-bold opacity-60 uppercase tracking-widest">Active Sector: 01</span>
+                           </button>
+
+                           <button 
+                            onClick={() => setGameState('upgrades')}
+                            className="bg-slate-900/80 backdrop-blur-md border border-white/10 p-6 rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-slate-800 hover:scale-105 transition-all shadow-xl text-white group"
+                           >
+                             <ShoppingCart size={32} className="text-yellow-500 mb-2" />
+                             <span className="font-black text-xl uppercase tracking-tighter italic">Command Center</span>
+                             <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Upgrades & Tech</span>
+                           </button>
+
+                           <button 
+                            onClick={() => setMenuView('armory')}
+                            className="bg-slate-900/80 backdrop-blur-md border border-white/10 p-6 rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-slate-800 hover:scale-105 transition-all shadow-xl text-white"
+                           >
+                             <Swords size={32} className="text-blue-500 mb-2" />
+                             <span className="font-black text-lg uppercase tracking-tighter italic">Armory</span>
+                             <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Arsenal Status</span>
+                           </button>
+
+                           <div className="grid grid-cols-2 gap-4">
+                              <button 
+                                onClick={() => setMenuView('difficulty')}
+                                className={`bg-slate-900/80 backdrop-blur-md border border-white/10 p-4 rounded-2xl flex flex-col items-center justify-center gap-1 hover:bg-slate-800 transition-all text-white`}
+                              >
+                                <Shield size={24} style={{ color: DIFFICULTIES[difficulty].color }} />
+                                <span className="font-black text-xs uppercase italic">Difficulty</span>
+                                <span className="text-[8px] font-bold uppercase opacity-50" style={{ color: DIFFICULTIES[difficulty].color }}>{difficulty}</span>
+                              </button>
+                              <button 
+                                onClick={() => setMenuView('profile')}
+                                className="bg-slate-900/80 backdrop-blur-md border border-white/10 p-4 rounded-2xl flex flex-col items-center justify-center gap-1 hover:bg-slate-800 transition-all text-white"
+                              >
+                                <Users size={24} className="text-green-500" />
+                                <span className="font-black text-xs uppercase italic">Profile</span>
+                                <span className="text-[8px] text-slate-500 font-bold uppercase">Stats</span>
+                              </button>
+                           </div>
+                        </div>
+
+                        <div className="mt-12 flex flex-col items-center gap-4 w-full px-6">
+                           <div className="bg-yellow-500/10 px-4 py-2 rounded-full border border-yellow-500/30 flex items-center justify-center gap-3 w-full max-w-xs md:max-w-md">
+                              <Coins size={16} className="text-yellow-500 shrink-0" />
+                              <span className="text-yellow-500 font-black tracking-widest text-[10px] md:text-sm italic truncate">{tacticalCredits.toLocaleString()} TAX CREDITS</span>
+                           </div>
+                           <p className="text-[8px] text-slate-600 font-bold uppercase tracking-[0.5em] mt-4 italic">v1.2.0 | Tactical Simulation Environment</p>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {menuView === 'armory' && (
+                      <motion.div 
+                        key="armory"
+                        initial={{ opacity: 0, x: 100 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -100 }}
+                        className="w-full max-w-4xl max-h-[85vh] overflow-y-auto px-6 z-10 custom-scrollbar"
+                      >
+                         <div className="flex justify-between items-center mb-8 bg-slate-900/80 p-6 rounded-3xl border border-white/10 backdrop-blur-md sticky top-0 z-20">
+                            <div>
+                               <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Armory</h2>
+                               <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Available Weapon Systems</p>
+                            </div>
+                            <button 
+                              onClick={() => setMenuView('main')}
+                              className="px-6 py-3 bg-white text-slate-950 font-black uppercase text-xs rounded-xl hover:bg-yellow-500 transition-all"
+                            >
+                              Return
+                            </button>
+                         </div>
+
+                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-10">
+                            {(['pistol', 'rifle', 'shotgun', 'sniper'] as WeaponType[]).map(wKey => {
+                               const weapon = WEAPONS[wKey];
+                               const upgrades = weaponUpgradeLevels[wKey];
+                               const avgLevel = (upgrades.damage + upgrades.reload + upgrades.stability) / 3;
+                               
+                               return (
+                                 <div key={wKey} className="bg-slate-900/60 backdrop-blur-sm p-6 rounded-3xl border border-white/5 flex flex-col gap-4 relative overflow-hidden group">
+                                    <div className="absolute -right-4 -top-4 w-32 h-32 bg-white/5 rounded-full blur-3xl group-hover:bg-blue-500/10 transition-all" />
+                                    
+                                    <div className="flex justify-between items-start z-10">
+                                       <div>
+                                          <span className="text-[10px] text-blue-400 font-black uppercase tracking-widest block mb-1">Model: {weapon.type.toUpperCase()}</span>
+                                          <h3 className="text-2xl font-black text-white italic tracking-tighter uppercase">{weapon.name}</h3>
+                                       </div>
+                                       <div className="px-3 py-1 bg-white/10 rounded-lg text-white font-black text-[10px] uppercase">
+                                          LVL {Math.floor(avgLevel)}
+                                       </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-x-8 gap-y-3 z-10">
+                                       <div className="space-y-1">
+                                          <div className="flex justify-between text-[8px] font-black uppercase text-slate-500">
+                                             <span>Damage</span>
+                                             <span className="text-white">{weapon.damage * (1 + upgrades.damage * 0.05)}</span>
+                                          </div>
+                                          <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
+                                             <div className="h-full bg-red-500" style={{ width: `${(weapon.damage / 100) * 100}%` }} />
+                                          </div>
+                                       </div>
+                                       <div className="space-y-1">
+                                          <div className="flex justify-between text-[8px] font-black uppercase text-slate-500">
+                                             <span>Fire Rate</span>
+                                             <span className="text-white">{Math.round(1000 / weapon.fireRate)}/s</span>
+                                          </div>
+                                          <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
+                                             <div className="h-full bg-yellow-500" style={{ width: `${(100 / weapon.fireRate) * 10}%` }} />
+                                          </div>
+                                       </div>
+                                       <div className="space-y-1">
+                                          <div className="flex justify-between text-[8px] font-black uppercase text-slate-500">
+                                             <span>Mag Size</span>
+                                             <span className="text-white">{weapon.magSize}</span>
+                                          </div>
+                                          <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
+                                             <div className="h-full bg-blue-500" style={{ width: `${(weapon.magSize / 50) * 100}%` }} />
+                                          </div>
+                                       </div>
+                                       <div className="space-y-1">
+                                          <div className="flex justify-between text-[8px] font-black uppercase text-slate-500">
+                                             <span>Range</span>
+                                             <span className="text-white">{weapon.range}m</span>
+                                          </div>
+                                          <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
+                                             <div className="h-full bg-green-500" style={{ width: `${(weapon.range / 1500) * 100}%` }} />
+                                          </div>
+                                       </div>
+                                    </div>
+
+                                    <div className="mt-2 pt-4 border-t border-white/5 flex gap-2">
+                                       <div className="flex-1 text-[8px] text-slate-500 uppercase font-black uppercase">
+                                          {weapon.isAuto ? 'Full-Auto Capable' : 'Semi-Automatic'}
+                                          {weapon.isScoped && <span className="text-blue-400 block">+ Tactical Optics</span>}
+                                       </div>
+                                       <button 
+                                          onClick={() => {
+                                            setMenuView('main');
+                                            setUpgradeTab('weapon');
+                                            setSelectedLabWeapon(wKey);
+                                            setGameState('upgrades');
+                                          }}
+                                          className="text-[9px] font-black uppercase text-yellow-500 hover:text-white transition-colors"
+                                       >
+                                          Upgrade in Lab
+                                       </button>
+                                    </div>
+                                 </div>
+                               )
+                            })}
+                         </div>
+                      </motion.div>
+                    )}
+
+                    {menuView === 'difficulty' && (
+                      <motion.div 
+                        key="difficulty"
+                        initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -50 }}
+                        className="flex flex-col items-center z-10 w-full max-w-2xl max-h-[85vh] overflow-y-auto px-6 custom-scrollbar py-10"
+                      >
+                         <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter mb-2">Protocol Selection</h2>
+                         <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-10 text-center">Select your difficulty level. Higher danger yields higher rewards.</p>
+
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full mb-10">
+                            {(Object.keys(DIFFICULTIES) as DifficultyKey[]).map((key) => (
+                              <button
+                                key={key}
+                                onClick={() => {
+                                  setDifficulty(key);
+                                  localStorage.setItem('nano_difficulty', key);
+                                  sounds.playHit();
+                                }}
+                                className={`p-6 rounded-3xl border-2 text-left transition-all ${
+                                  difficulty === key 
+                                    ? 'bg-white text-slate-950 border-white shadow-[0_20px_40px_rgba(255,255,255,0.1)] active:scale-95' 
+                                    : 'bg-slate-900/60 border-white/10 text-slate-400 hover:border-white/30'
+                                }`}
+                              >
+                                <div className="flex justify-between items-start mb-4">
+                                   <span className="font-black uppercase text-xl italic tracking-tighter">{key}</span>
+                                   <div className={`w-3 h-3 rounded-full ${difficulty === key ? 'bg-slate-900' : ''}`} style={{ backgroundColor: difficulty !== key ? DIFFICULTIES[key].color : undefined }} />
+                                </div>
+                                <div className={`text-[9px] font-black uppercase tracking-widest mb-3 ${difficulty === key ? 'text-slate-500' : 'text-slate-600'}`}>Stats Modification</div>
+                                <div className="space-y-1">
+                                   <div className="flex justify-between items-center text-[10px]">
+                                      <span className="font-bold opacity-60">Armor Mult</span>
+                                      <span className="font-black">x{DIFFICULTIES[key].hpMult}</span>
+                                   </div>
+                                   <div className="flex justify-between items-center text-[10px]">
+                                      <span className="font-bold opacity-60">Danger Mult</span>
+                                      <span className="font-black">x{DIFFICULTIES[key].dmgMult}</span>
+                                   </div>
+                                   <div className="flex justify-between items-center text-[10px] mt-2 pt-2 border-t border-current/10">
+                                      <span className="font-bold text-yellow-600">Credit Rewards</span>
+                                      <span className="font-black text-yellow-600">{Math.round(DIFFICULTIES[key].creditMult * 100)}%</span>
+                                   </div>
+                                </div>
+                              </button>
+                            ))}
+                         </div>
+
+                         <button 
+                            onClick={() => setMenuView('main')}
+                            className="bg-slate-900 px-10 py-4 rounded-2xl text-white font-black uppercase text-xs border border-white/10 hover:bg-white hover:text-slate-950 transition-all"
+                         >
+                           Confirm Strategy
+                         </button>
+                      </motion.div>
+                    )}
+
+                    {menuView === 'profile' && (
+                      <motion.div 
+                        key="profile"
+                        initial={{ opacity: 0, scale: 1.1 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
+                        className="w-full max-w-2xl bg-slate-900/80 backdrop-blur-xl p-8 rounded-3xl border border-white/10 z-10 max-h-[85vh] overflow-y-auto custom-scrollbar"
+                      >
+                         <div className="flex justify-between items-center mb-8">
+                            <div className="flex items-center gap-4">
+                               <div className="w-16 h-16 bg-blue-500/20 rounded-2xl border border-blue-500 flex items-center justify-center">
+                                  <Users className="text-blue-500" size={32} />
+                               </div>
+                               <div className="text-left">
+                                  <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none">Command Profile</h2>
+                                  <span className="text-green-500 text-[10px] font-black uppercase tracking-widest mt-2 block">Agent Status: Active</span>
+                               </div>
+                            </div>
+                            <button 
+                              onClick={() => setMenuView('main')}
+                              className="w-12 h-12 bg-white/5 text-white flex items-center justify-center rounded-xl hover:bg-white hover:text-slate-950 transition-all"
+                            >
+                              <ChevronLeft size={24} />
+                            </button>
+                         </div>
+
+                         <div className="grid grid-cols-2 gap-4 mb-8">
+                            <div className="bg-slate-950/50 p-6 rounded-2xl border border-white/5 text-left">
+                               <div className="text-blue-400 font-bold text-[10px] uppercase tracking-widest mb-1">Total Kills</div>
+                               <div className="text-3xl font-black text-white">{lifetimeStats.totalKills.toLocaleString()}</div>
+                            </div>
+                            <div className="bg-slate-950/50 p-6 rounded-2xl border border-white/5 text-left">
+                               <div className="text-yellow-500 font-bold text-[10px] uppercase tracking-widest mb-1">Lifetime Credits</div>
+                               <div className="text-3xl font-black text-white">{lifetimeStats.totalCredits.toLocaleString()}</div>
+                            </div>
+                            <div className="bg-slate-950/50 p-4 rounded-2xl border border-white/5 flex items-center gap-4">
+                               <div className="w-10 h-10 bg-green-500/20 rounded-xl flex items-center justify-center">
+                                  <Award className="text-green-500" size={20} />
+                               </div>
+                               <div className="text-left">
+                                  <div className="text-slate-500 font-bold text-[8px] uppercase tracking-widest">Missions Won</div>
+                                  <div className="text-xl font-black text-white">{lifetimeStats.totalWins}</div>
+                               </div>
+                            </div>
+                            <div className="bg-slate-950/50 p-4 rounded-2xl border border-white/5 flex items-center gap-4">
+                               <div className="w-10 h-10 bg-red-500/20 rounded-xl flex items-center justify-center">
+                                  <Skull className="text-red-500" size={20} />
+                               </div>
+                               <div className="text-left">
+                                  <div className="text-slate-500 font-bold text-[8px] uppercase tracking-widest">Total Deaths</div>
+                                  <div className="text-xl font-black text-white">{lifetimeStats.totalDeaths}</div>
+                               </div>
+                            </div>
+                         </div>
+
+                         <div className="space-y-4">
+                            <div className="bg-slate-950/50 p-4 rounded-2xl border border-white/5 flex justify-between items-center text-left">
+                               <div>
+                                  <span className="text-slate-500 font-bold text-[8px] uppercase tracking-widest block">Best Sector Progress</span>
+                                  <span className="text-white font-black uppercase text-sm">Target Securing: WAVE {lifetimeStats.bestWave}</span>
+                               </div>
+                               <div className="flex gap-2">
+                                  {[1,2,3,4,5].map(w => (
+                                    <div key={w} className={`w-2 h-4 rounded-sm ${w <= lifetimeStats.bestWave ? 'bg-blue-500' : 'bg-slate-800'}`} />
+                                  ))}
+                               </div>
+                            </div>
+                            <div className="bg-slate-950/50 p-4 rounded-2xl border border-white/5 flex justify-between items-center text-left">
+                               <div>
+                                  <span className="text-slate-500 font-bold text-[8px] uppercase tracking-widest block">Most Used Protocol</span>
+                                  <span className="text-white font-black uppercase text-sm">{difficulty}</span>
+                               </div>
+                               <div className="flex gap-1">
+                                  <div className="w-4 h-4 rounded-full" style={{ backgroundColor: DIFFICULTIES[difficulty].color }} />
+                               </div>
+                            </div>
+                         </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               ) : (
                 <div className={`p-12 rounded-3xl border-4 ${gameState === 'win' ? 'border-yellow-500 bg-yellow-500/10' : 'border-red-500 bg-red-500/10'} shadow-2xl w-full max-w-xl`}>
                     <h2 className={`text-8xl font-black italic tracking-tighter mb-2 ${gameState === 'win' ? 'text-yellow-500' : 'text-red-500'}`}>
@@ -1753,7 +2159,10 @@ interface Player {
                         Re-Deploy Target
                       </button>
                       <button 
-                        onClick={() => setGameState('start')}
+                        onClick={() => {
+                          setMenuView('main');
+                          setGameState('start');
+                        }}
                         className="px-6 py-5 bg-slate-900 text-white rounded-2xl border border-white/10 hover:bg-slate-800 transition-all font-black uppercase text-xs"
                       >
                         Menu
@@ -1767,14 +2176,16 @@ interface Player {
       </div>
 
       {/* Responsive Info/Controls */}
-      <div className="mt-8 flex gap-8 items-center text-slate-500 text-sm font-medium">
-         <div className="flex items-center gap-2">
-            <Move size={16} /> w/a/s/d to move
-         </div>
-         <div className="flex items-center gap-2">
-            <Zap size={16} /> 1-4 switch weapon
-         </div>
-      </div>
+      {gameState === 'start' && (
+        <div className="mt-8 flex gap-8 items-center text-slate-500 text-sm font-medium">
+           <div className="flex items-center gap-2">
+              <Move size={16} /> w/a/s/d to move
+           </div>
+           <div className="flex items-center gap-2">
+              <Zap size={16} /> 1-4 switch weapon
+           </div>
+        </div>
+      )}
     </div>
   );
 }
