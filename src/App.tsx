@@ -5,7 +5,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Target, Shield, Zap, Skull, Award, RefreshCcw, Smartphone, Terminal, Move } from 'lucide-react';
+import { Target, Shield, Zap, Skull, RefreshCcw, Terminal, Move, Users } from 'lucide-react';
 import { GameScene } from './components/game/GameScene';
 
 // --- Types & Constants ---
@@ -152,7 +152,8 @@ export default function App() {
   const waveRef = useRef(1);
   const isWaveTransitionRef = useRef(false);
   const isSpawningRef = useRef(false);
-  const spawnIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const spawnIntervalRef = useRef<number | null>(null);
+  const reloadTimeoutRef = useRef<number | null>(null);
   const [enemiesRemaining, setEnemiesRemaining] = useState(0);
   const [score, setScore] = useState(0);
   const [waveMessage, setWaveMessage] = useState('');
@@ -232,7 +233,15 @@ interface Player {
     waveRef.current = 1;
     isWaveTransitionRef.current = false;
     isSpawningRef.current = false;
-    if (spawnIntervalRef.current) clearInterval(spawnIntervalRef.current);
+    if (spawnIntervalRef.current) {
+      clearInterval(spawnIntervalRef.current);
+      spawnIntervalRef.current = null;
+    }
+    if (reloadTimeoutRef.current) {
+      clearTimeout(reloadTimeoutRef.current);
+      reloadTimeoutRef.current = null;
+    }
+    setIsReloading(false);
     setEnemiesRemaining(0);
     setWaveMessage('');
     player.current = { x: 128, y: 128, angle: 0, velX: 0, velY: 0, rotVel: 0, pitch: 0, radius: 16, isAds: false, adsProgress: 0 };
@@ -243,6 +252,8 @@ interface Player {
     killfeed.length = 0;
     setKillfeed([]);
     keys.current = {};
+    joystick.current.active = false;
+    touchLook.current.active = false;
     const newMap = [...MAP.map(row => [...row])];
     mapData.current = newMap;
     setMapDataState([...newMap]);
@@ -272,13 +283,16 @@ interface Player {
     let spawnedCount = 0;
     spawnIntervalRef.current = setInterval(() => {
         if (spawnedCount >= count) {
-            if (spawnIntervalRef.current) clearInterval(spawnIntervalRef.current);
+            if (spawnIntervalRef.current) {
+              clearInterval(spawnIntervalRef.current);
+              spawnIntervalRef.current = null;
+            }
             isSpawningRef.current = false;
             return;
         }
         spawnEnemies(1, waveNum);
         spawnedCount++;
-    }, 800);
+    }, 800) as unknown as number;
   };
 
   const spawnEnemies = (count: number, currentWave: number = 1) => {
@@ -424,12 +438,13 @@ interface Player {
 
   const reload = () => {
     // Prevent double reload and check conditions
-    if (isReloading || ammoRef.current.mag >= WEAPONS[currentWeapon].magSize || ammoRef.current.reserve <= 0) return;
+    if (isReloading || ammoRef.current.mag >= WEAPONS[currentWeapon].magSize || ammoRef.current.reserve <= 0 || gameState !== 'playing') return;
 
     setIsReloading(true);
     sounds.playReload();
 
-    setTimeout(() => {
+    if (reloadTimeoutRef.current) clearTimeout(reloadTimeoutRef.current);
+    reloadTimeoutRef.current = setTimeout(() => {
       setAmmo(prev => {
         const needed = WEAPONS[currentWeapon].magSize - prev.mag;
         const taken = Math.min(needed, prev.reserve);
@@ -439,7 +454,8 @@ interface Player {
         };
       });
       setIsReloading(false);
-    }, WEAPONS[currentWeapon].reloadTime);
+      reloadTimeoutRef.current = null;
+    }, WEAPONS[currentWeapon].reloadTime) as unknown as number;
   };
 
   const spawnParticles = (x: number, y: number, type: 'blood' | 'explosion' | 'shell') => {
@@ -536,6 +552,12 @@ interface Player {
     if (gameState === 'playing' && enemies.current.length === 0 && !isSpawningRef.current && !isWaveTransitionRef.current) {
        if (waveRef.current >= 5) {
          setGameState('win');
+         if (spawnIntervalRef.current) clearInterval(spawnIntervalRef.current);
+         if (reloadTimeoutRef.current) clearTimeout(reloadTimeoutRef.current);
+         setIsReloading(false);
+         keys.current = {};
+         joystick.current.active = false;
+         touchLook.current.active = false;
        } else {
          const nextWave = waveRef.current + 1;
          setWave(nextWave);
@@ -594,7 +616,15 @@ interface Player {
                   const damage = e.type === 'sniper' ? 35 : e.type === 'rifleman' ? 12 : 8;
                   setHp(prev => {
                       const newHp = Math.max(0, prev - damage);
-                      if (newHp === 0 && gameState === 'playing') setGameState('dead');
+                      if (newHp === 0 && gameState === 'playing') {
+                        setGameState('dead');
+                        if (spawnIntervalRef.current) clearInterval(spawnIntervalRef.current);
+                        if (reloadTimeoutRef.current) clearTimeout(reloadTimeoutRef.current);
+                        setIsReloading(false);
+                        keys.current = {};
+                        joystick.current.active = false;
+                        touchLook.current.active = false;
+                      }
                       return newHp;
                   });
                   lastDamageTaken.current = now;
@@ -667,9 +697,14 @@ interface Player {
       if (['1','2','3','4'].includes(e.key)) {
         const weaponMap: Record<string, WeaponType> = { '1': 'pistol', '2': 'rifle', '3': 'shotgun', '4': 'sniper' };
         const next = weaponMap[e.key];
+        if (next === currentWeapon) return;
         setCurrentWeapon(next);
         setAmmo(prev => ({ ...prev, mag: WEAPONS[next].magSize }));
         setIsReloading(false);
+        if (reloadTimeoutRef.current) {
+          clearTimeout(reloadTimeoutRef.current);
+          reloadTimeoutRef.current = null;
+        }
       }
     };
     const handleKeyUp = (e: KeyboardEvent) => keys.current[e.key.toLowerCase()] = false;
