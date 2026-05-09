@@ -21,6 +21,17 @@ import {
   MAX_WEAPON_LEVEL,
   DIFFICULTIES
 } from './game/constants';
+import { 
+  Player, 
+  Enemy, 
+  Pickup, 
+  Particle, 
+  Tracer, 
+  DamageIndicator, 
+  KillfeedItem, 
+  LifetimeStats, 
+  RunStats 
+} from './game/types';
 import { clamp } from './game/helpers';
 import { sounds } from './game/SoundEngine';
 
@@ -45,8 +56,8 @@ export default function App() {
   const [score, setScore] = useState(0);
   const [waveMessage, setWaveMessage] = useState('');
   const [mobileMode, setMobileMode] = useState(false);
-  const [stats, setStats] = useState({ kills: 0, deaths: 0, shotsFired: 0, shotsHit: 0 });
-  const [lifetimeStats, setLifetimeStats] = useState({
+  const [stats, setStats] = useState<RunStats>({ kills: 0, deaths: 0, shotsFired: 0, shotsHit: 0 });
+  const [lifetimeStats, setLifetimeStats] = useState<LifetimeStats>({
     totalKills: 0,
     totalDeaths: 0,
     totalCredits: 0,
@@ -163,26 +174,13 @@ export default function App() {
   const [isReloading, setIsReloading] = useState(false);
   const [hitMarker, setHitMarker] = useState({ time: 0, killed: false });
   const [bossHp, setBossHp] = useState<{ current: number, max: number } | null>(null);
-  const pickups = useRef<{ id: number, x: number, y: number, type: 'health' | 'ammo', rotation: number }[]>([]);
+  const pickups = useRef<Pickup[]>([]);
   const lastDamageTaken = useRef(0);
   const screenShake = useRef(0);
 
   useEffect(() => { ammoRef.current = ammo; }, [ammo]);
 
   // Game Engine Refs
-interface Player {
-    x: number;
-    y: number;
-    angle: number;
-    velX: number;
-    velY: number;
-    rotVel: number;
-    pitch: number;
-    radius: number;
-    isAds: boolean;
-    adsProgress: number; // 0 to 1
-  }
-
   const player = useRef<Player>({
     x: 128, y: 128, angle: 0, 
     velX: 0, velY: 0, 
@@ -192,13 +190,13 @@ interface Player {
     adsProgress: 0
   });
 
-  const [killfeed, setKillfeed] = useState<{ id: number, text: string }[]>([]);
-  const [damageIndicators, setDamageIndicators] = useState<{ id: number, angle: number, opacity: number }[]>([]);
+  const [killfeed, setKillfeed] = useState<KillfeedItem[]>([]);
+  const [damageIndicators, setDamageIndicators] = useState<DamageIndicator[]>([]);
   const nextKillfeedId = useRef(0);
   const nextDamageId = useRef(0);
   const keys = useRef<Record<string, boolean>>({});
-  const enemies = useRef<any[]>([]);
-  const particles = useRef<any[]>([]);
+  const enemies = useRef<Enemy[]>([]);
+  const particles = useRef<Particle[]>([]);
   const navGridRef = useRef<number[][]>([]);
   const mapData = useRef([...MAP.map(row => [...row])]);
   const [mapDataState, setMapDataState] = useState([...MAP.map(row => [...row])]);
@@ -209,7 +207,7 @@ interface Player {
   const joystick = useRef({ active: false, startX: 0, startY: 0, curX: 0, curY: 0 });
   const touchLook = useRef({ active: false, lastX: 0, lastY: 0 });
 
-  const [enemiesState, setEnemiesState] = useState<any[]>([]);
+  const [enemiesState, setEnemiesState] = useState<Enemy[]>([]);
   const renderTick = useRef(0);
 
   const initGame = () => {
@@ -316,7 +314,7 @@ interface Player {
     return () => clearInterval(interval);
   }, []);
 
-  const tracers = useRef<{ id: number, x1: number, y1: number, x2: number, y2: number, alpha: number }[]>([]);
+  const tracers = useRef<Tracer[]>([]);
   const nextTracerId = useRef(0);
 
   const spawnWave = (waveNum: number) => {

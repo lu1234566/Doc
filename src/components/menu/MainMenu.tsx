@@ -18,6 +18,7 @@ import {
   WEAPONS, 
   DIFFICULTIES 
 } from '../../game/constants';
+import { LifetimeStats } from '../../game/types';
 import { sounds } from '../../game/SoundEngine';
 
 interface MainMenuProps {
@@ -28,14 +29,7 @@ interface MainMenuProps {
   difficulty: DifficultyKey;
   setDifficulty: (difficulty: DifficultyKey) => void;
   tacticalCredits: number;
-  lifetimeStats: {
-    totalKills: number;
-    totalDeaths: number;
-    totalCredits: number;
-    bestWave: number;
-    totalWins: number;
-    totalGames: number;
-  };
+  lifetimeStats: LifetimeStats;
   weaponUpgradeLevels: Record<WeaponType, { damage: number, reload: number, stability: number }>;
   setUpgradeTab: (tab: 'biological' | 'weapon') => void;
   setSelectedLabWeapon: (weapon: WeaponType) => void;

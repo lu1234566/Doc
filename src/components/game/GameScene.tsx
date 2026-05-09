@@ -9,12 +9,20 @@ import { Tracers3D } from './Tracers3D';
 import { Pickups3D } from './Pickups3D';
 import { Weapon3D } from '../../Weapon3D';
 
+import { 
+  Player, 
+  Enemy, 
+  Particle, 
+  Tracer, 
+  Pickup 
+} from '../../game/types';
+
 interface GameSceneProps {
-  player: any;
-  enemies: any[];
-  particles: any[];
-  tracers: any[];
-  pickups: any[];
+  player: React.MutableRefObject<Player>;
+  enemies: Enemy[];
+  particles: Particle[];
+  tracers: Tracer[];
+  pickups: Pickup[];
   mapData: number[][];
   cellSize: number;
   currentWeapon: string;
@@ -23,7 +31,7 @@ interface GameSceneProps {
   lastShotTime: number;
 }
 
-function PlayerController({ player, cellSize, mapData }: { player: any, cellSize: number, mapData: number[][] }) {
+function PlayerController({ player, cellSize, mapData }: { player: React.MutableRefObject<Player>, cellSize: number, mapData: number[][] }) {
   const { camera } = useThree();
   const mapWidth = mapData[0].length * cellSize;
   const mapHeight = mapData.length * cellSize;
