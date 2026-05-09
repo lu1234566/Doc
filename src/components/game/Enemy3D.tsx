@@ -1,21 +1,34 @@
 import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { Float } from '@react-three/drei';
+import { Float, Billboard } from '@react-three/drei';
 
 interface EnemyProps {
   x: number;
   y: number;
   type: 'rusher' | 'rifleman' | 'sniper';
   hp: number;
+  maxHp: number;
   color: string;
   cellSize: number;
   isBoss?: boolean;
 }
 
-export function Enemy3D({ x, y, type, color, cellSize, isBoss }: EnemyProps) {
+export function Enemy3D({ x, y, type, color, cellSize, isBoss, hp, maxHp }: EnemyProps) {
   const meshRef = useRef<THREE.Group>(null);
   const scale = isBoss ? 4 : 1;
+
+  // Health Calculation
+  const healthPercent = Math.max(0, Math.min(1, hp / maxHp));
+  
+  // Health Color Logic
+  const getHealthColor = () => {
+    if (healthPercent > 0.6) return "#22c55e"; // Green
+    if (healthPercent > 0.3) return "#eab308"; // Yellow
+    return "#ef4444"; // Red
+  };
+
+  const healthColor = getHealthColor();
 
   return (
     <group position={[x, (cellSize / 2) * scale, y]} scale={scale}>
@@ -39,13 +52,39 @@ export function Enemy3D({ x, y, type, color, cellSize, isBoss }: EnemyProps) {
             <meshStandardMaterial color="#1e293b" />
           </mesh>
 
-          {/* Floating Health Ring */}
+          {/* Floating Health Ring - Now reactive to HP */}
           <mesh position={[0, cellSize / 1.5, 0]} rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[cellSize / 4, 0.02, 16, 32]} />
-            <meshStandardMaterial color={color} emissive={color} emissiveIntensity={2} transparent opacity={0.5} />
+            <torusGeometry args={[cellSize / 4, 0.015, 16, 32]} />
+            <meshStandardMaterial 
+              color={healthColor} 
+              emissive={healthColor} 
+              emissiveIntensity={1.5} 
+              transparent 
+              opacity={0.6} 
+            />
           </mesh>
         </group>
       </Float>
+
+      {/* 3D Health Bar Billboard */}
+      <Billboard
+        follow={true}
+        lockX={false}
+        lockY={false}
+        lockZ={false}
+        position={[0, cellSize * 0.8, 0]}
+      >
+        {/* Background Rail */}
+        <mesh>
+          <planeGeometry args={[cellSize * 0.5, cellSize * 0.08]} />
+          <meshBasicMaterial color="#000000" transparent opacity={0.5} />
+        </mesh>
+        {/* Active Health Fill */}
+        <mesh position={[(-cellSize * 0.5 * (1 - healthPercent)) / 2, 0, 0.01]}>
+          <planeGeometry args={[cellSize * 0.5 * healthPercent, cellSize * 0.05]} />
+          <meshBasicMaterial color={healthColor} />
+        </mesh>
+      </Billboard>
     </group>
   );
 }
