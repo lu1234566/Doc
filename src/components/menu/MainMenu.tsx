@@ -79,7 +79,10 @@ export const MainMenu: React.FC<MainMenuProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl px-4">
               <button 
-                onClick={initGame}
+                onClick={() => {
+                  sounds.playUiClick();
+                  initGame();
+                }}
                 className="bg-white text-slate-950 p-6 rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-yellow-500 hover:scale-105 transition-all shadow-xl group border-b-4 border-slate-300 active:translate-y-1 active:border-b-0"
               >
                 <Target size={32} className="mb-2" />
@@ -88,7 +91,10 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               </button>
 
               <button 
-                onClick={() => setGameState('upgrades')}
+                onClick={() => {
+                  sounds.playUiClick();
+                  setGameState('upgrades');
+                }}
                 className="bg-slate-900/80 backdrop-blur-md border border-white/10 p-6 rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-slate-800 hover:scale-105 transition-all shadow-xl text-white group"
               >
                 <ShoppingCart size={32} className="text-yellow-500 mb-2" />
@@ -97,7 +103,10 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               </button>
 
               <button 
-                onClick={() => setMenuView('armory')}
+                onClick={() => {
+                  sounds.playUiClick();
+                  setMenuView('armory');
+                }}
                 className="bg-slate-900/80 backdrop-blur-md border border-white/10 p-6 rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-slate-800 hover:scale-105 transition-all shadow-xl text-white"
               >
                 <Swords size={32} className="text-blue-500 mb-2" />
@@ -107,7 +116,10 @@ export const MainMenu: React.FC<MainMenuProps> = ({
 
               <div className="grid grid-cols-2 gap-4">
                 <button 
-                  onClick={() => setMenuView('difficulty')}
+                  onClick={() => {
+                    sounds.playUiClick();
+                    setMenuView('difficulty');
+                  }}
                   className={`bg-slate-900/80 backdrop-blur-md border border-white/10 p-4 rounded-2xl flex flex-col items-center justify-center gap-1 hover:bg-slate-800 transition-all text-white`}
                 >
                   <Shield size={24} style={{ color: DIFFICULTIES[difficulty].color }} />
@@ -115,7 +127,10 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                   <span className="text-[8px] font-bold uppercase opacity-50" style={{ color: DIFFICULTIES[difficulty].color }}>{difficulty}</span>
                 </button>
                 <button 
-                  onClick={() => setMenuView('profile')}
+                  onClick={() => {
+                    sounds.playUiClick();
+                    setMenuView('profile');
+                  }}
                   className="bg-slate-900/80 backdrop-blur-md border border-white/10 p-4 rounded-2xl flex flex-col items-center justify-center gap-1 hover:bg-slate-800 transition-all text-white"
                 >
                   <Users size={24} className="text-green-500" />
@@ -147,7 +162,10 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                 <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Available Weapon Systems</p>
               </div>
               <button 
-                onClick={() => setMenuView('main')}
+                onClick={() => {
+                  sounds.playUiClick();
+                  setMenuView('main');
+                }}
                 className="w-full sm:w-auto px-8 py-4 bg-white text-slate-950 font-black uppercase text-sm rounded-xl hover:bg-yellow-500 transition-all shadow-lg active:scale-95"
               >
                 Return
@@ -220,6 +238,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                       </div>
                       <button 
                         onClick={() => {
+                          sounds.playUiClick();
                           setMenuView('main');
                           setUpgradeTab('weapon');
                           setSelectedLabWeapon(wKey);
@@ -251,9 +270,9 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                 <button
                   key={key}
                   onClick={() => {
+                    sounds.playUiClick();
                     setDifficulty(key);
                     saveDifficulty(key);
-                    sounds.playHit();
                   }}
                   className={`p-6 rounded-3xl border-2 text-left transition-all ${
                     difficulty === key 
@@ -285,7 +304,10 @@ export const MainMenu: React.FC<MainMenuProps> = ({
             </div>
 
             <button 
-              onClick={() => setMenuView('main')}
+              onClick={() => {
+                sounds.playUiClick();
+                setMenuView('main');
+              }}
               className="bg-slate-900 px-10 py-4 rounded-2xl text-white font-black uppercase text-xs border border-white/10 hover:bg-white hover:text-slate-950 transition-all"
             >
               Confirm Strategy
@@ -310,7 +332,10 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                 </div>
               </div>
               <button 
-                onClick={() => setMenuView('main')}
+                onClick={() => {
+                  sounds.playUiClick();
+                  setMenuView('main');
+                }}
                 className="w-full sm:w-14 sm:h-14 bg-white/5 text-white flex items-center justify-center rounded-xl hover:bg-white hover:text-slate-950 transition-all border border-white/10 py-4 sm:py-0"
               >
                 <ChevronLeft size={24} />

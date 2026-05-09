@@ -638,7 +638,7 @@ export default function App() {
            const maxReserve = 120 + (upgradeLevels.ammoReserve * 20);
            setAmmo(prev => ({ ...prev, reserve: Math.min(maxReserve, prev.reserve + 60) }));
         }
-        sounds.playReload();
+        sounds.playPickup(p.type);
         setKillfeed(prev => [{ id: nextKillfeedId.current++, text: `+ ${p.type.toUpperCase()} SECURED` }, ...prev].slice(0, 5));
         return false;
       }
@@ -932,7 +932,9 @@ export default function App() {
       setTacticalCredits(nextCredits);
       setUpgradeLevels(nextUpgrades);
       saveMeta(nextCredits, nextUpgrades, weaponUpgradeLevels);
-      sounds.playReload();
+      sounds.playPickup('health'); // Generic positive sound
+    } else {
+      sounds.playError();
     }
   };
 
@@ -951,7 +953,9 @@ export default function App() {
       setTacticalCredits(nextCredits);
       setWeaponUpgradeLevels(nextWeaponUpgrades);
       saveMeta(nextCredits, upgradeLevels, nextWeaponUpgrades);
-      sounds.playReload();
+      sounds.playPickup('ammo'); // Generic positive sound
+    } else {
+      sounds.playError();
     }
   };
 
@@ -1472,13 +1476,19 @@ export default function App() {
                    {/* Tabs */}
                    <div className="flex gap-2 mb-8 bg-slate-950/50 p-1 rounded-2xl border border-white/5">
                      <button 
-                       onClick={() => setUpgradeTab('biological')}
+                       onClick={() => {
+                         sounds.playUiClick();
+                         setUpgradeTab('biological');
+                       }}
                        className={`flex-1 py-3 rounded-xl font-black uppercase text-xs tracking-widest transition-all ${upgradeTab === 'biological' ? 'bg-white text-slate-950 shadow-lg' : 'text-slate-500 hover:text-white'}`}
                      >
                        Biological
                      </button>
                      <button 
-                       onClick={() => setUpgradeTab('weapon')}
+                       onClick={() => {
+                         sounds.playUiClick();
+                         setUpgradeTab('weapon');
+                       }}
                        className={`flex-1 py-3 rounded-xl font-black uppercase text-xs tracking-widest transition-all ${upgradeTab === 'weapon' ? 'bg-white text-slate-950 shadow-lg' : 'text-slate-500 hover:text-white'}`}
                      >
                        Weapon Lab
@@ -1535,7 +1545,10 @@ export default function App() {
                              return (
                                <button
                                  key={wKey}
-                                 onClick={() => setSelectedLabWeapon(wKey as WeaponType)}
+                                 onClick={() => {
+                                   sounds.playUiClick();
+                                   setSelectedLabWeapon(wKey as WeaponType);
+                                 }}
                                  className={`px-4 py-2 rounded-xl font-black uppercase text-[10px] tracking-widest border transition-all ${isSelected ? 'bg-blue-500 border-blue-400 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'bg-slate-950/50 border-white/5 text-slate-500 hover:border-white/20'}`}
                                >
                                  {weapon.name}
@@ -1594,7 +1607,10 @@ export default function App() {
                    )}
 
                     <button 
-                     onClick={() => setGameState('start')}
+                     onClick={() => {
+                       sounds.playUiClick();
+                       setGameState('start');
+                     }}
                      className="flex items-center justify-center gap-2 text-slate-500 hover:text-white transition-colors font-black uppercase text-[10px] tracking-widest w-full py-4 border-t border-white/5 mt-4"
                     >
                      <ChevronLeft size={16} /> Return to Operations
