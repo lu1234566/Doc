@@ -10,9 +10,7 @@ import { GameScene } from './components/game/GameScene';
 
 import { 
   WeaponType, 
-  Weapon, 
   DifficultyKey, 
-  Upgrade, 
   UPGRADES, 
   WEAPONS, 
   MAP, 
