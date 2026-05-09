@@ -19,6 +19,7 @@ import {
   DIFFICULTIES 
 } from '../../game/constants';
 import { LifetimeStats } from '../../game/types';
+import { saveDifficulty } from '../../game/persistence';
 import { sounds } from '../../game/SoundEngine';
 
 interface MainMenuProps {
@@ -251,7 +252,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                   key={key}
                   onClick={() => {
                     setDifficulty(key);
-                    localStorage.setItem('nano_difficulty', key);
+                    saveDifficulty(key);
                     sounds.playHit();
                   }}
                   className={`p-6 rounded-3xl border-2 text-left transition-all ${

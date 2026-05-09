@@ -32,6 +32,17 @@ import {
   LifetimeStats, 
   RunStats 
 } from './game/types';
+import { 
+  loadCredits, 
+  loadUpgrades, 
+  loadWeaponUpgrades, 
+  loadDifficulty, 
+  loadLifetimeStats,
+  saveCredits,
+  saveUpgrades,
+  saveWeaponUpgrades,
+  saveLifetimeStats
+} from './game/persistence';
 import { clamp } from './game/helpers';
 import { sounds } from './game/SoundEngine';
 
@@ -95,66 +106,27 @@ export default function App() {
 
   // Load Meta Data
   useEffect(() => {
-    try {
-      const savedCredits = localStorage.getItem('nano_credits');
-      const savedUpgrades = localStorage.getItem('nano_upgrades');
-      const savedDifficulty = localStorage.getItem('nano_difficulty');
-      const savedWeaponUpgrades = localStorage.getItem('nano_weapon_upgrades');
-      const savedStats = localStorage.getItem('nano_stats');
+    const credits = loadCredits();
+    if (credits !== null) setTacticalCredits(credits);
 
-      if (savedCredits) {
-        const parsed = parseInt(savedCredits);
-        if (!isNaN(parsed)) setTacticalCredits(parsed);
-      }
-      if (savedUpgrades) {
-        const parsed = JSON.parse(savedUpgrades);
-        if (parsed && typeof parsed === 'object') {
-          setUpgradeLevels(prev => ({ ...prev, ...parsed }));
-        }
-      }
-      if (savedWeaponUpgrades) {
-        const parsed = JSON.parse(savedWeaponUpgrades);
-        if (parsed && typeof parsed === 'object') {
-          setWeaponUpgradeLevels(prev => ({ ...prev, ...parsed }));
-        }
-      }
-      if (savedDifficulty && DIFFICULTIES[savedDifficulty as DifficultyKey]) {
-        setDifficulty(savedDifficulty as DifficultyKey);
-      }
-      if (savedStats) {
-        try {
-          const parsed = JSON.parse(savedStats);
-          if (parsed && typeof parsed === 'object') {
-            setLifetimeStats(prev => ({ 
-              ...prev, 
-              ...parsed,
-              // Ensure no NaNs or undefined values
-              totalKills: Number(parsed.totalKills) || 0,
-              totalDeaths: Number(parsed.totalDeaths) || 0,
-              totalCredits: Number(parsed.totalCredits) || 0,
-              bestWave: Number(parsed.bestWave) || 0,
-              totalWins: Number(parsed.totalWins) || 0,
-              totalGames: Number(parsed.totalGames) || 0
-            }));
-          }
-        } catch (e) {
-          console.error("Malformed stats in localStorage", e);
-        }
-      }
-    } catch (e) {
-      console.error("Failed to load meta progression", e);
-    }
+    const upgrades = loadUpgrades();
+    if (upgrades) setUpgradeLevels(prev => ({ ...prev, ...upgrades }));
+
+    const weaponUpgrades = loadWeaponUpgrades();
+    if (weaponUpgrades) setWeaponUpgradeLevels(prev => ({ ...prev, ...weaponUpgrades }));
+
+    const diff = loadDifficulty();
+    if (diff) setDifficulty(diff);
+
+    const stats = loadLifetimeStats();
+    if (stats) setLifetimeStats(prev => ({ ...prev, ...stats }));
   }, []);
 
   const saveMeta = (credits: number, upgrades: any, weaponUpgrades?: any, lStats?: any) => {
-    localStorage.setItem('nano_credits', credits.toString());
-    localStorage.setItem('nano_upgrades', JSON.stringify(upgrades));
-    if (weaponUpgrades) {
-      localStorage.setItem('nano_weapon_upgrades', JSON.stringify(weaponUpgrades));
-    }
-    if (lStats) {
-      localStorage.setItem('nano_stats', JSON.stringify(lStats));
-    }
+    saveCredits(credits);
+    saveUpgrades(upgrades);
+    if (weaponUpgrades) saveWeaponUpgrades(weaponUpgrades);
+    if (lStats) saveLifetimeStats(lStats);
   };
 
   useEffect(() => {
