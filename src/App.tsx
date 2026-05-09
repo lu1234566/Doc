@@ -1457,15 +1457,15 @@ export default function App() {
               className="absolute inset-0 bg-slate-950/95 backdrop-blur-xl flex flex-col items-center justify-center p-8 text-center z-[100]"
             >
               {gameState === 'upgrades' ? (
-                <div className="w-full max-w-2xl bg-slate-900/50 rounded-3xl border border-white/10 p-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
-                   <div className="flex justify-between items-center mb-6">
-                     <div className="text-left">
-                       <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Command Center</h2>
-                       <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">Upgrade biological and tactical equipment</p>
+                <div className="w-full max-w-2xl bg-zinc-900/90 rounded-3xl border border-white/10 p-6 md:p-10 max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl">
+                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-8 text-left">
+                     <div>
+                       <h2 className="text-3xl md:text-4xl font-black text-white italic uppercase tracking-tighter">Command Center</h2>
+                       <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">Upgrade biological and tactical equipment</p>
                      </div>
-                     <div className="bg-yellow-500/20 px-4 py-2 rounded-xl border border-yellow-500/30 flex items-center gap-2">
-                       <Coins size={18} className="text-yellow-500" />
-                       <span className="text-yellow-500 font-black">{tacticalCredits.toLocaleString()}</span>
+                     <div className="w-full sm:w-auto bg-yellow-500/20 px-5 py-3 rounded-2xl border border-yellow-500/30 flex items-center justify-center gap-3">
+                       <Coins size={20} className="text-yellow-500" />
+                       <span className="text-yellow-500 font-black text-lg">{tacticalCredits.toLocaleString()}</span>
                      </div>
                    </div>
 
@@ -1593,12 +1593,12 @@ export default function App() {
                      </div>
                    )}
 
-                   <button 
-                    onClick={() => setGameState('start')}
-                    className="flex items-center gap-2 text-slate-500 hover:text-white transition-colors font-black uppercase text-xs tracking-widest"
-                   >
+                    <button 
+                     onClick={() => setGameState('start')}
+                     className="flex items-center justify-center gap-2 text-slate-500 hover:text-white transition-colors font-black uppercase text-[10px] tracking-widest w-full py-4 border-t border-white/5 mt-4"
+                    >
                      <ChevronLeft size={16} /> Return to Operations
-                   </button>
+                    </button>
                 </div>
               ) : gameState === 'start' ? (
                 <MainMenu 

@@ -61,17 +61,17 @@ export const MainMenu: React.FC<MainMenuProps> = ({
             initial={{ opacity: 0, scale: 0.9 }} 
             animate={{ opacity: 1, scale: 1 }} 
             exit={{ opacity: 0, scale: 1.1 }}
-            className="flex flex-col items-center z-10"
+            className="flex flex-col items-center z-10 w-full max-h-full overflow-y-auto px-4 py-12 custom-scrollbar"
           >
             <motion.div 
               initial={{ y: -50 }} animate={{ y: 0 }}
-              className="w-24 h-24 bg-yellow-500/20 rounded-2xl flex items-center justify-center mb-6 border-2 border-yellow-500 shadow-[0_0_40px_rgba(234,179,8,0.2)]"
+              className="w-20 h-20 md:w-24 md:h-24 bg-yellow-500/20 rounded-2xl flex items-center justify-center mb-6 border-2 border-yellow-500 shadow-[0_0_40px_rgba(234,179,8,0.2)] shrink-0"
             >
-              <Zap className="text-yellow-500" size={48} />
+              <Zap className="text-yellow-500 w-10 h-10 md:w-12 md:h-12" />
             </motion.div>
             
-            <h1 className="text-5xl md:text-7xl font-black text-white italic tracking-tighter mb-1 uppercase drop-shadow-[0_0_20px_rgba(255,255,255,0.2)] text-center">Nano Banana</h1>
-            <div className="flex items-center gap-3 mb-10 text-yellow-500 font-bold tracking-[0.4em] uppercase text-xs">
+            <h1 className="text-5xl md:text-8xl font-black text-white italic tracking-tighter mb-1 uppercase drop-shadow-[0_0_20px_rgba(255,255,255,0.2)] text-center leading-none">Nano Banana</h1>
+            <div className="flex items-center gap-3 mb-10 text-yellow-500 font-bold tracking-[0.4em] uppercase text-[10px] md:text-xs">
               <div className="h-px w-8 bg-yellow-500/50" />
               3D Tactical Simulator
               <div className="h-px w-8 bg-yellow-500/50" />
@@ -139,16 +139,16 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           <motion.div 
             key="armory"
             initial={{ opacity: 0, x: 100 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -100 }}
-            className="w-full max-w-4xl max-h-[85vh] overflow-y-auto px-6 z-10 custom-scrollbar"
+            className="w-full max-w-4xl max-h-[90vh] overflow-y-auto px-4 md:px-8 z-10 custom-scrollbar py-6"
           >
-            <div className="flex justify-between items-center mb-8 bg-slate-900/80 p-6 rounded-3xl border border-white/10 backdrop-blur-md sticky top-0 z-20">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 bg-slate-900/90 p-5 md:p-8 rounded-3xl border border-white/10 backdrop-blur-md sticky top-0 z-20">
               <div>
-                <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Armory</h2>
+                <h2 className="text-3xl md:text-4xl font-black text-white italic uppercase tracking-tighter">Armory</h2>
                 <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Available Weapon Systems</p>
               </div>
               <button 
                 onClick={() => setMenuView('main')}
-                className="px-6 py-3 bg-white text-slate-950 font-black uppercase text-xs rounded-xl hover:bg-yellow-500 transition-all"
+                className="w-full sm:w-auto px-8 py-4 bg-white text-slate-950 font-black uppercase text-sm rounded-xl hover:bg-yellow-500 transition-all shadow-lg active:scale-95"
               >
                 Return
               </button>
@@ -241,10 +241,10 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           <motion.div 
             key="difficulty"
             initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -50 }}
-            className="flex flex-col items-center z-10 w-full max-w-2xl max-h-[85vh] overflow-y-auto px-6 custom-scrollbar py-10"
+            className="flex flex-col items-center z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto px-4 md:px-8 custom-scrollbar py-12"
           >
-            <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter mb-2">Protocol Selection</h2>
-            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-10 text-center">Select your difficulty level. Higher danger yields higher rewards.</p>
+            <h2 className="text-4xl md:text-5xl font-black text-white italic uppercase tracking-tighter mb-2 text-center">Protocol Selection</h2>
+            <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-10 text-center max-w-sm">Select tactical difficulty. Higher danger yields professional rewards.</p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full mb-10">
               {(Object.keys(DIFFICULTIES) as DifficultyKey[]).map((key) => (
@@ -297,23 +297,24 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           <motion.div 
             key="profile"
             initial={{ opacity: 0, scale: 1.1 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
-            className="w-full max-w-2xl bg-slate-900/80 backdrop-blur-xl p-8 rounded-3xl border border-white/10 z-10 max-h-[85vh] overflow-y-auto custom-scrollbar"
+            className="w-full max-w-2xl bg-slate-900/90 backdrop-blur-xl p-6 md:p-10 rounded-3xl border border-white/10 z-10 max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl"
           >
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-10">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-blue-500/20 rounded-2xl border border-blue-500 flex items-center justify-center">
+                <div className="w-16 h-16 bg-blue-500/20 rounded-2xl border border-blue-500 flex items-center justify-center shrink-0">
                   <Users className="text-blue-500" size={32} />
                 </div>
                 <div className="text-left">
-                  <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none">Command Profile</h2>
-                  <span className="text-green-500 text-[10px] font-black uppercase tracking-widest mt-2 block">Agent Status: Active</span>
+                  <h2 className="text-3xl md:text-4xl font-black text-white italic uppercase tracking-tighter leading-none">Command Profile</h2>
+                  <span className="text-green-500 text-xs font-black uppercase tracking-widest mt-2 block">Agent Status: Active</span>
                 </div>
               </div>
               <button 
                 onClick={() => setMenuView('main')}
-                className="w-12 h-12 bg-white/5 text-white flex items-center justify-center rounded-xl hover:bg-white hover:text-slate-950 transition-all"
+                className="w-full sm:w-14 sm:h-14 bg-white/5 text-white flex items-center justify-center rounded-xl hover:bg-white hover:text-slate-950 transition-all border border-white/10 py-4 sm:py-0"
               >
                 <ChevronLeft size={24} />
+                <span className="sm:hidden ml-2 font-black uppercase text-sm">Return</span>
               </button>
             </div>
 
