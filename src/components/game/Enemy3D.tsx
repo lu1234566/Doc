@@ -30,6 +30,11 @@ export function Enemy3D({ x, y, type, color, cellSize, isBoss, hp, maxHp }: Enem
 
   const healthColor = getHealthColor();
 
+  // Adjusted dimensions for health bar to not become massive on scaled-up boss
+  const barWidth = isBoss ? (cellSize * 0.2) : (cellSize * 0.5);
+  const barHeight = isBoss ? (cellSize * 0.03) : (cellSize * 0.08);
+  const fillHeight = isBoss ? (cellSize * 0.02) : (cellSize * 0.05);
+
   return (
     <group position={[x, (cellSize / 2) * scale, y]} scale={scale}>
       <Float speed={5} rotationIntensity={0.2} floatIntensity={0.5}>
@@ -76,12 +81,12 @@ export function Enemy3D({ x, y, type, color, cellSize, isBoss, hp, maxHp }: Enem
       >
         {/* Background Rail */}
         <mesh>
-          <planeGeometry args={[cellSize * 0.5, cellSize * 0.08]} />
+          <planeGeometry args={[barWidth, barHeight]} />
           <meshBasicMaterial color="#000000" transparent opacity={0.5} />
         </mesh>
         {/* Active Health Fill */}
-        <mesh position={[(-cellSize * 0.5 * (1 - healthPercent)) / 2, 0, 0.01]}>
-          <planeGeometry args={[cellSize * 0.5 * healthPercent, cellSize * 0.05]} />
+        <mesh position={[(-barWidth * (1 - healthPercent)) / 2, 0, 0.01]}>
+          <planeGeometry args={[barWidth * healthPercent, fillHeight]} />
           <meshBasicMaterial color={healthColor} />
         </mesh>
       </Billboard>
