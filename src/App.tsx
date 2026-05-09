@@ -8,186 +8,23 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Target, Shield, Zap, Skull, RefreshCcw, Terminal, Move, Users, Coins, ArrowBigUp, ShoppingCart, ChevronLeft, BarChart3, HardDrive, Swords, Award } from 'lucide-react';
 import { GameScene } from './components/game/GameScene';
 
-// --- Types & Constants ---
-type WeaponType = 'pistol' | 'rifle' | 'shotgun' | 'sniper';
+import { 
+  WeaponType, 
+  Weapon, 
+  DifficultyKey, 
+  Upgrade, 
+  UPGRADES, 
+  WEAPONS, 
+  MAP, 
+  CELL_SIZE, 
+  TICK_RATE,
+  WEAPON_UPGRADE_COSTS,
+  MAX_WEAPON_LEVEL,
+  DIFFICULTIES
+} from './game/constants';
+import { clamp } from './game/helpers';
+import { sounds } from './game/SoundEngine';
 
-interface Upgrade {
-  name: string;
-  description: string;
-  costs: number[];
-  maxLevel: number;
-}
-
-const UPGRADES: Record<string, Upgrade> = {
-  armorPlating: { 
-    name: 'Armor Plating', 
-    description: '+5 Max HP per level', 
-    costs: [100, 200, 350, 500, 750], 
-    maxLevel: 5 
-  },
-  ammoReserve: { 
-    name: 'Ammo Reserve', 
-    description: '+20 Initial Reserve Ammo per level', 
-    costs: [100, 200, 350, 500, 750], 
-    maxLevel: 5 
-  },
-  quickReload: { 
-    name: 'Quick Reload', 
-    description: '-5% Reload Time per level', 
-    costs: [150, 300, 500, 800, 1200], 
-    maxLevel: 5 
-  },
-  scavenger: { 
-    name: 'Scavenger', 
-    description: '+5% Pickup Drop Chance per level', 
-    costs: [150, 300, 500, 800, 1200], 
-    maxLevel: 5 
-  }
-};
-
-const WEAPON_UPGRADE_COSTS = [150, 300, 500, 800, 1200];
-const MAX_WEAPON_LEVEL = 5;
-
-const DIFFICULTIES = {
-  recruit: { name: 'Recruit', hpMult: 0.8, dmgMult: 0.85, creditMult: 0.8, color: '#4ade80' },
-  normal: { name: 'Normal', hpMult: 1.0, dmgMult: 1.0, creditMult: 1.0, color: '#facc15' },
-  veteran: { name: 'Veteran', hpMult: 1.3, dmgMult: 1.2, creditMult: 1.5, color: '#fb923c' },
-  nightmare: { name: 'Nightmare', hpMult: 1.7, dmgMult: 1.5, creditMult: 2.2, color: '#f43f5e' }
-};
-
-type DifficultyKey = keyof typeof DIFFICULTIES;
-
-interface Weapon {
-  name: string;
-  type: WeaponType;
-  damage: number;
-  fireRate: number; // ms
-  reloadTime: number; // ms
-  magSize: number;
-  recoil: number;
-  spread: number;
-  range: number;
-  isScoped: boolean;
-  isAuto: boolean;
-  color: string;
-}
-
-const WEAPONS: Record<WeaponType, Weapon> = {
-  pistol: { name: 'P-99', type: 'pistol', damage: 20, fireRate: 250, reloadTime: 1200, magSize: 12, recoil: 5, spread: 0.05, range: 600, isScoped: false, isAuto: false, color: '#94a3b8' },
-  rifle: { name: 'M4-A1', type: 'rifle', damage: 15, fireRate: 100, reloadTime: 2000, magSize: 30, recoil: 3, spread: 0.1, range: 800, isScoped: false, isAuto: true, color: '#1e293b' },
-  shotgun: { name: 'KRM-262', type: 'shotgun', damage: 60, fireRate: 800, reloadTime: 2500, magSize: 6, recoil: 20, spread: 0.5, range: 300, isScoped: false, isAuto: false, color: '#334155' },
-  sniper: { name: 'DL-Q33', type: 'sniper', damage: 100, fireRate: 1500, reloadTime: 3000, magSize: 5, recoil: 40, spread: 0.01, range: 1500, isScoped: true, isAuto: false, color: '#0f172a' },
-};
-
-const MAP = [
-  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-  [1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1],
-  [1,0,1,1,0,1,1,0,1,0,2,0,0,2,0,1,0,1,1,0,1,1,0,1],
-  [1,0,1,1,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,1,1,0,1],
-  [1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1],
-  [1,1,1,2,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,2,1,1,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,1,1,1,0,1,1,1,0,0,3,3,0,0,1,1,1,0,1,1,1,0,1],
-  [1,0,1,3,0,0,0,3,1,0,3,0,0,3,0,1,3,0,0,0,3,1,0,1],
-  [1,0,1,3,0,0,0,3,1,0,3,0,0,3,0,1,3,0,0,0,3,1,0,1],
-  [1,0,1,1,1,0,1,1,1,0,0,3,3,0,0,1,1,1,0,1,1,1,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,1,1,2,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,2,1,1,1],
-  [1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1],
-  [1,0,1,1,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,1,1,0,1],
-  [1,0,1,1,0,1,1,0,1,0,2,0,0,2,0,1,0,1,1,0,1,1,0,1],
-  [1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1],
-  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-];
-
-const CELL_SIZE = 64;
-const TICK_RATE = 1000 / 60;
-const FOV = Math.PI / 3;
-const RESOLUTION = 400; // Rays
-const MAX_DEPTH = 1200;
-
-// --- Helper Functions ---
-const clamp = (val: number, min: number, max: number) => Math.max(min, Math.min(max, val));
-
-class SoundEngine {
-  ctx: AudioContext | null = null;
-
-  init() {
-    if (!this.ctx) this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-  }
-
-  playShot(weapon: WeaponType) {
-    if (!this.ctx) return;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    const filter = this.ctx.createBiquadFilter();
-    
-    osc.type = weapon === 'sniper' ? 'sawtooth' : weapon === 'shotgun' ? 'sawtooth' : 'square';
-    
-    const freq = weapon === 'sniper' ? 80 : weapon === 'shotgun' ? 120 : weapon === 'rifle' ? 180 : 220;
-    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.1);
-    
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(weapon === 'sniper' ? 400 : 800, this.ctx.currentTime);
-    
-    gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + (weapon === 'sniper' ? 0.4 : weapon === 'shotgun' ? 0.3 : 0.1));
-    
-    osc.connect(filter);
-    filter.connect(gain);
-    gain.connect(this.ctx.destination);
-    
-    osc.start();
-    osc.stop(this.ctx.currentTime + 0.5);
-  }
-
-  playKill() {
-    if (!this.ctx) return;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(400, this.ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(200, this.ctx.currentTime + 0.2);
-    gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start();
-    osc.stop(this.ctx.currentTime + 0.2);
-  }
-
-  playReload() {
-    if (!this.ctx) return;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(440, this.ctx.currentTime);
-    osc.frequency.linearRampToValueAtTime(880, this.ctx.currentTime + 0.1);
-    gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start();
-    osc.stop(this.ctx.currentTime + 0.2);
-  }
-
-  playHit() {
-    if (!this.ctx) return;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(200, this.ctx.currentTime);
-    gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.05);
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start();
-    osc.stop(this.ctx.currentTime + 0.05);
-  }
-}
-
-const sounds = new SoundEngine();
 
 // --- Main Component ---
 export default function App() {
