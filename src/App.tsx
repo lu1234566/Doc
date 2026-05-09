@@ -5,7 +5,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Target, Shield, Zap, Skull, RefreshCcw, Terminal, Move, Users, Coins, ArrowBigUp, ShoppingCart, ChevronLeft, BarChart3, HardDrive, Swords, Award } from 'lucide-react';
+import { Target, Shield, Zap, Skull, RefreshCcw, Terminal, Move, Users, Coins, ChevronLeft } from 'lucide-react';
 import { GameScene } from './components/game/GameScene';
 import { MainMenu } from './components/menu/MainMenu';
 
