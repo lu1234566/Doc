@@ -13,6 +13,22 @@ export interface Player {
   adsProgress: number; // 0 to 1
 }
 
+export interface UpgradeLevels {
+  armorPlating: number;
+  ammoReserve: number;
+  quickReload: number;
+  scavenger: number;
+  [key: string]: number;
+}
+
+export interface WeaponUpgrades {
+  damage: number;
+  reload: number;
+  stability: number;
+}
+
+export type WeaponUpgradeLevels = Record<WeaponType, WeaponUpgrades>;
+
 export interface Enemy {
   id: number;
   x: number;

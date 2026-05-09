@@ -1,5 +1,5 @@
 import { DifficultyKey, DIFFICULTIES } from './constants';
-import { LifetimeStats } from './types';
+import { LifetimeStats, UpgradeLevels, WeaponUpgradeLevels } from './types';
 
 const KEYS = {
   CREDITS: 'nano_credits',
@@ -22,7 +22,7 @@ export const loadCredits = (): number | null => {
   return null;
 };
 
-export const loadUpgrades = (): any | null => {
+export const loadUpgrades = (): Partial<UpgradeLevels> | null => {
   try {
     const saved = localStorage.getItem(KEYS.UPGRADES);
     if (saved) {
@@ -35,7 +35,7 @@ export const loadUpgrades = (): any | null => {
   return null;
 };
 
-export const loadWeaponUpgrades = (): any | null => {
+export const loadWeaponUpgrades = (): Partial<WeaponUpgradeLevels> | null => {
   try {
     const saved = localStorage.getItem(KEYS.WEAPON_UPGRADES);
     if (saved) {
@@ -86,11 +86,11 @@ export const saveCredits = (credits: number) => {
   localStorage.setItem(KEYS.CREDITS, credits.toString());
 };
 
-export const saveUpgrades = (upgrades: any) => {
+export const saveUpgrades = (upgrades: UpgradeLevels | Record<string, number>) => {
   localStorage.setItem(KEYS.UPGRADES, JSON.stringify(upgrades));
 };
 
-export const saveWeaponUpgrades = (weaponUpgrades: any) => {
+export const saveWeaponUpgrades = (weaponUpgrades: WeaponUpgradeLevels) => {
   localStorage.setItem(KEYS.WEAPON_UPGRADES, JSON.stringify(weaponUpgrades));
 };
 

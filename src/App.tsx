@@ -30,7 +30,9 @@ import {
   DamageIndicator, 
   KillfeedItem, 
   LifetimeStats, 
-  RunStats 
+  RunStats,
+  UpgradeLevels,
+  WeaponUpgradeLevels
 } from './game/types';
 import { 
   loadCredits, 
@@ -122,7 +124,7 @@ export default function App() {
     if (stats) setLifetimeStats(prev => ({ ...prev, ...stats }));
   }, []);
 
-  const saveMeta = (credits: number, upgrades: any, weaponUpgrades?: any, lStats?: any) => {
+  const saveMeta = (credits: number, upgrades: UpgradeLevels | Record<string, number>, weaponUpgrades?: WeaponUpgradeLevels, lStats?: LifetimeStats) => {
     saveCredits(credits);
     saveUpgrades(upgrades);
     if (weaponUpgrades) saveWeaponUpgrades(weaponUpgrades);
