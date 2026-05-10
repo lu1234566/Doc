@@ -87,15 +87,6 @@ export function GameScene({
 
         <World mapData={mapData} cellSize={cellSize} />
 
-        <ContactShadows 
-          resolution={128} 
-          scale={50} 
-          blur={1} 
-          opacity={0.3} 
-          far={10} 
-          color="#000000" 
-        />
-
         <Particles3D particles={particles} cellSize={cellSize} mapData={mapData} />
         <Tracers3D tracers={tracers} cellSize={cellSize} mapData={mapData} />
         <Pickups3D pickups={pickups} cellSize={cellSize} mapData={mapData} />

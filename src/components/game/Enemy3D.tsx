@@ -40,9 +40,9 @@ export function Enemy3D({ x, y, type, color, cellSize, isBoss, hp, maxHp }: Enem
       <Float speed={5} rotationIntensity={0.2} floatIntensity={0.5}>
         <group ref={meshRef}>
           {/* Main Body */}
-          <mesh castShadow>
+          <mesh castShadow={false}>
             <capsuleGeometry args={[cellSize / 4, cellSize / 2, 4, 8]} />
-            <meshStandardMaterial color={color} metalness={0.5} roughness={0.5} />
+            <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.3} metalness={0.5} roughness={0.5} />
           </mesh>
 
           {/* Eye Visor */}

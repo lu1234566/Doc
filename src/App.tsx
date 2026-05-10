@@ -53,6 +53,22 @@ import { sounds } from './game/SoundEngine';
 // @ts-ignore
 const DEBUG_UI = import.meta.env?.DEV || false;
 
+const getSafePlayerStart = () => {
+    let px = 12 * CELL_SIZE + CELL_SIZE / 2;
+    let py = 6 * CELL_SIZE + CELL_SIZE / 2;
+    if (MAP[6]?.[12] === 0) return { x: px, y: py, angle: 0 };
+    
+    // Fallback
+    for (let y = 1; y < MAP.length - 1; y++) {
+        for (let x = 1; x < MAP[0].length - 1; x++) {
+            if (MAP[y][x] === 0) {
+                return { x: x * CELL_SIZE + CELL_SIZE / 2, y: y * CELL_SIZE + CELL_SIZE / 2, angle: 0 };
+            }
+        }
+    }
+    return { x: 128, y: 128, angle: 0 };
+};
+
 export default function App() {
   const gameContainerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -162,8 +178,9 @@ export default function App() {
   useEffect(() => { ammoRef.current = ammo; }, [ammo]);
 
   // Game Engine Refs
+  const safeStart = getSafePlayerStart();
   const player = useRef<Player>({
-    x: 128, y: 128, angle: 0, 
+    x: safeStart.x, y: safeStart.y, angle: safeStart.angle, 
     velX: 0, velY: 0, 
     rotVel: 0, pitch: 0,
     radius: 16,
@@ -241,7 +258,8 @@ export default function App() {
       sniper: WEAPONS.sniper.magSize
     });
     pickups.current = [];
-    player.current = { x: 128, y: 128, angle: 0, velX: 0, velY: 0, rotVel: 0, pitch: 0, radius: 16, isAds: false, adsProgress: 0 };
+    const safeStartUpdate = getSafePlayerStart();
+    player.current = { x: safeStartUpdate.x, y: safeStartUpdate.y, angle: safeStartUpdate.angle, velX: 0, velY: 0, rotVel: 0, pitch: 0, radius: 16, isAds: false, adsProgress: 0 };
     enemies.current = [];
     setEnemiesState([]);
     particles.current = [];

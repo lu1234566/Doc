@@ -10,19 +10,21 @@ interface MapProps {
 export function World({ mapData, cellSize }: MapProps) {
   // Use high-quality materials
   const wallMaterial = new THREE.MeshStandardMaterial({
-    color: '#334155',
+    color: '#475569',
+    emissive: '#0f172a',
+    emissiveIntensity: 0.2,
     metalness: 0.2,
     roughness: 0.8,
   });
 
   const floorMaterial = new THREE.MeshStandardMaterial({
-    color: '#1e293b',
+    color: '#334155',
     metalness: 0.1,
     roughness: 0.9,
   });
 
   const ceilingMaterial = new THREE.MeshStandardMaterial({
-    color: '#020617',
+    color: '#0f172a',
     metalness: 0,
     roughness: 1,
   });
