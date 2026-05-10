@@ -1103,7 +1103,7 @@ export default function App() {
           <div className="absolute inset-0 z-50 pointer-events-none select-none">
             {/* Joystick Area */}
             <div 
-              className="absolute bottom-10 left-10 w-40 h-40 flex items-center justify-center pointer-events-auto rounded-full bg-white/5 border border-white/10"
+              className="absolute bottom-6 left-4 md:bottom-10 md:left-10 w-32 h-32 md:w-40 md:h-40 flex items-center justify-center pointer-events-auto rounded-full bg-white/5 border border-white/10"
               onTouchStart={(e) => {
                 e.preventDefault();
                 const touch = e.touches[0];
