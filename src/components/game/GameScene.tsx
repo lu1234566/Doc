@@ -67,29 +67,31 @@ export function GameScene({
 }: GameSceneProps) {
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
-      <Canvas shadows>
+      <Canvas 
+        shadows={false} 
+        dpr={typeof window !== 'undefined' ? Math.min(window.devicePixelRatio, 1.5) : 1} 
+        gl={{ antialias: false, powerPreference: 'high-performance' }}
+      >
         <PerspectiveCamera makeDefault fov={75} />
-        <ambientLight intensity={0.4} />
-        <pointLight position={[10, 10, 10]} intensity={2} castShadow />
+        <ambientLight intensity={0.8} />
+        <pointLight position={[10, 10, 10]} intensity={1.5} />
         <spotLight 
           position={[0, 50, 0]} 
           angle={0.5} 
           penumbra={1} 
           intensity={2} 
-          castShadow 
-          shadow-mapSize={[2048, 2048]}
         />
 
         <Sky sunPosition={[100, 20, 100]} />
-        <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+        <Stars radius={100} depth={50} count={200} factor={4} saturation={0} fade speed={1} />
 
         <World mapData={mapData} cellSize={cellSize} />
 
         <ContactShadows 
-          resolution={1024} 
+          resolution={128} 
           scale={50} 
-          blur={2} 
-          opacity={0.4} 
+          blur={1} 
+          opacity={0.3} 
           far={10} 
           color="#000000" 
         />

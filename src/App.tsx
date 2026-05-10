@@ -50,6 +50,9 @@ import { sounds } from './game/SoundEngine';
 
 
 // --- Main Component ---
+// @ts-ignore
+const DEBUG_UI = import.meta.env?.DEV || false;
+
 export default function App() {
   const gameContainerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -146,6 +149,10 @@ export default function App() {
   const ammoRef = useRef(ammo);
   const [hp, setHp] = useState(100);
   const [isReloading, setIsReloading] = useState(false);
+  const isReloadingRef = useRef(false);
+  const [fps, setFps] = useState(0);
+  const frameCount = useRef(0);
+  const lastFpsTime = useRef(Date.now());
   const [hitMarker, setHitMarker] = useState({ time: 0, killed: false });
   const [bossHp, setBossHp] = useState<{ current: number, max: number } | null>(null);
   const pickups = useRef<Pickup[]>([]);
@@ -193,7 +200,9 @@ export default function App() {
     setStats({ kills: 0, deaths: 0, shotsFired: 0, shotsHit: 0 });
     
     const initialReserve = 120 + (upgradeLevels.ammoReserve * 20);
-    setAmmo({ mag: WEAPONS.pistol.magSize, reserve: initialReserve });
+    const initialAmmo = { mag: WEAPONS.pistol.magSize, reserve: initialReserve };
+    setAmmo(initialAmmo);
+    ammoRef.current = initialAmmo;
     setScore(0);
     setWave(1);
     setEarnedCredits(0);
@@ -216,7 +225,12 @@ export default function App() {
       clearTimeout(bossSpawnTimeoutRef.current);
       bossSpawnTimeoutRef.current = null;
     }
+    if (reloadTimeoutRef.current) {
+      clearTimeout(reloadTimeoutRef.current);
+      reloadTimeoutRef.current = null;
+    }
     setIsReloading(false);
+    isReloadingRef.current = false;
     setEnemiesRemaining(0);
     setBossHp(null);
     setWaveMessage('');
@@ -317,6 +331,11 @@ export default function App() {
     const count = 3 + waveNum * 2;
     let spawnedCount = 0;
     spawnIntervalRef.current = setInterval(() => {
+        if (gameStateRef.current !== 'playing') {
+            if (spawnIntervalRef.current) clearInterval(spawnIntervalRef.current);
+            return;
+        }
+
         if (spawnedCount >= count) {
             if (spawnIntervalRef.current) {
               clearInterval(spawnIntervalRef.current);
@@ -349,16 +368,36 @@ export default function App() {
     let spawned = 0;
     let attempts = 0;
     
+    // Fallback: collect all empty cells
+    const emptyCells: {x: number, y: number}[] = [];
+    for (let y = 0; y < MAP.length; y++) {
+      for (let x = 0; x < MAP[0].length; x++) {
+        if (MAP[y][x] === 0) {
+          emptyCells.push({ x: x * CELL_SIZE + CELL_SIZE/2, y: y * CELL_SIZE + CELL_SIZE/2 });
+        }
+      }
+    }
+    
     while (spawned < count && attempts < 100) {
         attempts++;
-        const rx = Math.random() * (MAP[0].length * CELL_SIZE);
-        const ry = Math.random() * (MAP.length * CELL_SIZE);
+        let rx = Math.random() * (MAP[0].length * CELL_SIZE);
+        let ry = Math.random() * (MAP.length * CELL_SIZE);
         
         const distToPlayer = Math.hypot(rx - player.current.x, ry - player.current.y);
         const mapX = Math.floor(rx / CELL_SIZE);
         const mapY = Math.floor(ry / CELL_SIZE);
         
-        if (distToPlayer > 500 && MAP[mapY]?.[mapX] === 0) {
+        let validSpawn = distToPlayer > 500 && MAP[mapY]?.[mapX] === 0;
+        
+        // Fallback after 50 attempts
+        if (!validSpawn && attempts > 50 && emptyCells.length > 0) {
+           const emptyCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+           rx = emptyCell.x;
+           ry = emptyCell.y;
+           validSpawn = true;
+        }
+
+        if (validSpawn) {
             const type = isBoss ? 'rifleman' : types[Math.floor(Math.random() * types.length)];
             const diffMult = DIFFICULTIES[difficulty].hpMult;
             const hpBuff = 1 + (currentWave - 1) * 0.15;
@@ -396,14 +435,14 @@ export default function App() {
   const graveyard = useRef<{ x: number, y: number, color: string, type: string }[]>([]);
 
   const handleShoot = () => {
-    if (gameStateRef.current !== 'playing' || isReloading) return;
+    if (gameStateRef.current !== 'playing' || isReloadingRef.current) return;
     const now = Date.now();
     const weapon = WEAPONS[currentWeapon];
     if (now - lastShotTime.current < weapon.fireRate) return;
     
     // Check ammo
     if (ammoRef.current.mag <= 0) {
-      if (!isReloading && ammoRef.current.reserve > 0) reload();
+      if (!isReloadingRef.current && ammoRef.current.reserve > 0) reload();
       return;
     }
 
@@ -524,9 +563,10 @@ export default function App() {
 
   const reload = () => {
     // Prevent double reload and check conditions
-    if (isReloading || ammoRef.current.mag >= WEAPONS[currentWeapon].magSize || ammoRef.current.reserve <= 0 || gameStateRef.current !== 'playing') return;
+    if (isReloadingRef.current || ammoRef.current.mag >= WEAPONS[currentWeapon].magSize || ammoRef.current.reserve <= 0 || gameStateRef.current !== 'playing') return;
 
     setIsReloading(true);
+    isReloadingRef.current = true;
     sounds.playReload();
 
     const reloadingWeapon = currentWeapon;
@@ -543,12 +583,15 @@ export default function App() {
         const newMag = prev.mag + taken;
         // Also update the stored mag for this weapon
         setWeaponMags(mags => ({ ...mags, [reloadingWeapon]: newMag }));
-        return {
+        const newAmmo = {
           mag: newMag,
           reserve: prev.reserve - taken
         };
+        ammoRef.current = newAmmo;
+        return newAmmo;
       });
       setIsReloading(false);
+      isReloadingRef.current = false;
       reloadTimeoutRef.current = null;
     }, finalReloadTime) as unknown as number;
   };
@@ -568,6 +611,14 @@ export default function App() {
   };
 
   const update = () => {
+    frameCount.current++;
+    const nowTime = Date.now();
+    if (nowTime - lastFpsTime.current >= 1000) {
+        setFps(frameCount.current);
+        frameCount.current = 0;
+        lastFpsTime.current = nowTime;
+    }
+
     if (gameStateRef.current !== 'playing') return;
 
     // Player Movement
@@ -965,10 +1016,6 @@ export default function App() {
     }, TICK_RATE);
     return () => {
       clearInterval(loop);
-      if (spawnIntervalRef.current) clearInterval(spawnIntervalRef.current);
-      if (reloadTimeoutRef.current) clearTimeout(reloadTimeoutRef.current);
-      if (waveTransitionTimeoutRef.current) clearTimeout(waveTransitionTimeoutRef.current);
-      if (bossSpawnTimeoutRef.current) clearTimeout(bossSpawnTimeoutRef.current);
     };
   }, [gameState, currentWeapon, hp, ammo]);
 
@@ -1032,7 +1079,7 @@ export default function App() {
       window.removeEventListener('mouseup', handleMouseUp);
       window.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [gameState, currentWeapon, isReloading]);
+  }, [gameState, currentWeapon]);
 
   const togglePointerLock = () => {
     if (mobileMode) return;
@@ -1048,6 +1095,18 @@ export default function App() {
       <div className="absolute inset-0 opacity-20 pointer-events-none">
         <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(30,58,138,0.2),transparent)]" />
       </div>
+
+      {DEBUG_UI && (
+        <div className="absolute top-2 left-2 z-[999] pointer-events-none bg-black/80 text-green-400 font-mono text-[10px] p-2 rounded whitespace-pre border border-green-500/30">
+          <div>FPS: {fps} | Mobile: {String(mobileMode)}</div>
+          <div>State: {gameState} ({gameStateRef.current})</div>
+          <div>W: {currentWeapon} | Ammo: {ammo.mag}/{ammo.reserve} ({ammoRef.current.mag}/{ammoRef.current.reserve}) | Rel: {String(isReloadingRef.current)}</div>
+          <div>Wave: {wave} ({waveRef.current}) | Msg: {waveMessage} | wTr: {String(isWaveTransitionRef.current)}</div>
+          <div>Spawn: actv:{String(isSpawningRef.current)} itv:{String(!!spawnIntervalRef.current)} boss:{String(!!bossSpawnTimeoutRef.current)}</div>
+          <div>Enemies: ref:{enemies.current.length} st:{enemiesState.length} rm:{enemiesRemaining}</div>
+          <div>P: {player.current.x.toFixed(0)},{player.current.y.toFixed(0)} ang:{player.current.angle.toFixed(2)} pt:{player.current.pitch.toFixed(1)}</div>
+        </div>
+      )}
 
       {/* Main Game Container */}
       <div 
