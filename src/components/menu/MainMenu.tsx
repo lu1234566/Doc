@@ -55,7 +55,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
       <div className="absolute inset-0 pointer-events-none opacity-20" style={{ backgroundImage: 'linear-gradient(#444 1px, transparent 1px), linear-gradient(90deg, #444 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
       
       <AnimatePresence mode="wait">
-        {menuView === 'main' && (
+        {(menuView === 'main' || !['armory', 'difficulty', 'profile'].includes(menuView)) && (
           <motion.div 
             key="main"
             initial={{ opacity: 0, scale: 0.9 }} 

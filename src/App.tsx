@@ -1035,13 +1035,14 @@ export default function App() {
   }, [gameState, currentWeapon, isReloading]);
 
   const togglePointerLock = () => {
+    if (mobileMode) return;
     if (gameContainerRef.current) {
         gameContainerRef.current.requestPointerLock();
     }
   };
 
   return (
-    <div className="relative w-full h-screen bg-slate-950 flex flex-col items-center justify-center overflow-hidden font-sans select-none">
+    <div className="relative w-full h-[100dvh] bg-slate-950 flex flex-col items-center justify-center overflow-hidden font-sans select-none pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
       
       {/* Background Ambience */}
       <div className="absolute inset-0 opacity-20 pointer-events-none">
@@ -1051,7 +1052,7 @@ export default function App() {
       {/* Main Game Container */}
       <div 
         ref={gameContainerRef}
-        className="relative group shadow-2xl shadow-blue-900/20 border-4 border-slate-800 rounded-xl overflow-hidden aspect-[4/3] max-w-[800px] w-full bg-black cursor-crosshair touch-none"
+        className={`relative group bg-black cursor-crosshair touch-none overflow-hidden ${mobileMode ? 'w-full h-full' : 'shadow-2xl shadow-blue-900/20 border-4 border-slate-800 rounded-xl aspect-[4/3] max-w-[1000px] w-full'}`}
         onClick={togglePointerLock}
       >
         {gameState === 'playing' ? (
@@ -1072,12 +1073,12 @@ export default function App() {
 
             {/* Boss Health Bar */}
             {bossHp && (
-              <div className="absolute top-20 left-1/2 -translate-x-1/2 w-80 z-50 pointer-events-none">
+              <div className="absolute top-16 md:top-20 left-1/2 -translate-x-1/2 w-[70vw] md:w-80 z-50 pointer-events-none">
                  <div className="flex justify-between items-end mb-1">
-                    <span className="text-red-500 font-black text-xs uppercase tracking-widest italic">Sector Guardian: TITAN</span>
+                    <span className="text-red-500 font-black text-[10px] md:text-xs uppercase tracking-widest italic">Sector Guardian: TITAN</span>
                     <span className="text-white font-mono text-[9px]">{Math.ceil(bossHp.current)} / {bossHp.max}</span>
                  </div>
-                 <div className="h-2 bg-slate-900/80 rounded-full border border-red-500/30 overflow-hidden backdrop-blur-md">
+                 <div className="h-1.5 md:h-2 bg-slate-900/80 rounded-full border border-red-500/30 overflow-hidden backdrop-blur-md">
                     <motion.div 
                       initial={{ width: '100%' }}
                       animate={{ width: `${(bossHp.current / bossHp.max) * 100}%` }}
@@ -1176,12 +1177,12 @@ export default function App() {
             />
 
             {/* Action Buttons */}
-            <div className="absolute right-10 bottom-32 flex flex-col items-end gap-6 pointer-events-none">
+            <div className="absolute right-4 md:right-10 bottom-24 md:bottom-32 flex flex-col items-end gap-3 md:gap-6 pointer-events-none z-[60]">
               
-              <div className="flex gap-4">
+              <div className="flex gap-2 md:gap-4">
                  {/* ADS Button */}
                  <button 
-                  className={`w-16 h-16 rounded-full flex items-center justify-center border-2 backdrop-blur-md pointer-events-auto transition-transform active:scale-95 ${player.current.isAds ? 'bg-yellow-500/40 border-yellow-500 text-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.3)]' : 'bg-slate-900/60 border-slate-700 text-slate-400'}`}
+                  className={`w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center border-2 backdrop-blur-md pointer-events-auto transition-transform active:scale-95 ${player.current.isAds ? 'bg-yellow-500/40 border-yellow-500 text-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.3)]' : 'bg-slate-900/60 border-slate-700 text-slate-400'}`}
                   onTouchStart={(e) => {
                     e.preventDefault();
                     keys.current['c'] = !keys.current['c'];
@@ -1192,7 +1193,7 @@ export default function App() {
 
                 {/* Reload Button */}
                 <button 
-                  className="w-16 h-16 rounded-full bg-slate-900/60 border-2 border-slate-700 text-white flex items-center justify-center backdrop-blur-md pointer-events-auto active:scale-95 transition-transform"
+                  className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-slate-900/60 border-2 border-slate-700 text-white flex items-center justify-center backdrop-blur-md pointer-events-auto active:scale-95 transition-transform"
                   onTouchStart={(e) => {
                     e.preventDefault();
                     reload();
@@ -1204,7 +1205,7 @@ export default function App() {
 
               {/* Fire Button */}
               <button 
-                className="w-24 h-24 rounded-full bg-red-600/30 border-4 border-red-500/50 text-red-500 flex items-center justify-center backdrop-blur-xl pointer-events-auto active:scale-90 transition-all shadow-[0_0_30px_rgba(239,68,68,0.2)] active:border-red-500 active:bg-red-500/50"
+                className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-red-600/30 border-4 border-red-500/50 text-red-500 flex items-center justify-center backdrop-blur-xl pointer-events-auto active:scale-90 transition-all shadow-[0_0_30px_rgba(239,68,68,0.2)] active:border-red-500 active:bg-red-500/50"
                 onTouchStart={(e) => {
                   e.preventDefault();
                   keys.current['m_left'] = true;
@@ -1219,14 +1220,14 @@ export default function App() {
                   keys.current['m_left'] = false;
                 }}
               >
-                <div className="w-12 h-12 rounded-full border-2 border-red-400/30 flex items-center justify-center">
-                   <Target size={32} />
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-red-400/30 flex items-center justify-center">
+                   <Target size={28} className="md:w-8 md:h-8" />
                 </div>
               </button>
             </div>
             
             {/* Weapon Selector (Mobile) */}
-            <div className="absolute top-24 left-10 flex flex-col gap-2 pointer-events-auto">
+            <div className="absolute top-16 left-4 md:left-10 flex flex-col gap-1 md:gap-2 pointer-events-auto z-[60]">
               {(['pistol', 'rifle', 'shotgun', 'sniper'] as WeaponType[]).map(weapon => (
                 <button
                   key={weapon}
@@ -1242,7 +1243,7 @@ export default function App() {
                       reloadTimeoutRef.current = null;
                     }
                   }}
-                  className={`px-4 py-2 rounded-lg border backdrop-blur-md text-[10px] font-black uppercase tracking-widest transition-all ${currentWeapon === weapon ? 'bg-yellow-500 border-yellow-400 text-slate-950 shadow-lg' : 'bg-slate-900/60 border-slate-700 text-slate-400'}`}
+                  className={`px-3 md:px-4 py-1.5 md:py-2 rounded-lg border backdrop-blur-md text-[8px] md:text-[10px] font-black uppercase tracking-widest transition-all ${currentWeapon === weapon ? 'bg-yellow-500 border-yellow-400 text-slate-950 shadow-lg' : 'bg-slate-900/60 border-slate-700 text-slate-400'}`}
                 >
                   {WEAPONS[weapon].name}
                 </button>
@@ -1297,7 +1298,7 @@ export default function App() {
            )}
 
            {/* Killfeed Overlay */}
-           <div className="absolute top-24 right-6 flex flex-col items-end gap-2 text-white font-mono font-bold text-sm pointer-events-none">
+           <div className="absolute top-20 md:top-24 right-4 md:right-6 flex flex-col items-end gap-1 md:gap-2 text-white font-mono font-bold text-xs md:text-sm pointer-events-none z-40">
               <AnimatePresence>
                 {killfeed.map((kill, i) => (
                   <motion.div 
@@ -1318,59 +1319,59 @@ export default function App() {
         {gameState === 'playing' && (
           <>
             {/* Top Stats */}
-            <div className="absolute top-4 left-4 right-4 flex justify-between items-start pointer-events-none">
-              <div className="bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-lg border border-slate-700 flex items-center gap-4 shadow-xl">
-                <div className="flex items-center gap-3 pr-2">
-                   <div className="w-10 h-10 bg-yellow-500 rounded flex items-center justify-center shadow-lg shadow-yellow-500/20">
-                      <Zap className="text-slate-950" size={24} />
+            <div className={`absolute left-0 right-0 flex justify-between items-start pointer-events-none z-40 px-4 transition-all duration-300 ${mobileMode ? 'top-16 md:top-4 scale-75 origin-top' : 'top-4'}`}>
+              <div className="bg-slate-900/80 backdrop-blur-md px-3 md:px-4 py-1.5 md:py-2 rounded-lg border border-slate-700 flex items-center gap-2 md:gap-4 shadow-xl">
+                <div className="flex items-center gap-2 md:gap-3 pr-1 md:pr-2">
+                   <div className="w-8 h-8 md:w-10 md:h-10 bg-yellow-500 rounded flex items-center justify-center shadow-lg shadow-yellow-500/20">
+                      <Zap className="text-slate-950 w-5 h-5 md:w-6 md:h-6" />
                    </div>
                    <div className="flex flex-col">
-                      <span className="text-xs font-black text-white uppercase tracking-tighter italic leading-none">Nano Banana</span>
-                      <span className="text-[9px] font-mono text-yellow-500/80 uppercase tracking-widest leading-none mt-1 font-bold">Protocol Active</span>
+                      <span className="text-[10px] md:text-xs font-black text-white uppercase tracking-tighter italic leading-none">Nano Banana</span>
+                      <span className="text-[8px] md:text-[9px] font-mono text-yellow-500/80 uppercase tracking-widest leading-none mt-1 font-bold">Protocol Active</span>
                    </div>
                 </div>
-                <div className="h-8 w-px bg-slate-700/50" />
-                <div className="flex items-center gap-4 px-2">
-                   <div className="flex items-center gap-2">
-                      <Skull size={18} className="text-slate-400" />
-                      <span className="font-mono text-xl font-black text-white leading-none">{stats.kills}</span>
+                <div className="h-6 md:h-8 w-px bg-slate-700/50" />
+                <div className="flex items-center gap-2 md:gap-4 px-1 md:px-2">
+                   <div className="flex items-center gap-1 md:gap-2">
+                      <Skull size={14} className="text-slate-400 md:w-[18px] md:h-[18px]" />
+                      <span className="font-mono text-lg md:text-xl font-black text-white leading-none">{stats.kills}</span>
                    </div>
-                   <div className="flex items-center gap-2">
-                      <Shield size={18} className={hp < 30 ? 'text-red-500 animate-pulse' : 'text-blue-400'} />
-                      <span className={`font-mono text-xl font-black leading-none ${hp < 30 ? 'text-red-500' : 'text-white'}`}>{Math.round(hp)}%</span>
+                   <div className="flex items-center gap-1 md:gap-2">
+                      <Shield size={14} className={`md:w-[18px] md:h-[18px] ${hp < 30 ? 'text-red-500 animate-pulse' : 'text-blue-400'}`} />
+                      <span className={`font-mono text-lg md:text-xl font-black leading-none ${hp < 30 ? 'text-red-500' : 'text-white'}`}>{Math.round(hp)}%</span>
                    </div>
                 </div>
               </div>
               
               <div className="flex flex-col items-end gap-2">
-                 <div className="bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-lg border border-slate-700 text-slate-300 text-sm font-mono flex items-center gap-2 shadow-xl">
-                    <Terminal size={14} className="text-green-500 animate-pulse" />
-                    <span className="text-[10px] tracking-wider uppercase font-bold text-slate-400">System Integrity: </span>
+                 <div className="bg-slate-900/80 backdrop-blur-md px-2 md:px-4 py-1 md:py-2 rounded-lg border border-slate-700 text-slate-300 text-xs md:text-sm font-mono flex items-center gap-1 md:gap-2 shadow-xl">
+                    <Terminal size={12} className="text-green-500 animate-pulse md:w-[14px] md:h-[14px]" />
+                    <span className="text-[8px] md:text-[10px] tracking-wider uppercase font-bold text-slate-400">System <span className="hidden sm:inline">Integrity:</span> </span>
                     <span className="text-green-500 font-bold tracking-tighter">OPTIMAL</span>
                  </div>
               </div>
             </div>
 
             {/* Weapon & Ammo Card */}
-            <div className="absolute bottom-6 right-6 flex items-center gap-4">
+            <div className={`absolute pointer-events-none z-40 flex items-center gap-2 md:gap-4 transition-all duration-300 ${mobileMode ? 'top-4 right-4 scale-75 origin-top-right' : 'bottom-6 right-6'}`}>
               <button 
                 onClick={reload}
-                className="w-14 h-14 bg-slate-900/90 backdrop-blur-xl border border-slate-700 hover:border-yellow-500 rounded-xl flex items-center justify-center shadow-2xl transition-colors pointer-events-auto group"
+                className="w-10 h-10 md:w-14 md:h-14 bg-slate-900/90 backdrop-blur-xl border border-slate-700 hover:border-yellow-500 rounded-xl flex items-center justify-center shadow-2xl transition-colors pointer-events-auto group hidden md:flex"
               >
-                <RefreshCcw size={24} className={`text-slate-400 group-hover:text-yellow-500 ${isReloading ? 'animate-spin text-yellow-500' : ''}`} />
+                <RefreshCcw size={20} className={`text-slate-400 group-hover:text-yellow-500 ${isReloading ? 'animate-spin text-yellow-500' : ''}`} />
               </button>
-              <div className="bg-slate-900/90 backdrop-blur-xl border-l-4 border-yellow-500 p-4 rounded-xl flex flex-col gap-2 shadow-2xl pointer-events-none">
-                <div className="flex items-center gap-6">
+              <div className="bg-slate-900/90 backdrop-blur-xl border-l-4 border-yellow-500 p-2 md:p-4 rounded-xl flex flex-col gap-1 md:gap-2 shadow-2xl pointer-events-none">
+                <div className="flex items-center gap-2 md:gap-6">
                   <div className="flex flex-col">
-                    <span className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold">Weapon System</span>
-                    <span className="text-2xl font-black text-white italic tracking-tighter uppercase">{WEAPONS[currentWeapon].name}</span>
+                    <span className="text-[8px] md:text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold">Weapon System</span>
+                    <span className="text-lg md:text-2xl font-black text-white italic tracking-tighter uppercase leading-none mt-1">{WEAPONS[currentWeapon].name}</span>
                   </div>
-                  <div className="h-12 w-px bg-slate-700/50" />
+                  <div className="h-8 md:h-12 w-px bg-slate-700/50" />
                   <div className="flex items-end gap-1">
-                    <span className={`text-5xl font-mono font-bold ${ammo.mag < 5 ? 'text-red-500 animate-pulse' : 'text-yellow-500'}`}>
+                    <span className={`text-3xl md:text-5xl font-mono font-bold leading-none ${ammo.mag < 5 ? 'text-red-500 animate-pulse' : 'text-yellow-500'}`}>
                       {isReloading ? '--' : ammo.mag}
                     </span>
-                    <span className="text-xl font-mono text-slate-500 mb-1">/ {ammo.reserve}</span>
+                    <span className="text-sm md:text-xl font-mono text-slate-500 mb-0.5 md:mb-1">/ {ammo.reserve}</span>
                   </div>
                 </div>
                 {isReloading && (
@@ -1388,45 +1389,45 @@ export default function App() {
             </div>
 
             {/* Health Bar Bottom */}
-            <div className="absolute bottom-6 left-6 w-48 pointer-events-none">
-               <div className="flex items-center gap-2 mb-2">
+            <div className={`absolute flex flex-col pointer-events-none z-40 transition-all ${mobileMode ? 'bottom-6 left-1/2 -translate-x-1/2 w-48 scale-90' : 'bottom-6 left-6 w-48'}`}>
+               <div className="flex items-center gap-2 mb-1 md:mb-2 bg-slate-950/50 px-2 py-1 rounded w-fit self-center md:self-start">
                  <Users size={12} className="text-blue-400" />
-                 <span className="text-white font-black text-xs uppercase tracking-tighter">Units Detected: {enemiesRemaining}</span>
+                 <span className="text-white font-black text-[10px] md:text-xs uppercase tracking-tighter">Units Detected: {enemiesRemaining}</span>
                </div>
-               <div className="h-4 bg-slate-900 rounded-full border border-slate-700 overflow-hidden">
+               <div className="h-3 md:h-4 bg-slate-900 rounded-full border border-slate-700 overflow-hidden">
                   <motion.div 
                     animate={{ width: `${hp}%` }}
                     className={`h-full ${hp < 30 ? 'bg-red-500 shadow-[0_0_10px_red]' : 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]'}`}
                   />
                </div>
-               <div className="mt-2 flex justify-between text-[10px] text-slate-500 font-bold uppercase tracking-widest px-1">
+               <div className="mt-1 md:mt-2 flex justify-between text-[8px] md:text-[10px] text-slate-500 font-bold uppercase tracking-widest px-1">
                   <span>Armor Integrity</span>
                   <span>{hp}%</span>
                </div>
             </div>
 
             {/* Top Stats HUD */}
-            <div className="absolute top-6 left-6 flex items-start gap-2 pointer-events-none z-50">
-               <div className="flex items-center gap-3 bg-slate-900/80 px-4 py-2 rounded-lg border-l-4 border-blue-500 backdrop-blur-md">
+            <div className={`absolute pointer-events-none z-50 flex gap-2 transition-all ${mobileMode ? 'top-4 left-4 scale-75 origin-top-left' : 'top-6 left-6 items-start'}`}>
+               <div className="flex items-center gap-2 md:gap-3 bg-slate-900/80 px-3 md:px-4 py-1.5 md:py-2 rounded-lg border-l-4 border-blue-500 backdrop-blur-md">
                  <div className="flex flex-col">
-                   <span className="text-blue-400 font-black text-[9px] uppercase tracking-widest leading-none">Sector Wave</span>
-                   <span className="text-white font-black text-2xl tracking-tighter leading-none mt-1">{wave}<span className="text-slate-600 text-sm ml-1">/ 5</span></span>
+                   <span className="text-blue-400 font-black text-[8px] md:text-[9px] uppercase tracking-widest leading-none">Sector Wave</span>
+                   <span className="text-white font-black text-lg md:text-2xl tracking-tighter leading-none mt-1">{wave}<span className="text-slate-600 text-xs md:text-sm ml-1">/ 5</span></span>
                  </div>
                </div>
-               <div className="flex items-center gap-3 bg-slate-900/80 px-4 py-2 rounded-lg border-l-4 backdrop-blur-md" style={{ borderColor: DIFFICULTIES[difficulty].color }}>
+               <div className="flex items-center gap-2 md:gap-3 bg-slate-900/80 px-3 md:px-4 py-1.5 md:py-2 rounded-lg border-l-4 backdrop-blur-md hidden md:flex" style={{ borderColor: DIFFICULTIES[difficulty].color }}>
                  <div className="flex flex-col">
-                   <span className="font-black text-[9px] uppercase tracking-widest leading-none opacity-60" style={{ color: DIFFICULTIES[difficulty].color }}>Protocol</span>
-                   <span className="text-white font-black text-xs italic tracking-tighter leading-none mt-1 uppercase">{difficulty}</span>
+                   <span className="font-black text-[8px] md:text-[9px] uppercase tracking-widest leading-none opacity-60" style={{ color: DIFFICULTIES[difficulty].color }}>Protocol</span>
+                   <span className="text-white font-black text-[10px] md:text-xs italic tracking-tighter leading-none mt-1 uppercase">{difficulty}</span>
                  </div>
                </div>
             </div>
 
-            <div className="absolute top-6 right-6 flex flex-col items-end gap-2 pointer-events-none z-50">
-               <div className="bg-slate-900/80 px-4 py-2 rounded-lg border-r-4 border-yellow-500 backdrop-blur-md flex flex-col items-end">
-                  <span className="text-yellow-400 font-black text-[9px] uppercase tracking-widest leading-none">Score</span>
-                  <span className="text-white font-black text-2xl tracking-tighter mt-1">{score.toLocaleString()}</span>
+            <div className={`absolute pointer-events-none z-50 flex flex-col items-end gap-1 md:gap-2 transition-all ${mobileMode ? 'bottom-20 right-4 scale-75 origin-bottom-right' : 'top-6 right-6'}`}>
+               <div className="bg-slate-900/80 px-3 md:px-4 py-1.5 md:py-2 rounded-lg border-r-4 border-yellow-500 backdrop-blur-md flex flex-col items-end">
+                  <span className="text-yellow-400 font-black text-[8px] md:text-[9px] uppercase tracking-widest leading-none">Score</span>
+                  <span className="text-white font-black text-lg md:text-2xl tracking-tighter mt-1 leading-none">{score.toLocaleString()}</span>
                </div>
-               <div className="bg-slate-900/60 px-3 py-1 rounded-lg backdrop-blur-sm text-[9px] font-black text-slate-400 flex gap-4 uppercase tracking-tighter">
+               <div className="bg-slate-900/60 px-2 md:px-3 py-1 rounded-lg backdrop-blur-sm text-[8px] md:text-[9px] font-black text-slate-400 flex gap-2 md:gap-4 uppercase tracking-tighter">
                  <span>Acc: {stats.shotsFired > 0 ? Math.round((stats.shotsHit / stats.shotsFired) * 100) : 0}%</span>
                  <span className="text-slate-600">|</span>
                  <span>Kills: {stats.kills}</span>
@@ -1435,16 +1436,18 @@ export default function App() {
 
             {/* Wave Announcement */}
             {waveMessage && (
-               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-50 text-center animate-in zoom-in slide-in-from-top-12 duration-700">
+               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-50 text-center animate-in zoom-in slide-in-from-top-12 duration-700 w-full px-4">
                  <motion.h2 
-                  initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                  className="text-8xl font-black text-white italic tracking-tighter drop-shadow-[0_0_30px_rgba(255,255,255,0.3)]"
+                  initial={{ scale: 0.5, opacity: 0 }} 
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ opacity: 0, scale: 1.2 }}
+                  className="text-[clamp(2.5rem,8vw,6rem)] font-black text-white italic tracking-tighter drop-shadow-[0_0_30px_rgba(255,255,255,0.3)] leading-none"
                  >
                    {waveMessage}
                  </motion.h2>
                  <motion.p 
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
-                  className="text-yellow-500 font-black tracking-[0.5em] uppercase mt-2 drop-shadow-md text-sm"
+                  className="text-yellow-500 font-black tracking-[0.2em] md:tracking-[0.5em] uppercase mt-2 drop-shadow-md text-[10px] md:text-sm"
                  >
                    Neutralize All Hostiles
                  </motion.p>
@@ -1609,6 +1612,7 @@ export default function App() {
                     <button 
                      onClick={() => {
                        sounds.playUiClick();
+                       setMenuView('main');
                        setGameState('start');
                      }}
                      className="flex items-center justify-center gap-2 text-slate-500 hover:text-white transition-colors font-black uppercase text-[10px] tracking-widest w-full py-4 border-t border-white/5 mt-4"
@@ -1695,7 +1699,7 @@ export default function App() {
       </div>
 
       {/* Responsive Info/Controls */}
-      {gameState === 'start' && (
+      {gameState === 'start' && !mobileMode && (
         <div className="mt-8 flex gap-8 items-center text-slate-500 text-sm font-medium">
            <div className="flex items-center gap-2">
               <Move size={16} /> w/a/s/d to move

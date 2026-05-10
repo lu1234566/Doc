@@ -33,7 +33,7 @@ export interface Enemy {
   id: number;
   x: number;
   y: number;
-  type: string;
+  type: 'rusher' | 'rifleman' | 'sniper';
   isBoss: boolean;
   hp: number;
   maxHp: number;
@@ -44,6 +44,7 @@ export interface Enemy {
   lastX: number;
   lastY: number;
   targetAngle: number;
+  dead?: boolean;
 }
 
 export interface Pickup {
