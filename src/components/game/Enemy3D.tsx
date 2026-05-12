@@ -16,7 +16,7 @@ interface EnemyProps {
 
 export function Enemy3D({ x, y, type, color, cellSize, isBoss, hp, maxHp }: EnemyProps) {
   const meshRef = useRef<THREE.Group>(null);
-  const scale = isBoss ? 4 : 1;
+  const scale = isBoss ? 3 : 0.8;
 
   // Health Calculation
   const healthPercent = Math.max(0, Math.min(1, hp / maxHp));
@@ -42,7 +42,7 @@ export function Enemy3D({ x, y, type, color, cellSize, isBoss, hp, maxHp }: Enem
           {/* Main Body */}
           <mesh castShadow={false}>
             <capsuleGeometry args={[cellSize / 4, cellSize / 2, 4, 8]} />
-            <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.3} metalness={0.5} roughness={0.5} />
+            <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.6} metalness={0.5} roughness={0.5} />
           </mesh>
 
           {/* Eye Visor */}

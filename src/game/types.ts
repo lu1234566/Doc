@@ -44,6 +44,7 @@ export interface Enemy {
   lastX: number;
   lastY: number;
   targetAngle: number;
+  spawnTime: number;
   dead?: boolean;
 }
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Sky, Stars, PerspectiveCamera, ContactShadows } from '@react-three/drei';
+import { Sky, PerspectiveCamera } from '@react-three/drei';
 import * as THREE from 'three';
 import { World } from './World';
 import { Enemy3D } from './Enemy3D';
@@ -28,10 +28,17 @@ interface GameSceneProps {
   currentWeapon: string;
   isReloading: boolean;
   recoilOffset: number;
+  screenShake: number;
   lastShotTime: number;
 }
 
-function PlayerController({ player, cellSize, mapData }: { player: React.MutableRefObject<Player>, cellSize: number, mapData: number[][] }) {
+function PlayerController({ player, cellSize, mapData, recoilOffset, screenShake }: { 
+  player: React.MutableRefObject<Player>, 
+  cellSize: number, 
+  mapData: number[][],
+  recoilOffset: number,
+  screenShake: number
+}) {
   const { camera } = useThree();
   const mapWidth = mapData[0].length * cellSize;
   const mapHeight = mapData.length * cellSize;
@@ -43,10 +50,16 @@ function PlayerController({ player, cellSize, mapData }: { player: React.Mutable
       player.current.y - (mapHeight / 2)
     );
 
-    // Rotation
+    // Rotation - Order is important for FPS
+    camera.rotation.order = 'YXZ';
     camera.rotation.y = -player.current.angle - Math.PI / 2;
+    
     // Pitch (Vertical rotation)
-    camera.rotation.x = THREE.MathUtils.degToRad(player.current.pitch);
+    // Combine base pitch with visual offsets (recoil and shake)
+    const shakeY = (Math.random() - 0.5) * screenShake * 0.005;
+    const visualPitch = player.current.pitch - (recoilOffset * 20);
+    camera.rotation.x = THREE.MathUtils.degToRad(visualPitch) + shakeY;
+    camera.rotation.z = 0; // Lock roll
   });
 
   return null;
@@ -62,6 +75,7 @@ export function GameScene({
   currentWeapon,
   isReloading,
   recoilOffset,
+  screenShake,
   lastShotTime,
   pickups,
 }: GameSceneProps) {
@@ -69,21 +83,14 @@ export function GameScene({
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
       <Canvas 
         shadows={false} 
-        dpr={typeof window !== 'undefined' ? Math.min(window.devicePixelRatio, 1.5) : 1} 
+        dpr={[0.6, 1]} 
         gl={{ antialias: false, powerPreference: 'high-performance' }}
       >
         <PerspectiveCamera makeDefault fov={75} />
-        <ambientLight intensity={0.8} />
-        <pointLight position={[10, 10, 10]} intensity={1.5} />
-        <spotLight 
-          position={[0, 50, 0]} 
-          angle={0.5} 
-          penumbra={1} 
-          intensity={2} 
-        />
+        <ambientLight intensity={1.2} />
+        <directionalLight position={[10, 20, 10]} intensity={0.8} />
 
         <Sky sunPosition={[100, 20, 100]} />
-        <Stars radius={100} depth={50} count={200} factor={4} saturation={0} fade speed={1} />
 
         <World mapData={mapData} cellSize={cellSize} />
 
@@ -102,7 +109,13 @@ export function GameScene({
            />
         ))}
 
-        <PlayerController player={player} cellSize={cellSize} mapData={mapData} />
+        <PlayerController 
+          player={player} 
+          cellSize={cellSize} 
+          mapData={mapData} 
+          recoilOffset={recoilOffset} 
+          screenShake={screenShake}
+        />
       </Canvas>
 
       {/* Overlay the Weapon UI Component - keeps it fixed and easy to handle HUD-wise */}

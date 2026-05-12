@@ -173,6 +173,7 @@ export default function App() {
   const [bossHp, setBossHp] = useState<{ current: number, max: number } | null>(null);
   const pickups = useRef<Pickup[]>([]);
   const lastDamageTaken = useRef(0);
+  const gameStartTime = useRef(0);
   const screenShake = useRef(0);
 
   useEffect(() => { ammoRef.current = ammo; }, [ammo]);
@@ -209,6 +210,7 @@ export default function App() {
   const renderTick = useRef(0);
 
   const initGame = () => {
+    gameStartTime.current = Date.now();
     isRunEndingRef.current = false;
     setGameState('playing');
     setCurrentWeapon('pistol');
@@ -435,7 +437,8 @@ export default function App() {
                 stuckFrames: 0,
                 lastX: rx,
                 lastY: ry,
-                targetAngle: 0
+                targetAngle: 0,
+                spawnTime: Date.now()
             };
             
             if (isBoss) {
@@ -719,10 +722,6 @@ export default function App() {
     recoilOffset.current *= 0.85;
     screenShake.current *= 0.9;
     
-    // Add shake to player pitch slightly for visual bounce
-    const shakeAmount = (Math.random() - 0.5) * screenShake.current;
-    player.current.pitch = clamp(player.current.pitch - recoilOffset.current * 8 + shakeAmount, -150, 150);
-
     if (keys.current['m_left'] && WEAPONS[currentWeapon].isAuto) {
       handleShoot();
     }
@@ -811,20 +810,26 @@ export default function App() {
 
       // Behavioral logic
       let targetDist = 0;
-      if (e.type === 'rusher') targetDist = 48;
-      else if (e.type === 'rifleman') targetDist = 280;
-      else if (e.type === 'sniper') targetDist = 550;
+      if (e.type === 'rusher') targetDist = 80;
+      else if (e.type === 'rifleman') targetDist = 320;
+      else if (e.type === 'sniper') targetDist = 600;
 
       let moveX = 0;
       let moveY = 0;
 
       if (hasLineOfSight) {
-          if (dist > targetDist + 32) {
+          if (dist > targetDist + 16) {
               moveX = cos * e.speed;
               moveY = sin * e.speed;
-          } else if (dist < targetDist - 32) {
+          } else if (dist < targetDist - 16) {
               moveX = -cos * e.speed;
               moveY = -sin * e.speed;
+          }
+          
+          // Strafe if very close to player to avoid clipping
+          if (dist < 100) {
+            moveX += -sin * e.speed * 0.5;
+            moveY += cos * e.speed * 0.5;
           }
           
           // Anti-Stuck: if trying to move but distance doesn't change
@@ -844,7 +849,8 @@ export default function App() {
 
           // Shoot Logic
           const fireRate = e.isBoss ? 600 : (e.type === 'sniper' ? 3000 : e.type === 'rifleman' ? 800 : 1500);
-          if (now - e.lastShot > fireRate && dist < 1200) {
+          const canShoot = now - gameStartTime.current > 3000 && now - e.spawnTime > 1000;
+          if (canShoot && now - e.lastShot > fireRate && dist < 1200) {
               e.lastShot = now;
               
               if (now - lastDamageTaken.current > 250) {
@@ -1079,9 +1085,9 @@ export default function App() {
     };
     const handleMouseMove = (e: MouseEvent) => {
         if (gameState !== 'playing' || document.pointerLockElement !== gameContainerRef.current) return;
-        const speed = player.current.isAds ? 0.001 : 0.003;
+        const speed = player.current.isAds ? 0.001 : 0.002;
         player.current.angle += e.movementX * speed;
-        player.current.pitch = clamp(player.current.pitch - e.movementY * 0.5, -200, 200);
+        player.current.pitch = clamp(player.current.pitch - e.movementY * 0.1, -25, 25);
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -1144,6 +1150,7 @@ export default function App() {
               currentWeapon={currentWeapon}
               isReloading={isReloading}
               recoilOffset={recoilOffset.current}
+              screenShake={screenShake.current}
               lastShotTime={lastShotTime.current}
               pickups={pickups.current}
             />
@@ -1236,9 +1243,9 @@ export default function App() {
                 const dx = touch.clientX - touchLook.current.lastX;
                 const dy = touch.clientY - touchLook.current.lastY;
                 
-                const sensitivity = player.current.isAds ? 0.002 : 0.005;
+                const sensitivity = player.current.isAds ? 0.001 : 0.003;
                 player.current.angle += dx * sensitivity;
-                player.current.pitch = clamp(player.current.pitch - dy * 1.0, -150, 150);
+                player.current.pitch = clamp(player.current.pitch - dy * 0.2, -25, 25);
                 
                 touchLook.current.lastX = touch.clientX;
                 touchLook.current.lastY = touch.clientY;
@@ -1343,14 +1350,14 @@ export default function App() {
            ))}
 
            {hp < 30 && (
-             <div className="absolute inset-0 bg-red-600/10 animate-pulse pointer-events-none z-50" />
+             <div className="absolute inset-0 bg-red-600/5 animate-pulse pointer-events-none z-[45]" />
            )}
 
            {/* Damage Flash */}
-           {Date.now() - lastDamageTaken.current < 200 && (
+           {Date.now() - lastDamageTaken.current < 100 && (
              <div 
-              className="absolute inset-0 pointer-events-none z-50 transition-opacity duration-300" 
-              style={{ background: `radial-gradient(circle, transparent 40%, rgba(220, 38, 38, ${0.4 * (1 - (Date.now() - lastDamageTaken.current) / 200)}) 100%)` }}
+              className="absolute inset-0 pointer-events-none z-50 transition-opacity duration-100" 
+              style={{ background: `radial-gradient(circle, transparent 40%, rgba(220, 38, 38, ${0.1 * (1 - (Date.now() - lastDamageTaken.current) / 100)}) 100%)` }}
              />
            )}
 
