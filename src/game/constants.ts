@@ -43,9 +43,9 @@ export const WEAPON_UPGRADE_COSTS = [150, 300, 500, 800, 1200];
 export const MAX_WEAPON_LEVEL = 5;
 
 export const DIFFICULTIES = {
-  recruit: { name: 'Recruit', hpMult: 0.8, dmgMult: 0.85, creditMult: 0.8, color: '#4ade80' },
-  normal: { name: 'Normal', hpMult: 1.0, dmgMult: 1.0, creditMult: 1.0, color: '#facc15' },
-  veteran: { name: 'Veteran', hpMult: 1.3, dmgMult: 1.2, creditMult: 1.5, color: '#fb923c' },
+  recruit: { name: 'Recruit', hpMult: 0.8, dmgMult: 0.85, creditMult: 0.8, color: '#312e81' },
+  normal: { name: 'Normal', hpMult: 1.0, dmgMult: 1.0, creditMult: 1.0, color: '#22d3ee' },
+  veteran: { name: 'Veteran', hpMult: 1.3, dmgMult: 1.2, creditMult: 1.5, color: '#fbbf24' },
   nightmare: { name: 'Nightmare', hpMult: 1.7, dmgMult: 1.5, creditMult: 2.2, color: '#f43f5e' }
 };
 

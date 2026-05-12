@@ -28,9 +28,22 @@ export function Tracers3D({ tracers, cellSize, mapData }: { tracers: Tracer[], c
           <group key={t.id} position={midPoint}>
             <mesh 
               onUpdate={(self) => self.lookAt(p2)}
+              rotation={[Math.PI / 2, 0, 0]}
             >
-              <boxGeometry args={[0.05, 0.05, distance]} />
-              <meshBasicMaterial color="#fef08a" transparent opacity={t.alpha * 0.6} />
+              <cylinderGeometry args={[0.1, 0.05, distance, 4]} />
+              <meshBasicMaterial 
+                color="#22d3ee" // Cyan energy bolts
+                transparent 
+                opacity={t.alpha * 0.8} 
+              />
+            </mesh>
+            {/* Core Glow */}
+            <mesh 
+              onUpdate={(self) => self.lookAt(p2)}
+              rotation={[Math.PI / 2, 0, 0]}
+            >
+              <cylinderGeometry args={[0.04, 0.04, distance, 4]} />
+              <meshBasicMaterial color="white" transparent opacity={t.alpha} />
             </mesh>
           </group>
         );

@@ -52,7 +52,11 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   return (
     <div className="w-full h-full flex flex-col items-center justify-center relative">
       {/* Tactical Grid Background */}
-      <div className="absolute inset-0 pointer-events-none opacity-20" style={{ backgroundImage: 'linear-gradient(#444 1px, transparent 1px), linear-gradient(90deg, #444 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+      <div className="absolute inset-0 pointer-events-none opacity-10" style={{ backgroundImage: 'linear-gradient(#22d3ee 1px, transparent 1px), linear-gradient(90deg, #22d3ee 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
+      <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-transparent via-cyan-500/5 to-transparent animate-pulse" />
+      <div className="absolute inset-0 pointer-events-none overflow-hidden select-none">
+         <div className="w-full h-full opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, #fff 3px, transparent 3px)' }} />
+      </div>
       
       <AnimatePresence mode="wait">
         {(menuView === 'main' || !['armory', 'difficulty', 'profile'].includes(menuView)) && (
@@ -83,11 +87,12 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                   sounds.playUiClick();
                   initGame();
                 }}
-                className="bg-white text-slate-950 p-6 rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-yellow-500 hover:scale-105 transition-all shadow-xl group border-b-4 border-slate-300 active:translate-y-1 active:border-b-0"
+                className="bg-white text-slate-950 p-6 rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-cyan-400 hover:scale-[1.03] transition-all shadow-[0_0_30px_rgba(255,255,255,0.1)] group border-b-4 border-slate-300 active:translate-y-1 active:border-b-0 relative overflow-hidden"
               >
-                <Target size={32} className="mb-2" />
-                <span className="font-black text-xl uppercase tracking-tighter italic">Start Mission</span>
-                <span className="text-[10px] font-bold opacity-60 uppercase tracking-widest">Active Sector: 01</span>
+                <div className="absolute inset-0 bg-gradient-to-tr from-cyan-400/0 via-cyan-400/0 to-cyan-400/20 group-hover:via-cyan-400/10 transition-all" />
+                <Target size={32} className="mb-2 relative z-10" />
+                <span className="font-black text-xl uppercase tracking-tighter italic relative z-10">Start Mission</span>
+                <span className="text-[10px] font-bold opacity-60 uppercase tracking-widest relative z-10">Active Sector: 01</span>
               </button>
 
               <button 

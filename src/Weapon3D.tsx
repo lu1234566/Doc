@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useGLTF, Environment, ContactShadows, Float, PerspectiveCamera } from '@react-three/drei';
 import * as THREE from 'three';
@@ -21,35 +21,40 @@ export function WeaponModel({ type, isReloading, isAds, recoilOffset, lastShotTi
   const group = useRef<THREE.Group>(null);
   const flashRef = useRef<THREE.PointLight>(null);
   const flashMeshRef = useRef<THREE.Mesh>(null);
+
+  // Tactical Materials
+  const matGraphite = useMemo(() => new THREE.MeshStandardMaterial({ color: '#1a202c', metalness: 0.7, roughness: 0.3 }), []);
+  const matMetal = useMemo(() => new THREE.MeshStandardMaterial({ color: '#4a5568', metalness: 0.9, roughness: 0.1 }), []);
+  const matGrip = useMemo(() => new THREE.MeshStandardMaterial({ color: '#0f172a', metalness: 0.1, roughness: 0.9 }), []);
+  const matCyan = useMemo(() => new THREE.MeshStandardMaterial({ color: '#22d3ee', emissive: '#22d3ee', emissiveIntensity: 2 }), []);
+  const matYellow = useMemo(() => new THREE.MeshStandardMaterial({ color: '#fbbf24', emissive: '#fbbf24', emissiveIntensity: 1.5 }), []);
   
   useFrame((state, delta) => {
     if (group.current) {
-      // Basic sway and breathing
       const t = state.clock.getElapsedTime();
       
-      const targetX = isAds ? 0 : 1.5;
-      const targetY = isAds ? -0.5 : -1.5;
-      const targetZ = isAds ? 2 : 1;
+      const targetX = isAds ? 0 : 1.4;
+      const targetY = isAds ? -0.45 : -1.2; // Slightly higher
+      const targetZ = isAds ? 2.2 : 1;
       
-      group.current.position.x = THREE.MathUtils.lerp(group.current.position.x, targetX, 0.1);
-      group.current.position.y = THREE.MathUtils.lerp(group.current.position.y, targetY + Math.sin(t * 2) * 0.05, 0.1);
-      group.current.position.z = THREE.MathUtils.lerp(group.current.position.z, targetZ + recoilOffset * 0.5, 0.1);
+      group.current.position.x = THREE.MathUtils.lerp(group.current.position.x, targetX, 0.15);
+      group.current.position.y = THREE.MathUtils.lerp(group.current.position.y, targetY + Math.sin(t * 1.5) * 0.02, 0.1);
+      group.current.position.z = THREE.MathUtils.lerp(group.current.position.z, targetZ + recoilOffset * 0.4, 0.15);
       
-      group.current.rotation.x = THREE.MathUtils.lerp(group.current.rotation.x, recoilOffset * 0.5, 0.1);
-      group.current.rotation.y = THREE.MathUtils.lerp(group.current.rotation.y, isAds ? 0 : -0.1, 0.1);
+      group.current.rotation.x = THREE.MathUtils.lerp(group.current.rotation.x, recoilOffset * 0.3, 0.1);
+      group.current.rotation.y = THREE.MathUtils.lerp(group.current.rotation.y, isAds ? 0 : -0.15, 0.1);
       
       if (isReloading) {
-        group.current.rotation.x += delta * 5;
+        group.current.rotation.x += delta * 6;
       }
     }
 
-    // Muzzle Flash Array
     if (flashRef.current && flashMeshRef.current) {
         const timeSinceShot = Date.now() - lastShotTime;
-        if (timeSinceShot < 50 && !isReloading) {
-            flashRef.current.intensity = 10 * Math.random();
+        if (timeSinceShot < 40 && !isReloading) {
+            flashRef.current.intensity = 15;
             flashMeshRef.current.visible = true;
-            flashMeshRef.current.scale.setScalar(1 + Math.random() * 0.5);
+            flashMeshRef.current.scale.setScalar(0.8 + Math.random() * 0.4);
             flashMeshRef.current.rotation.z = Math.random() * Math.PI;
         } else {
             flashRef.current.intensity = 0;
@@ -60,139 +65,180 @@ export function WeaponModel({ type, isReloading, isAds, recoilOffset, lastShotTi
 
   return (
     <group ref={group}>
-      <pointLight ref={flashRef} color="#fb923c" intensity={0} distance={10} position={[0, 0.2, -3]} />
-      <mesh ref={flashMeshRef} position={[0, 0.2, -2.5]} visible={false}>
-          <planeGeometry args={[0.5, 0.5]} />
-          <meshBasicMaterial color="#fb923c" transparent opacity={0.8} />
+      <pointLight ref={flashRef} color="#fb923c" intensity={0} distance={5} position={[0, 0.2, -2.5]} />
+      <mesh ref={flashMeshRef} position={[0, 0.2, -2.4]} visible={false}>
+          <boxGeometry args={[0.4, 0.4, 0.1]} />
+          <meshBasicMaterial color="#fbbf24" transparent opacity={0.6} />
       </mesh>
-      <Float speed={2} rotationIntensity={0.05} floatIntensity={0.05}>
+
+      <Float speed={1.5} rotationIntensity={0.02} floatIntensity={0.02}>
         {type === 'pistol' && (
-          <group>
-            {/* Slide/Barrel */}
-            <mesh castShadow receiveShadow position={[0, 0.2, 0.2]}>
-              <boxGeometry args={[0.2, 0.25, 1.2]} />
-              <meshStandardMaterial color="#475569" metalness={0.8} roughness={0.2} />
+          <group scale={0.8}>
+            {/* P-99 Refined Silhouette */}
+            <mesh castShadow position={[0, 0.2, 0.2]}>
+              <boxGeometry args={[0.18, 0.22, 1.1]} />
+              <primitive object={matGraphite} />
             </mesh>
-            {/* Grip */}
-            <mesh castShadow receiveShadow position={[0, -0.2, 0.5]} rotation={[-0.2, 0, 0]}>
-              <boxGeometry args={[0.18, 0.6, 0.3]} />
-              <meshStandardMaterial color="#1e293b" metalness={0.2} roughness={0.8} />
+            {/* Slide Top Detail */}
+            <mesh position={[0, 0.31, 0.2]}>
+              <boxGeometry args={[0.1, 0.02, 1.0]} />
+              <primitive object={matMetal} />
             </mesh>
-            {/* Sights */}
-            <mesh castShadow receiveShadow position={[0, 0.35, -0.3]}>
-              <boxGeometry args={[0.05, 0.05, 0.1]} />
-              <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={0.5} />
+            {/* Lower Frame */}
+            <mesh position={[0, 0.1, 0.3]}>
+              <boxGeometry args={[0.16, 0.15, 0.8]} />
+              <primitive object={matGraphite} />
+            </mesh>
+            {/* Precision Grip */}
+            <mesh position={[0, -0.2, 0.5]} rotation={[-0.25, 0, 0]}>
+              <boxGeometry args={[0.17, 0.65, 0.28]} />
+              <primitive object={matGrip} />
+            </mesh>
+            {/* Cyan Accent line */}
+            <mesh position={[0, 0.15, 0.2]}>
+              <boxGeometry args={[0.2, 0.02, 0.4]} />
+              <primitive object={matCyan} />
+            </mesh>
+            {/* Muzzle */}
+            <mesh position={[0, 0.2, -0.4]} rotation={[Math.PI/2, 0, 0]}>
+              <cylinderGeometry args={[0.04, 0.05, 0.1, 16]} />
+              <primitive object={matMetal} />
             </mesh>
           </group>
         )}
+
         {type === 'rifle' && (
-          <group>
-            {/* Upper Receiver */}
-            <mesh castShadow receiveShadow position={[0, 0.3, 0.5]}>
-              <boxGeometry args={[0.25, 0.3, 1.5]} />
-              <meshStandardMaterial color="#334155" metalness={0.8} roughness={0.3} />
+          <group scale={0.9}>
+            {/* M4-A1 Refined Silhouette */}
+            <mesh castShadow position={[0, 0.3, 0.4]}>
+              <boxGeometry args={[0.2, 0.3, 1.2]} />
+              <primitive object={matGraphite} />
             </mesh>
-            {/* Handguard */}
-            <mesh castShadow receiveShadow position={[0, 0.3, -0.6]}>
-              <boxGeometry args={[0.2, 0.25, 1.2]} />
-              <meshStandardMaterial color="#1e293b" metalness={0.6} roughness={0.5} />
+            {/* Handguard with Rails */}
+            <mesh position={[0, 0.3, -0.6]}>
+              <boxGeometry args={[0.22, 0.22, 1.0]} />
+              <primitive object={matGrip} />
             </mesh>
-            {/* Barrel */}
-            <mesh castShadow receiveShadow position={[0, 0.3, -1.3]} rotation={[Math.PI/2, 0, 0]}>
-              <cylinderGeometry args={[0.05, 0.05, 0.8, 16]} />
-              <meshStandardMaterial color="#0f172a" metalness={0.9} roughness={0.2} />
+            {/* Decorative Rails */}
+            {[-1, 1].map(x => (
+              <mesh key={x} position={[x * 0.12, 0.3, -0.6]}>
+                <boxGeometry args={[0.02, 0.1, 0.8]} />
+                <primitive object={matMetal} />
+              </mesh>
+            ))}
+            {/* Top Component */}
+            <mesh position={[0, 0.5, 0.2]}>
+              <boxGeometry args={[0.15, 0.1, 0.6]} />
+              <primitive object={matMetal} />
             </mesh>
-            {/* Grip */}
-            <mesh castShadow receiveShadow position={[0, -0.15, 0.8]} rotation={[-0.2, 0, 0]}>
-              <boxGeometry args={[0.18, 0.5, 0.25]} />
-              <meshStandardMaterial color="#0f172a" roughness={0.9} />
+            {/* Long Tactical Barrel */}
+            <mesh position={[0, 0.3, -1.4]} rotation={[Math.PI/2, 0, 0]}>
+              <cylinderGeometry args={[0.04, 0.04, 0.6, 12]} />
+              <primitive object={matMetal} />
             </mesh>
-            {/* Mag */}
-            <mesh castShadow receiveShadow position={[0, -0.1, 0.2]} rotation={[0.1, 0, 0]}>
-              <boxGeometry args={[0.2, 0.6, 0.3]} />
-              <meshStandardMaterial color="#1e293b" />
+            {/* Suppressor / Compensator */}
+            <mesh position={[0, 0.3, -1.8]} rotation={[Math.PI/2, 0, 0]}>
+              <cylinderGeometry args={[0.07, 0.07, 0.3, 6]} />
+              <primitive object={matGraphite} />
             </mesh>
-            {/* Sight */}
-            <mesh castShadow receiveShadow position={[0, 0.5, 0.2]}>
-              <boxGeometry args={[0.1, 0.15, 0.2]} />
-              <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={0.5} />
+            {/* Stock Assembly */}
+            <mesh position={[0, 0.3, 1.4]} rotation={[0, 0, 0]}>
+              <boxGeometry args={[0.15, 0.4, 0.8]} />
+              <primitive object={matGraphite} />
             </mesh>
-            {/* Stock */}
-            <mesh castShadow receiveShadow position={[0, 0.2, 1.5]}>
-              <boxGeometry args={[0.2, 0.4, 0.8]} />
-              <meshStandardMaterial color="#1e293b" />
+            {/* Magazine - High Capacity Look */}
+            <mesh position={[0, -0.2, 0.1]} rotation={[0.2, 0, 0]}>
+              <boxGeometry args={[0.18, 0.7, 0.3]} />
+              <primitive object={matGrip} />
+            </mesh>
+            {/* Cyan Detail */}
+            <mesh position={[0, 0.4, 0.4]}>
+              <sphereGeometry args={[0.02]} />
+              <primitive object={matCyan} />
             </mesh>
           </group>
         )}
+
         {type === 'shotgun' && (
-          <group>
-            {/* Receiver */}
-            <mesh castShadow receiveShadow position={[0, 0.2, 0.4]}>
-              <boxGeometry args={[0.25, 0.3, 1.2]} />
-              <meshStandardMaterial color="#334155" metalness={0.8} roughness={0.3} />
+          <group scale={1.1}>
+            {/* KRM-262 Heavy Silhouette */}
+            <mesh castShadow position={[0, 0.2, 0.3]}>
+              <boxGeometry args={[0.32, 0.4, 1.0]} />
+              <primitive object={matGraphite} />
             </mesh>
-            {/* Barrel */}
-            <mesh castShadow receiveShadow position={[0, 0.25, -0.8]} rotation={[Math.PI/2, 0, 0]}>
-              <cylinderGeometry args={[0.08, 0.08, 1.6, 16]} />
-              <meshStandardMaterial color="#1e293b" metalness={0.9} roughness={0.2} />
+            {/* Huge Ported Barrel */}
+            <mesh position={[0, 0.28, -0.9]} rotation={[Math.PI/2, 0, 0]}>
+              <cylinderGeometry args={[0.12, 0.12, 1.6, 16]} />
+              <primitive object={matMetal} />
             </mesh>
-            {/* Underbarrel Tube */}
-            <mesh castShadow receiveShadow position={[0, 0.1, -0.7]} rotation={[Math.PI/2, 0, 0]}>
-              <cylinderGeometry args={[0.06, 0.06, 1.4, 16]} />
-              <meshStandardMaterial color="#1e293b" />
+            {/* Industrial Pump Body */}
+            <mesh position={[0, 0.1, -0.6]}>
+              <boxGeometry args={[0.28, 0.25, 0.7]} />
+              <primitive object={matGrip} />
             </mesh>
-            {/* Pump */}
-            <mesh castShadow receiveShadow position={[0, 0.1, -0.5]}>
-              <boxGeometry args={[0.2, 0.2, 0.6]} />
-              <meshStandardMaterial color="#0f172a" roughness={0.8} />
+            {/* Pump Grips Detail */}
+            {[0.1, 0, -0.1].map(z => (
+               <mesh key={z} position={[0, 0, -0.6 + z]}>
+                 <boxGeometry args={[0.3, 0.26, 0.05]} />
+                 <primitive object={matMetal} />
+               </mesh>
+            ))}
+            {/* Heat Shield - Yellow / Tactical */}
+            <mesh position={[0, 0.42, -0.5]}>
+              <boxGeometry args={[0.1, 0.02, 0.6]} />
+              <primitive object={matYellow} />
             </mesh>
-            {/* Grip/Stock */}
-            <mesh castShadow receiveShadow position={[0, 0.05, 1.0]} rotation={[-0.3, 0, 0]}>
-              <boxGeometry args={[0.2, 0.4, 0.8]} />
-              <meshStandardMaterial color="#0f172a" />
+            {/* Heavy Stock */}
+            <mesh position={[0, 0.1, 1.1]} rotation={[-0.2, 0, 0]}>
+              <boxGeometry args={[0.25, 0.45, 0.7]} />
+              <primitive object={matGraphite} />
             </mesh>
           </group>
         )}
+
         {type === 'sniper' && (
-          <group>
-            {/* Receiver */}
-            <mesh castShadow receiveShadow position={[0, 0.2, 0.5]}>
-              <boxGeometry args={[0.22, 0.3, 1.4]} />
-              <meshStandardMaterial color="#1e293b" metalness={0.9} roughness={0.1} />
+          <group scale={1.2}>
+            {/* DL-Q33 Precision Silhouette */}
+            <mesh castShadow position={[0, 0.25, 0.6]}>
+              <boxGeometry args={[0.2, 0.35, 1.4]} />
+              <primitive object={matGraphite} />
             </mesh>
-            {/* Barrel */}
-            <mesh castShadow receiveShadow position={[0, 0.2, -1.0]} rotation={[Math.PI/2, 0, 0]}>
-              <cylinderGeometry args={[0.06, 0.04, 2.4, 16]} />
-              <meshStandardMaterial color="#0f172a" metalness={0.9} roughness={0.2} />
+            {/* Extreme Precision Barrel */}
+            <mesh position={[0, 0.32, -1.2]} rotation={[Math.PI/2, 0, 0]}>
+              <cylinderGeometry args={[0.03, 0.03, 3.2, 6]} />
+              <primitive object={matMetal} />
             </mesh>
-            {/* Scope */}
-            <mesh castShadow receiveShadow position={[0, 0.45, 0.2]} rotation={[Math.PI/2, 0, 0]}>
-              <cylinderGeometry args={[0.1, 0.12, 0.8, 16]} />
-              <meshStandardMaterial color="#000" metalness={0.8} roughness={0.2} />
+            {/* Muzzle Brake */}
+            <mesh position={[0, 0.32, -2.8]} rotation={[Math.PI/2, 0, 0]}>
+               <boxGeometry args={[0.12, 0.12, 0.12]} />
+               <primitive object={matGraphite} />
             </mesh>
-            {/* Scope Mounts */}
-            <mesh castShadow receiveShadow position={[0, 0.35, 0.4]}>
-              <boxGeometry args={[0.05, 0.2, 0.05]} />
-              <meshStandardMaterial color="#334155" />
+            {/* High-Tech Scope */}
+            <group position={[0, 0.55, 0.3]}>
+              <mesh rotation={[Math.PI/2, 0, 0]}>
+                <cylinderGeometry args={[0.14, 0.14, 1.0, 12]} />
+                <primitive object={matGraphite} />
+              </mesh>
+              {/* Internal Lens Glow */}
+              <mesh position={[0, 0, -0.51]} rotation={[Math.PI/2, 0, 0]}>
+                <circleGeometry args={[0.1]} />
+                <meshBasicMaterial color="#22d3ee" transparent opacity={0.6} />
+              </mesh>
+              {/* External Cyan Ring */}
+              <mesh position={[0, 0, -0.52]}>
+                <torusGeometry args={[0.13, 0.01, 8, 32]} />
+                <primitive object={matCyan} />
+              </mesh>
+            </group>
+            {/* Technical Bipod Folded */}
+            <mesh position={[0, 0.15, -0.8]}>
+              <boxGeometry args={[0.25, 0.05, 0.3]} />
+              <primitive object={matMetal} />
             </mesh>
-            <mesh castShadow receiveShadow position={[0, 0.35, 0.0]}>
-              <boxGeometry args={[0.05, 0.2, 0.05]} />
-              <meshStandardMaterial color="#334155" />
-            </mesh>
-            {/* Stock */}
-            <mesh castShadow receiveShadow position={[0, 0.1, 1.6]}>
-              <boxGeometry args={[0.18, 0.35, 1.0]} />
-              <meshStandardMaterial color="#0f172a" />
-            </mesh>
-            {/* Grip */}
-            <mesh castShadow receiveShadow position={[0, -0.15, 0.9]} rotation={[-0.2, 0, 0]}>
-              <boxGeometry args={[0.15, 0.4, 0.25]} />
-              <meshStandardMaterial color="#0f172a" />
-            </mesh>
-            {/* Bipod (Folded) */}
-            <mesh castShadow receiveShadow position={[0, 0.05, -1.0]}>
-              <boxGeometry args={[0.15, 0.1, 0.4]} />
-              <meshStandardMaterial color="#0f172a" />
+            {/* Ergo Grip */}
+            <mesh position={[0, -0.25, 1.0]} rotation={[-0.3, 0, 0]}>
+              <boxGeometry args={[0.15, 0.5, 0.25]} />
+              <primitive object={matGrip} />
             </mesh>
           </group>
         )}

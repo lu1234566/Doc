@@ -30,6 +30,7 @@ interface GameSceneProps {
   recoilOffset: number;
   screenShake: number;
   lastShotTime: number;
+  debugMode?: boolean;
 }
 
 function PlayerController({ player, cellSize, mapData, recoilOffset, screenShake }: { 
@@ -78,6 +79,7 @@ export function GameScene({
   screenShake,
   lastShotTime,
   pickups,
+  debugMode,
 }: GameSceneProps) {
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
@@ -87,10 +89,10 @@ export function GameScene({
         gl={{ antialias: false, powerPreference: 'high-performance' }}
       >
         <PerspectiveCamera makeDefault fov={75} />
-        <ambientLight intensity={1.2} />
-        <directionalLight position={[10, 20, 10]} intensity={0.8} />
-
-        <Sky sunPosition={[100, 20, 100]} />
+        <ambientLight intensity={0.4} />
+        <hemisphereLight intensity={0.6} groundColor="#000" color="#fff" />
+        <directionalLight position={[10, 20, 10]} intensity={0.8} color="#cffafe" />
+        <fog attach="fog" args={['#020617', 20, cellSize * 12]} />
 
         <World mapData={mapData} cellSize={cellSize} />
 
@@ -103,6 +105,7 @@ export function GameScene({
             key={enemy.id} 
             {...enemy} 
             cellSize={cellSize} 
+            debug={debugMode}
             // Correct coordinate transform
             x={enemy.x - (mapData[0].length * cellSize / 2)}
             y={enemy.y - (mapData.length * cellSize / 2)}
