@@ -58,7 +58,9 @@ function PlayerController({ player, cellSize, mapData, recoilOffset, screenShake
     // Pitch (Vertical rotation)
     // Combine base pitch with visual offsets (recoil and shake)
     const shakeY = (Math.random() - 0.5) * screenShake * 0.005;
-    const visualPitch = player.current.pitch - (recoilOffset * 20);
+    const recoilPitch = recoilOffset * 20;
+    // Clamp the final visual pitch to avoid extreme camera angles
+    const visualPitch = THREE.MathUtils.clamp(player.current.pitch - recoilPitch, -45, 45);
     camera.rotation.x = THREE.MathUtils.degToRad(visualPitch) + shakeY;
     camera.rotation.z = 0; // Lock roll
   });
@@ -89,10 +91,10 @@ export function GameScene({
         gl={{ antialias: false, powerPreference: 'high-performance' }}
       >
         <PerspectiveCamera makeDefault fov={75} />
-        <ambientLight intensity={0.4} />
-        <hemisphereLight intensity={0.6} groundColor="#000" color="#fff" />
-        <directionalLight position={[10, 20, 10]} intensity={0.8} color="#cffafe" />
-        <fog attach="fog" args={['#020617', 20, cellSize * 12]} />
+        <ambientLight intensity={0.2} />
+        <hemisphereLight intensity={0.4} groundColor="#020617" color="#67e8f9" />
+        <directionalLight position={[10, 20, 10]} intensity={0.5} color="#cffafe" />
+        <fog attach="fog" args={['#020617', 20, cellSize * 15]} />
 
         <World mapData={mapData} cellSize={cellSize} />
 

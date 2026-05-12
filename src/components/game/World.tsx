@@ -10,47 +10,47 @@ interface MapProps {
 export function World({ mapData, cellSize }: MapProps) {
   // Advanced Tactical Materials
   const wallMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#2d3748', // Dark Graphite
-    emissive: '#1a202c',
-    emissiveIntensity: 0.1,
-    metalness: 0.5,
-    roughness: 0.4,
+    color: '#0f172a', // Slate 900
+    roughness: 0.8,
+    metalness: 0.2,
   }), []);
 
   const wallTrimMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#1a202c',
-    emissive: '#06b6d4',
-    emissiveIntensity: 0.3,
-    metalness: 0.8,
-    roughness: 0.2,
+    color: '#1e293b', // Slate 800
+    emissive: '#0891b2', // Cyan 600
+    emissiveIntensity: 0.4,
+    metalness: 0.5,
+    roughness: 0.3,
   }), []);
 
   const floorMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#1a202c', // Deep Navy/Graphite
-    metalness: 0.3,
-    roughness: 0.7,
+    color: '#020617', // Slate 950
+    metalness: 0.1,
+    roughness: 0.9,
   }), []);
 
   const ceilingMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#0f172a',
+    color: '#020617',
     metalness: 0,
     roughness: 1,
   }), []);
 
   const barrelMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#7f1d1d', // Muted Industrial Red (avoiding excessive red)
-    metalness: 0.6,
+    color: '#991b1b', // Red 800
+    emissive: '#450a0a',
+    emissiveIntensity: 0.2,
+    metalness: 0.7,
     roughness: 0.4,
   }), []);
 
   const crateMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#334155', // Tactical Graphite
+    color: '#1e293b', // Slate 800
     metalness: 0.4,
     roughness: 0.6,
   }), []);
 
   const frameMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#0f172a',
+    color: '#000000',
     metalness: 0.9,
     roughness: 0.1,
   }), []);
@@ -92,7 +92,7 @@ export function World({ mapData, cellSize }: MapProps) {
               {/* Interior Panel Line */}
               <mesh position={[0, 0, cellSize/2]}>
                 <planeGeometry args={[cellSize * 0.8, 0.02]} />
-                <meshStandardMaterial color="#06b6d4" emissive="#06b6d4" emissiveIntensity={0.5} />
+                <meshStandardMaterial color="#0891b2" emissive="#0891b2" emissiveIntensity={0.8} />
               </mesh>
             </group>
           );
@@ -101,20 +101,20 @@ export function World({ mapData, cellSize }: MapProps) {
             <group key={`crate-${x}-${y}`} position={[posX, cellSize / 2, posZ]}>
               {/* Heavy Crate Body */}
               <mesh castShadow receiveShadow>
-                <boxGeometry args={[cellSize * 0.85, cellSize * 0.85, cellSize * 0.85]} />
+                <boxGeometry args={[cellSize * 0.8, cellSize * 0.8, cellSize * 0.8]} />
                 <primitive object={crateMaterial} />
               </mesh>
               {/* Corner Protectors */}
               {[[-1, -1, -1], [1, -1, -1], [-1, 1, -1], [1, 1, -1], [-1, -1, 1], [1, -1, 1], [-1, 1, 1], [1, 1, 1]].map((pos, i) => (
-                <mesh key={i} position={[pos[0] * cellSize * 0.4, pos[1] * cellSize * 0.4, pos[2] * cellSize * 0.4]}>
-                  <boxGeometry args={[cellSize * 0.15, cellSize * 0.15, cellSize * 0.15]} />
+                <mesh key={i} position={[pos[0] * cellSize * 0.38, pos[1] * cellSize * 0.38, pos[2] * cellSize * 0.38]}>
+                  <boxGeometry args={[cellSize * 0.1, cellSize * 0.1, cellSize * 0.1]} />
                   <primitive object={frameMaterial} />
                 </mesh>
               ))}
-              {/* Tactical Label/Caution (Yellow) */}
-              <mesh position={[0, 0, cellSize * 0.43]}>
-                <planeGeometry args={[cellSize * 0.5, cellSize * 0.15]} />
-                <meshStandardMaterial color="#fbbf24" emissive="#fbbf24" emissiveIntensity={0.6} />
+              {/* Tactical Label/Caution (Yellow - Muted) */}
+              <mesh position={[0, 0, cellSize * 0.41]}>
+                <planeGeometry args={[cellSize * 0.4, cellSize * 0.1]} />
+                <meshStandardMaterial color="#b45309" emissive="#b45309" emissiveIntensity={0.4} />
               </mesh>
               {/* Handling Bar */}
               <mesh position={[0, cellSize * 0.3, cellSize * 0.43]}>
@@ -177,12 +177,12 @@ export function World({ mapData, cellSize }: MapProps) {
       {useMemo(() => (
         <group position={[mapWidth / 2, 0.005, mapHeight / 2]}>
           <gridHelper 
-            args={[mapWidth * 4, 64, 0x334155, 0x1e293b]} 
+            args={[mapWidth * 4, 128, 0x1e293b, 0x0f172a]} 
             rotation={[0, 0, 0]}
           />
           {/* Subtle panel highlights */}
           <gridHelper 
-            args={[mapWidth * 4, 16, 0x06b6d4, 0x0f172a]} 
+            args={[mapWidth * 4, 32, 0x0891b2, 0x020617]} 
             position={[0, 0.001, 0]}
           />
         </group>

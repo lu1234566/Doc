@@ -56,17 +56,20 @@ const DEBUG_SAFE_MODE = true; // Safe mode for testing without dying
 const getSafePlayerStart = () => {
     let px = 12 * CELL_SIZE + CELL_SIZE / 2;
     let py = 6 * CELL_SIZE + CELL_SIZE / 2;
-    if (MAP[6]?.[12] === 0) return { x: px, y: py, angle: 0 };
+    // Initial angle pointing towards an open area (East/Right in this map layout)
+    const initialAngle = -Math.PI / 2; 
+
+    if (MAP[6]?.[12] === 0) return { x: px, y: py, angle: initialAngle };
     
     // Fallback
     for (let y = 1; y < MAP.length - 1; y++) {
         for (let x = 1; x < MAP[0].length - 1; x++) {
             if (MAP[y][x] === 0) {
-                return { x: x * CELL_SIZE + CELL_SIZE / 2, y: y * CELL_SIZE + CELL_SIZE / 2, angle: 0 };
+                return { x: x * CELL_SIZE + CELL_SIZE / 2, y: y * CELL_SIZE + CELL_SIZE / 2, angle: initialAngle };
             }
         }
     }
-    return { x: 128, y: 128, angle: 0 };
+    return { x: 128, y: 128, angle: initialAngle };
 };
 
 export default function App() {
@@ -1125,7 +1128,8 @@ export default function App() {
         if (gameState !== 'playing' || document.pointerLockElement !== gameContainerRef.current) return;
         const speed = player.current.isAds ? 0.001 : 0.002;
         player.current.angle += e.movementX * speed;
-        player.current.pitch = clamp(player.current.pitch + e.movementY * 0.1, -25, 25);
+        // Sensitivity adjustment and inversion check
+        player.current.pitch = clamp(player.current.pitch - e.movementY * 0.1, -25, 25);
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -1292,7 +1296,7 @@ export default function App() {
                 
                 const sensitivity = player.current.isAds ? 0.001 : 0.003;
                 player.current.angle += dx * sensitivity;
-                player.current.pitch = clamp(player.current.pitch + dy * 0.2, -25, 25);
+                player.current.pitch = clamp(player.current.pitch - dy * 0.2, -25, 25);
                 
                 touchLook.current.lastX = touch.clientX;
                 touchLook.current.lastY = touch.clientY;
