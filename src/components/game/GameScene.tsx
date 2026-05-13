@@ -60,7 +60,7 @@ function PlayerController({ player, cellSize, mapData, recoilOffset, screenShake
     const shakeY = (Math.random() - 0.5) * screenShake * 0.005;
     const recoilPitch = recoilOffset * 20;
     // Clamp the final visual pitch to avoid extreme camera angles
-    const visualPitch = THREE.MathUtils.clamp(player.current.pitch - recoilPitch, -45, 45);
+    const visualPitch = THREE.MathUtils.clamp(player.current.pitch - recoilPitch, -25, 25);
     camera.rotation.x = THREE.MathUtils.degToRad(visualPitch) + shakeY;
     camera.rotation.z = 0; // Lock roll
   });

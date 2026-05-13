@@ -50,8 +50,9 @@ import { sounds } from './game/SoundEngine';
 
 
 // --- Main Component ---
+// @ts-ignore
 const DEBUG_MODE = import.meta.env.DEV;
-const DEBUG_SAFE_MODE = true; // Safe mode for testing without dying
+const DEBUG_SAFE_MODE = false; // Safe mode disabled for production gameplay
 
 const getSafePlayerStart = () => {
     let px = 12 * CELL_SIZE + CELL_SIZE / 2;
