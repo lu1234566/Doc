@@ -1158,7 +1158,7 @@ export default function App() {
         const speed = player.current.isAds ? 0.001 : 0.002;
         player.current.angle += e.movementX * speed;
         // Sensitivity adjustment and inversion check
-        player.current.pitch = clamp(player.current.pitch + e.movementY * 0.1, -25, 25);
+        player.current.pitch = clamp(player.current.pitch - e.movementY * 0.1, -25, 25);
     };
 
     const handlePointerLockChange = () => {
@@ -1357,7 +1357,7 @@ export default function App() {
                 
                 const sensitivity = player.current.isAds ? 0.001 : 0.003;
                 player.current.angle += dx * sensitivity;
-                player.current.pitch = clamp(player.current.pitch + dy * 0.2, -25, 25);
+                player.current.pitch = clamp(player.current.pitch - dy * 0.2, -25, 25);
                 
                 touchLook.current.lastX = touch.clientX;
                 touchLook.current.lastY = touch.clientY;
