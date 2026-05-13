@@ -54,6 +54,35 @@ import { sounds } from './game/SoundEngine';
 const DEBUG_MODE = import.meta.env.DEV;
 const DEBUG_SAFE_MODE = false; // Safe mode disabled for production gameplay
 
+const isBulletBlocking = (cell: number) => cell === 1 || cell === 2 || cell === 3;
+
+/**
+ * Checks if there is a clear line of sight between two points.
+ * Returns true if the path is clear of bullet-blocking obstacles.
+ */
+const checkLineOfSight = (x1: number, y1: number, x2: number, y2: number, mapData: number[][]) => {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  if (dist < 1) return true;
+  
+  const steps = Math.ceil(dist / 8); 
+  const cos = dx / dist;
+  const sin = dy / dist;
+
+  for (let i = 1; i <= steps; i++) {
+    const checkDist = i * 8;
+    if (checkDist >= dist) break;
+    const tx = Math.floor((x1 + cos * checkDist) / CELL_SIZE);
+    const ty = Math.floor((y1 + sin * checkDist) / CELL_SIZE);
+    
+    if (ty < 0 || ty >= mapData.length || tx < 0 || tx >= mapData[0].length) return false;
+    const cell = mapData[ty][tx];
+    if (isBulletBlocking(cell)) return false;
+  }
+  return true;
+};
+
 const getSafePlayerStart = () => {
     let px = 12 * CELL_SIZE + CELL_SIZE / 2;
     let py = 6 * CELL_SIZE + CELL_SIZE / 2;
@@ -497,7 +526,7 @@ export default function App() {
     let hitDist = weapon.range;
     let hitSomething = false;
     
-    // Raycast for barrels/walls
+    // Raycast for barrels/walls/crates
     for (let d = 0; d < weapon.range; d += 8) {
         const tx = Math.floor((player.current.x + cos * d) / CELL_SIZE);
         const ty = Math.floor((player.current.y + sin * d) / CELL_SIZE);
@@ -511,7 +540,7 @@ export default function App() {
                 hitDist = d;
                 hitSomething = true;
                 break;
-            } else if (cell === 1) {
+            } else if (cell === 1 || cell === 2) { // Wall or Crate/Door
                 hitDist = d;
                 break;
             }
@@ -530,6 +559,9 @@ export default function App() {
         const angleDiff = Math.atan2(Math.sin(angleToEnemy - shotAngle), Math.cos(angleToEnemy - shotAngle));
         
         if (Math.abs(angleDiff) < 0.15 * (weapon.type === 'shotgun' ? 3 : 1)) {
+            // Check if bullet path to enemy is clear of static obstacles
+            if (!checkLineOfSight(player.current.x, player.current.y, enemy.x, enemy.y, mapData.current)) return;
+
             const damageMult = 1 + (weaponUpgradeLevels[currentWeapon].damage * 0.05);
             enemy.hp -= weapon.damage * damageMult;
             hitSomething = true;
@@ -797,24 +829,13 @@ export default function App() {
       const pDy = player.current.y - e.y;
       const dist = Math.sqrt(pDx * pDx + pDy * pDy);
 
-      // Line of Sight Check (Simplified Raycast)
-      let hasLineOfSight = true;
+      // Line of Sight Check 
       const angleToPlayer = Math.atan2(pDy, pDx);
       const cos = Math.cos(angleToPlayer);
       const sin = Math.sin(angleToPlayer);
-      
-      const checkSteps = Math.min(dist / 16, 40);
-      for(let d = 1; d < checkSteps; d++) {
-           const tx = Math.floor((e.x + cos * d * 16) / CELL_SIZE);
-           const ty = Math.floor((e.y + sin * d * 16) / CELL_SIZE);
-           if (tx >= 0 && tx < MAP[0].length && ty >= 0 && ty < MAP.length) {
-               const cell = mapData.current[ty][tx];
-               if (cell === 1 || cell === 3) { // Wall or Barrel blocks LOS
-                   hasLineOfSight = false;
-                   break;
-               }
-           }
-      } e.hasLineOfSight = hasLineOfSight; // Store for debug
+
+      const hasLineOfSight = checkLineOfSight(e.x, e.y, player.current.x, player.current.y, mapData.current);
+      e.hasLineOfSight = hasLineOfSight; // Store for debug
 
       // Behavioral logic
       let targetDist = 0;
