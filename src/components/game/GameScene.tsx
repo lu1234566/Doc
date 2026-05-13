@@ -94,7 +94,7 @@ export function GameScene({
         <ambientLight intensity={0.7} />
         <hemisphereLight intensity={0.5} groundColor="#020617" color="#67e8f9" />
         <directionalLight position={[20, 50, 10]} intensity={0.7} color="#cffafe" />
-        <fog attach="fog" args={['#020617', cellSize * 8, cellSize * 28]} />
+        <fog attach="fog" args={['#020617', cellSize * 12, cellSize * 35]} />
 
         <World mapData={mapData} cellSize={cellSize} />
 

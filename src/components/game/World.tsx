@@ -23,9 +23,9 @@ export function World({ mapData, cellSize }: MapProps) {
   }), []);
 
   const floorMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#1e293b', 
-    metalness: 0.3,
-    roughness: 0.8,
+    color: '#475569', // Slate 500 - Lighter floor for better visibility
+    metalness: 0.1,
+    roughness: 0.9,
   }), []);
 
   const barrelMaterial = useMemo(() => new THREE.MeshStandardMaterial({

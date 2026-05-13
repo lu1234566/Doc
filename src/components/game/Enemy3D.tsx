@@ -17,7 +17,7 @@ interface EnemyProps {
 
 export function Enemy3D({ x, y, type, color, cellSize, isBoss, hp, maxHp, debug }: EnemyProps) {
   const meshRef = useRef<THREE.Group>(null);
-  const scale = isBoss ? 3 : 0.8;
+  const scale = isBoss ? 3 : (type === 'rusher' ? 1.1 : type === 'rifleman' ? 0.9 : 0.85);
 
   // Health Calculation
   const healthPercent = Math.max(0, Math.min(1, hp / maxHp));
@@ -33,15 +33,15 @@ export function Enemy3D({ x, y, type, color, cellSize, isBoss, hp, maxHp, debug 
 
   // Dedicated materials for a more tactical look
   const baseMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#334155', // Slate 600 - Lighter for visibility
-    metalness: 0.7,
-    roughness: 0.4,
+    color: '#64748b', // Slate 400 - Lightened for visibility
+    metalness: 0.5,
+    roughness: 0.6,
   }), []);
 
   const plateMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#475569', // Slate 500
-    metalness: 0.5,
-    roughness: 0.6,
+    color: '#94a3b8', // Slate 300
+    metalness: 0.4,
+    roughness: 0.7,
   }), []);
 
   // Class-specific color overrides to follow the Art Pass exactly
@@ -55,7 +55,7 @@ export function Enemy3D({ x, y, type, color, cellSize, isBoss, hp, maxHp, debug 
   const emissiveMaterial = useMemo(() => new THREE.MeshStandardMaterial({
     color: tacticalColor,
     emissive: tacticalColor,
-    emissiveIntensity: isBoss ? 5 : 2.5,
+    emissiveIntensity: isBoss ? 5 : 4.5, // Increased glow for better detection
   }), [tacticalColor, isBoss]);
 
   const frameMaterial = useMemo(() => new THREE.MeshStandardMaterial({

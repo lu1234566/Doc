@@ -58,6 +58,9 @@ const DEBUG_SAFE_MODE = false;
 const isBulletBlocking = (cell: number) => cell === 1 || cell === 2 || cell === 3;
 const isMovementBlockingCell = (cell: number) => cell === 1 || cell === 2 || cell === 3;
 
+const WAVE_1_DAMAGE_MULT = 0.5;
+const INITIAL_GRACE_PERIOD = 5000; // 5 seconds
+
 /**
  * Checks if there is a clear line of sight between two points.
  * Returns true if the path is clear of bullet-blocking obstacles.
@@ -244,6 +247,7 @@ export default function App() {
   const mapData = useRef([...MAP.map(row => [...row])]);
   const [mapDataState, setMapDataState] = useState([...MAP.map(row => [...row])]);
   const lastShotTime = useRef(0);
+  const lastEnemyShotTimeGlobal = useRef(0);
   const recoilOffset = useRef(0);
   const lastDamageSource = useRef<any>(null);
 
@@ -393,7 +397,7 @@ export default function App() {
     isSpawningRef.current = true;
     
     // Gradual spawning
-    const count = 3 + waveNum * 2;
+    const count = waveNum === 1 ? 3 : 3 + waveNum * 2;
     let spawnedCount = 0;
     spawnIntervalRef.current = setInterval(() => {
         if (gameStateRef.current !== 'playing') {
@@ -452,18 +456,23 @@ export default function App() {
         const mapX = Math.floor(rx / CELL_SIZE);
         const mapY = Math.floor(ry / CELL_SIZE);
         
-        let validSpawn = distToPlayer > 500 && MAP[mapY]?.[mapX] === 0;
+        let validSpawn = distToPlayer > (currentWave === 1 ? 600 : 500) && MAP[mapY]?.[mapX] === 0;
         
-        // Fallback after 50 attempts
-        if (!validSpawn && attempts > 50 && emptyCells.length > 0) {
-           const emptyCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-           rx = emptyCell.x;
-           ry = emptyCell.y;
-           validSpawn = true;
+        // Safe spawn check for Wave 1: Avoid direct LOS
+        if (validSpawn && currentWave === 1 && attempts < 80) {
+            const hasLOS = checkLineOfSight(rx, ry, player.current.x, player.current.y, MAP);
+            if (hasLOS) validSpawn = false;
         }
 
         if (validSpawn) {
-            const type = isBoss ? 'rifleman' : types[Math.floor(Math.random() * types.length)];
+            let type: 'rusher' | 'rifleman' | 'sniper' = 'rifleman';
+            if (isBoss) {
+                type = 'rifleman';
+            } else if (currentWave === 1) {
+                type = Math.random() > 0.4 ? 'rifleman' : 'rusher'; // No snipers in wave 1 or very rare
+            } else {
+                type = types[Math.floor(Math.random() * types.length)];
+            }
             const diffMult = DIFFICULTIES[difficulty].hpMult;
             const hpBuff = 1 + (currentWave - 1) * 0.15;
             const speedBuff = 1 + (currentWave - 1) * 0.04;
@@ -910,10 +919,17 @@ export default function App() {
           }
 
           // Shoot Logic
-          const fireRate = e.isBoss ? 600 : (e.type === 'sniper' ? 3000 : e.type === 'rifleman' ? 900 : 1800);
-          const canShoot = now - gameStartTime.current > 4000 && now - e.spawnTime > 1500;
+          const fireRateBase = e.isBoss ? 600 : (e.type === 'sniper' ? 3000 : e.type === 'rifleman' ? 900 : 1800);
+          const wave1FireRateBuffer = waveRef.current === 1 ? 1.5 : 1.0;
+          const fireRate = fireRateBase * wave1FireRateBuffer;
+
+          const isGracePeriod = now - gameStartTime.current < INITIAL_GRACE_PERIOD;
+          const canShoot = !isGracePeriod && now - e.spawnTime > (waveRef.current === 1 ? 3000 : 1500);
           
-          if (canShoot && now - e.lastShot > fireRate && dist < 1200) {
+          // Wave 1 Restriction: Only one enemy can shoot at a time
+          const globalShootCooldown = waveRef.current === 1 ? now - lastEnemyShotTimeGlobal.current < 1000 : false;
+
+          if (canShoot && !globalShootCooldown && now - e.lastShot > fireRate && dist < 1200) {
               // FINAL REAL-TIME LOS VALIDATION AT DAMAGE MOMENT
               const shotLOS = checkLineOfSightInfo(e.x, e.y, player.current.x, player.current.y, mapData.current);
               e.hasLineOfSight = shotLOS.hasLOS;
@@ -921,10 +937,12 @@ export default function App() {
 
               if (shotLOS.hasLOS) {
                   e.lastShot = now;
+                  lastEnemyShotTimeGlobal.current = now;
                   
                   if (!DEBUG_SAFE_MODE && now - lastDamageTaken.current > 600) { 
                       const baseDamage = e.type === 'sniper' ? 35 : e.type === 'rifleman' ? 12 : 8;
-                      const damage = (e.isBoss ? baseDamage * 2.5 : baseDamage) * DIFFICULTIES[difficulty].dmgMult;
+                      const wave1Mult = waveRef.current === 1 ? WAVE_1_DAMAGE_MULT : 1.0;
+                      const damage = (e.isBoss ? baseDamage * 2.5 : baseDamage) * DIFFICULTIES[difficulty].dmgMult * wave1Mult;
                       
                       // Debug Data Storage
                       lastDamageSource.current = {
@@ -1088,10 +1106,12 @@ export default function App() {
         enemiesTotal: enemies.current.length,
         enemiesRemaining,
         enemiesWithLOS,
+        gracePeriodRemaining: Math.max(0, INITIAL_GRACE_PERIOD - (now - gameStartTime.current)),
+        wave1DamageMult: waveRef.current === 1 ? 'ACTIVE (0.5x)' : 'INACTIVE (1.0x)',
         nearestDist: nearestDist.toFixed(1),
         nearestType: nearestEnemy?.type || 'none',
         nearestLOS: nearestEnemy ? `${nearestEnemy.hasLineOfSight} (Blocked by: ${nearestEnemy.blockedBy ?? 'None'})` : 'none',
-        lastDmgInfo: dmg ? `${dmg.type} | Dist:${dmg.dist} | LOS:${dmg.hasLOS} | BBy:${dmg.blockedBy}` : 'none'
+        lastDmgInfo: dmg ? `ID:${dmg.id.toString()} | ${dmg.type} | Dist:${dmg.dist} | LOS:${dmg.hasLOS} | BBy:${dmg.blockedBy}` : 'none'
       });
     }
 
@@ -1204,8 +1224,8 @@ export default function App() {
         if (gameState !== 'playing' || document.pointerLockElement !== gameContainerRef.current) return;
         const speed = player.current.isAds ? 0.001 : 0.002;
         player.current.angle += e.movementX * speed;
-        // Sensitivity adjustment and inversion check
-        player.current.pitch = clamp(player.current.pitch - e.movementY * 0.1, -25, 25);
+        // Standard non-inverted look: movementY > 0 (down) -> Pitch increases -> Camera rotates X positive -> Looks Down
+        player.current.pitch = clamp(player.current.pitch + e.movementY * 0.1, -25, 25);
     };
 
     const handlePointerLockChange = () => {
@@ -1279,7 +1299,8 @@ export default function App() {
           <div>STATE | {debugData.gameState}</div>
           <div>WAVE  | {debugData.wave} ({debugData.enemiesRemaining} left)</div>
           <div>WEAP  | {debugData.currentWeapon} ({debugData.ammo})</div>
-          <div>HP    | {debugData.hp}% (Grace: {debugData.gracePeriod})</div>
+          <div>HP    | {debugData.hp}% (Grace: {Math.ceil(debugData.gracePeriodRemaining/1000)}s)</div>
+          <div>W1_DMG | {debugData.wave1DamageMult}</div>
           <div>POS   | {debugData.px}, {debugData.py}</div>
           <div>CAM   | Ang:{debugData.angle} Pit:{debugData.pitch}</div>
           <div className="text-white font-bold mt-1 border-b border-white/20 pb-0.5">ENEMY INTEL</div>
@@ -1406,7 +1427,8 @@ export default function App() {
                 
                 const sensitivity = player.current.isAds ? 0.001 : 0.003;
                 player.current.angle += dx * sensitivity;
-                player.current.pitch = clamp(player.current.pitch - dy * 0.2, -25, 25);
+                // Standard non-inverted look: dy > 0 (down) -> Pitch increases -> Camera rotates X positive -> Looks Down
+                player.current.pitch = clamp(player.current.pitch + dy * 0.2, -25, 25);
                 
                 touchLook.current.lastX = touch.clientX;
                 touchLook.current.lastY = touch.clientY;
