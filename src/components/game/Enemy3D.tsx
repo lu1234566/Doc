@@ -76,26 +76,22 @@ export function Enemy3D({ x, y, type, color, cellSize, isBoss, hp, maxHp, debug 
           {type === 'rusher' && (
             <group rotation={[0.4, 0, 0]} position={[0, 0, 0.1]}>
               {/* Torso/Engine Core */}
-              <mesh castShadow>
+              <mesh castShadow material={baseMaterial}>
                 <boxGeometry args={[cellSize * 0.3, cellSize * 0.3, cellSize * 0.5]} />
-                <primitive object={baseMaterial} />
               </mesh>
               {/* Side Thrust Fins */}
               {[-1, 1].map(s => (
-                <mesh key={s} position={[s * cellSize * 0.2, 0, -cellSize * 0.1]} rotation={[0, 0, s * 0.5]}>
+                <mesh key={s} position={[s * cellSize * 0.2, 0, -cellSize * 0.1]} rotation={[0, 0, s * 0.5]} material={emissiveMaterial}>
                   <boxGeometry args={[0.02, cellSize * 0.2, cellSize * 0.4]} />
-                  <primitive object={emissiveMaterial} />
                 </mesh>
               ))}
               {/* Forward Sensor Visor */}
-              <mesh position={[0, cellSize * 0.1, cellSize * 0.2]}>
+              <mesh position={[0, cellSize * 0.1, cellSize * 0.2]} material={emissiveMaterial}>
                 <boxGeometry args={[cellSize * 0.25, 0.05, 0.1]} />
-                <primitive object={emissiveMaterial} />
               </mesh>
               {/* Stabilizer Link */}
-              <mesh position={[0, -cellSize * 0.15, -cellSize * 0.2]}>
+              <mesh position={[0, -cellSize * 0.15, -cellSize * 0.2]} material={frameMaterial}>
                 <cylinderGeometry args={[0.02, 0.02, cellSize * 0.3]} rotation={[Math.PI / 2, 0, 0]} />
-                <primitive object={frameMaterial} />
               </mesh>
             </group>
           )}
@@ -104,32 +100,27 @@ export function Enemy3D({ x, y, type, color, cellSize, isBoss, hp, maxHp, debug 
           {type === 'rifleman' && (
             <group>
               {/* Main Armored Torso */}
-              <mesh castShadow>
+              <mesh castShadow material={baseMaterial}>
                 <boxGeometry args={[cellSize * 0.4, cellSize * 0.6, cellSize * 0.3]} />
-                <primitive object={baseMaterial} />
               </mesh>
               {/* Shoulder Pads */}
               {[-1, 1].map(s => (
-                <mesh key={s} position={[s * cellSize * 0.25, cellSize * 0.2, 0]}>
+                <mesh key={s} position={[s * cellSize * 0.25, cellSize * 0.2, 0]} material={plateMaterial}>
                   <boxGeometry args={[cellSize * 0.15, cellSize * 0.15, cellSize * 0.35]} />
-                  <primitive object={plateMaterial} />
                 </mesh>
               ))}
               {/* Head / Optic Unit */}
               <group position={[0, cellSize * 0.35, 0]}>
-                <mesh>
+                <mesh material={plateMaterial}>
                   <boxGeometry args={[cellSize * 0.2, cellSize * 0.2, cellSize * 0.2]} />
-                  <primitive object={plateMaterial} />
                 </mesh>
-                <mesh position={[0, 0, cellSize * 0.1]}>
+                <mesh position={[0, 0, cellSize * 0.1]} material={emissiveMaterial}>
                   <boxGeometry args={[cellSize * 0.15, 0.03, 0.01]} />
-                  <primitive object={emissiveMaterial} />
                 </mesh>
               </group>
               {/* Power Pack (Back) */}
-              <mesh position={[0, 0, -cellSize * 0.2]}>
+              <mesh position={[0, 0, -cellSize * 0.2]} material={frameMaterial}>
                 <boxGeometry args={[cellSize * 0.25, cellSize * 0.4, cellSize * 0.1]} />
-                <primitive object={frameMaterial} />
               </mesh>
             </group>
           )}
@@ -138,27 +129,23 @@ export function Enemy3D({ x, y, type, color, cellSize, isBoss, hp, maxHp, debug 
           {type === 'sniper' && (
             <group position={[0, cellSize * 0.1, 0]}>
               {/* Slender Main Frame */}
-              <mesh castShadow>
+              <mesh castShadow material={baseMaterial}>
                 <cylinderGeometry args={[0.05, 0.08, cellSize * 1.3, 4]} />
-                <primitive object={baseMaterial} />
               </mesh>
               {/* Sensor Head with Long Lens */}
               <group position={[0, cellSize * 0.6, 0]}>
-                <mesh>
+                <mesh material={plateMaterial}>
                   <boxGeometry args={[cellSize * 0.2, cellSize * 0.15, cellSize * 0.25]} />
-                  <primitive object={plateMaterial} />
                 </mesh>
                 {/* Rectangular Lens Glow */}
-                <mesh position={[0, 0, cellSize * 0.13]}>
+                <mesh position={[0, 0, cellSize * 0.13]} material={emissiveMaterial}>
                   <planeGeometry args={[0.08, 0.04]} />
-                  <primitive object={emissiveMaterial} />
                 </mesh>
               </group>
               {/* Side Stabilizer Rails */}
               {[-1, 1].map(s => (
-                <mesh key={s} position={[s * cellSize * 0.1, 0, 0]}>
+                <mesh key={s} position={[s * cellSize * 0.1, 0, 0]} material={frameMaterial}>
                   <boxGeometry args={[0.01, cellSize * 0.8, 0.05]} />
-                  <primitive object={frameMaterial} />
                 </mesh>
               ))}
             </group>
@@ -168,39 +155,33 @@ export function Enemy3D({ x, y, type, color, cellSize, isBoss, hp, maxHp, debug 
           {isBoss && (
             <group>
               {/* Massive Main Chassis */}
-              <mesh castShadow>
+              <mesh castShadow material={baseMaterial}>
                 <boxGeometry args={[cellSize * 0.9, cellSize * 0.9, cellSize * 0.9]} />
-                <primitive object={baseMaterial} />
               </mesh>
               {/* Heavy Outer Armor Shells */}
               {[1, -1].map(x => (
                 <group key={x} position={[x * cellSize * 0.5, 0, 0]}>
-                  <mesh>
+                  <mesh material={plateMaterial}>
                     <boxGeometry args={[0.15, cellSize, cellSize]} />
-                    <primitive object={plateMaterial} />
                   </mesh>
                   {/* Energy Stripes on Armor */}
-                  <mesh position={[x * 0.08, 0, 0]}>
+                  <mesh position={[x * 0.08, 0, 0]} material={emissiveMaterial}>
                      <boxGeometry args={[0.01, cellSize * 0.8, 0.05]} />
-                     <primitive object={emissiveMaterial} />
                   </mesh>
                 </group>
               ))}
               {/* Reinforced Top Plate */}
-              <mesh position={[0, cellSize * 0.5, 0]}>
+              <mesh position={[0, cellSize * 0.5, 0]} material={frameMaterial}>
                 <boxGeometry args={[cellSize * 0.8, 0.1, cellSize * 0.8]} />
-                <primitive object={frameMaterial} />
               </mesh>
               {/* CENTRAL HEART/NUCLEUS */}
-              <mesh position={[0, 0, cellSize * 0.4]}>
+              <mesh position={[0, 0, cellSize * 0.4]} material={emissiveMaterial}>
                 <sphereGeometry args={[cellSize * 0.3, 24, 24]} />
-                <primitive object={emissiveMaterial} />
               </mesh>
               {/* Defense Pylons */}
               {[[-1,-1],[1,-1],[-1,1],[1,1]].map(([px, pz], i) => (
-                <mesh key={i} position={[px * cellSize * 0.3, cellSize * 0.5, pz * cellSize * 0.3]}>
+                <mesh key={i} position={[px * cellSize * 0.3, cellSize * 0.5, pz * cellSize * 0.3]} material={baseMaterial}>
                   <cylinderGeometry args={[0.05, 0.05, cellSize * 0.3]} />
-                  <primitive object={baseMaterial} />
                 </mesh>
               ))}
             </group>
@@ -208,7 +189,7 @@ export function Enemy3D({ x, y, type, color, cellSize, isBoss, hp, maxHp, debug 
 
           {/* Integrated Weapon System - Class Adjusted Appearance */}
           <group position={[cellSize * 0.25, -cellSize * 0.05, cellSize * 0.2]}>
-             <mesh rotation={[Math.PI / 2, 0, 0]}>
+             <mesh rotation={[Math.PI / 2, 0, 0]} material={frameMaterial}>
                 <cylinderGeometry 
                   args={[
                     type === 'sniper' ? 0.01 : 0.03, 
@@ -217,12 +198,10 @@ export function Enemy3D({ x, y, type, color, cellSize, isBoss, hp, maxHp, debug 
                     8
                   ]} 
                 />
-                <primitive object={frameMaterial} />
              </mesh>
              {/* Muzzle Detail */}
-             <mesh position={[0, 0, type === 'sniper' ? cellSize * 0.75 : cellSize * 0.4]} rotation={[Math.PI / 2, 0, 0]}>
+             <mesh position={[0, 0, type === 'sniper' ? cellSize * 0.75 : cellSize * 0.4]} rotation={[Math.PI / 2, 0, 0]} material={emissiveMaterial}>
                 <cylinderGeometry args={[type === 'sniper' ? 0.015 : 0.045, type === 'sniper' ? 0.015 : 0.045, 0.02, 16]} />
-                <primitive object={emissiveMaterial} />
              </mesh>
           </group>
 

@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import * as THREE from 'three';
-import { useTexture } from '@react-three/drei';
 
 interface MapProps {
   mapData: number[][];
@@ -17,8 +16,8 @@ export function World({ mapData, cellSize }: MapProps) {
 
   const wallTrimMaterial = useMemo(() => new THREE.MeshStandardMaterial({
     color: '#020617', 
-    emissive: '#0891b2', // Cyan 600
-    emissiveIntensity: 0.6,
+    emissive: '#06b6d4', // Bright Cyan 
+    emissiveIntensity: 4.0, // Forced high for verification
     metalness: 0.9,
     roughness: 0.1,
   }), []);
@@ -77,51 +76,43 @@ export function World({ mapData, cellSize }: MapProps) {
           geometry.push(
             <group key={`wall-${x}-${y}`} position={[posX, cellSize / 2, posZ]}>
               {/* Main Structure */}
-              <mesh castShadow receiveShadow>
+              <mesh castShadow receiveShadow material={wallMaterial}>
                 <boxGeometry args={[cellSize * 0.98, cellSize, cellSize * 0.98]} />
-                <primitive object={wallMaterial} />
               </mesh>
               {/* Corner Corner Pillars */}
               {[[-1,-1],[1,-1],[-1,1],[1,1]].map(([px, pz], i) => (
-                <mesh key={i} position={[px * cellSize/2.1, 0, pz * cellSize/2.1]}>
+                <mesh key={i} position={[px * cellSize/2.1, 0, pz * cellSize/2.1]} material={frameMaterial}>
                   <boxGeometry args={[0.08, cellSize, 0.08]} />
-                  <primitive object={frameMaterial} />
                 </mesh>
               ))}
               {/* Horizontal Tech Bands */}
               {[0.3, -0.3].map((h, i) => (
-                <mesh key={i} position={[0, h * cellSize, 0]}>
+                <mesh key={i} position={[0, h * cellSize, 0]} material={wallTrimMaterial}>
                   <boxGeometry args={[cellSize * 1.02, 0.05, cellSize * 1.02]} />
-                  <primitive object={wallTrimMaterial} />
                 </mesh>
               ))}
               {/* Vertical Wiring Detail */}
-              <mesh position={[cellSize/2 + 0.01, 0, 0]}>
+              <mesh position={[cellSize/2 + 0.01, 0, 0]} material={wallTrimMaterial}>
                 <boxGeometry args={[0.02, cellSize * 0.8, 0.1]} />
-                <primitive object={wallTrimMaterial} />
               </mesh>
             </group>
           );
         } else if (cell === 2) { // Industrial Tactical Crate
           geometry.push(
             <group key={`crate-${x}-${y}`} position={[posX, cellSize / 2, posZ]}>
-              <mesh castShadow receiveShadow>
+              <mesh castShadow receiveShadow material={crateMaterial}>
                 <boxGeometry args={[cellSize * 0.85, cellSize * 0.85, cellSize * 0.85]} />
-                <primitive object={crateMaterial} />
               </mesh>
               {/* Tactical Frame */}
-              <mesh>
+              <mesh material={frameMaterial}>
                  <boxGeometry args={[cellSize * 0.87, cellSize * 0.2, cellSize * 0.87]} />
-                 <primitive object={frameMaterial} />
               </mesh>
-              <mesh rotation={[Math.PI/2, 0, 0]}>
+              <mesh rotation={[Math.PI/2, 0, 0]} material={frameMaterial}>
                  <boxGeometry args={[cellSize * 0.87, cellSize * 0.2, cellSize * 0.87]} />
-                 <primitive object={frameMaterial} />
               </mesh>
               {/* Data Plate (Yellow) */}
-              <mesh position={[0, 0, cellSize * 0.43]}>
+              <mesh position={[0, 0, cellSize * 0.43]} material={tacticalYellow}>
                 <planeGeometry args={[cellSize * 0.3, cellSize * 0.1]} />
-                <primitive object={tacticalYellow} />
               </mesh>
               {/* Active Sensor Light */}
               <mesh position={[cellSize * 0.3, cellSize * 0.3, cellSize * 0.43]}>
@@ -133,26 +124,22 @@ export function World({ mapData, cellSize }: MapProps) {
         } else if (cell === 3) { // Energy Containment Barrel
           geometry.push(
             <group key={`barrel-${x}-${y}`} position={[posX, cellSize / 3, posZ]}>
-              <mesh castShadow>
+              <mesh castShadow material={barrelMaterial}>
                 <cylinderGeometry args={[cellSize/3, cellSize/3, cellSize/1.5, 12]} />
-                <primitive object={barrelMaterial} />
               </mesh>
               {/* Structural Hoops */}
               {[0.2, 0, -0.2].map((h, i) => (
-                <mesh key={i} position={[0, h * cellSize, 0]}>
+                <mesh key={i} position={[0, h * cellSize, 0]} material={frameMaterial}>
                   <torusGeometry args={[cellSize/3 + 0.01, 0.02, 6, 16]} />
-                  <primitive object={frameMaterial} />
                 </mesh>
               ))}
               {/* Plasma Glow Core */}
-              <mesh>
+              <mesh material={barrelEnergyMaterial}>
                 <cylinderGeometry args={[cellSize/3.5, cellSize/3.5, 0.1, 12]} />
-                <primitive object={barrelEnergyMaterial} />
               </mesh>
               {/* Warning Stripes */}
-              <mesh position={[0, cellSize/4.5, cellSize/3 + 0.01]}>
+              <mesh position={[0, cellSize/4.5, cellSize/3 + 0.01]} material={tacticalYellow}>
                 <planeGeometry args={[cellSize/6, 0.02]} />
-                <primitive object={tacticalYellow} />
               </mesh>
             </group>
           );
@@ -170,9 +157,8 @@ export function World({ mapData, cellSize }: MapProps) {
   return (
     <group position={[-mapWidth / 2, 0, -mapHeight / 2]}>
       {/* Floor: Tactical Paneling */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[mapWidth / 2, -0.01, mapHeight / 2]} receiveShadow>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[mapWidth / 2, -0.01, mapHeight / 2]} receiveShadow material={floorMaterial}>
         <planeGeometry args={[mapWidth * 4, mapHeight * 4]} />
-        <primitive object={floorMaterial} />
       </mesh>
       
       {/* Detailed Floor Paneling (Visual Only) */}
@@ -189,30 +175,12 @@ export function World({ mapData, cellSize }: MapProps) {
             position={[0, 0.005, 0]}
             visible={true}
           />
-          {/* Procedural Floor Panels (Slightly raised squares for texture) */}
-          <group position={[0, 0.001, 0]}>
-             {/* We can't generate thousands of meshes here easily without performance hits, 
-                 so we use the grid helpers efficiently. I'll add some "conduits" instead. */}
-             {[...Array(5)].map((_, i) => (
-                <mesh key={i} position={[(i - 2) * cellSize * 4, 0.005, 0]} rotation={[0, 0, 0]}>
-                   <boxGeometry args={[0.05, 0.01, mapHeight * 4]} />
-                   <meshStandardMaterial color="#0891b2" emissive="#0891b2" emissiveIntensity={0.2} transparent opacity={0.3} />
-                </mesh>
-             ))}
-             {[...Array(5)].map((_, i) => (
-                <mesh key={i} position={[0, 0.005, (i - 2) * cellSize * 4]} rotation={[0, 0, 0]}>
-                   <boxGeometry args={[mapWidth * 4, 0.01, 0.05]} />
-                   <meshStandardMaterial color="#0891b2" emissive="#0891b2" emissiveIntensity={0.2} transparent opacity={0.3} />
-                </mesh>
-             ))}
-          </group>
         </group>
-      ), [mapWidth, mapHeight, cellSize])}
+      ), [mapWidth, mapHeight])}
 
       {/* Ceiling */}
-      <mesh rotation={[Math.PI / 2, 0, 0]} position={[mapWidth / 2, cellSize, mapHeight / 2]}>
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[mapWidth / 2, cellSize, mapHeight / 2]} material={ceilingMaterial}>
         <planeGeometry args={[mapWidth * 2, mapHeight * 2]} />
-        <primitive object={ceilingMaterial} />
       </mesh>
 
       {cells}

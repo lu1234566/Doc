@@ -75,34 +75,28 @@ export function WeaponModel({ type, isReloading, isAds, recoilOffset, lastShotTi
         {type === 'pistol' && (
           <group scale={0.8}>
             {/* P-99 Refined Silhouette */}
-            <mesh castShadow position={[0, 0.2, 0.2]}>
+            <mesh castShadow position={[0, 0.2, 0.2]} material={matGraphite}>
               <boxGeometry args={[0.18, 0.22, 1.1]} />
-              <primitive object={matGraphite} />
             </mesh>
             {/* Slide Top Detail */}
-            <mesh position={[0, 0.31, 0.2]}>
+            <mesh position={[0, 0.31, 0.2]} material={matMetal}>
               <boxGeometry args={[0.1, 0.02, 1.0]} />
-              <primitive object={matMetal} />
             </mesh>
             {/* Lower Frame */}
-            <mesh position={[0, 0.1, 0.3]}>
+            <mesh position={[0, 0.1, 0.3]} material={matGraphite}>
               <boxGeometry args={[0.16, 0.15, 0.8]} />
-              <primitive object={matGraphite} />
             </mesh>
             {/* Precision Grip */}
-            <mesh position={[0, -0.2, 0.5]} rotation={[-0.25, 0, 0]}>
+            <mesh position={[0, -0.2, 0.5]} rotation={[-0.25, 0, 0]} material={matGrip}>
               <boxGeometry args={[0.17, 0.65, 0.28]} />
-              <primitive object={matGrip} />
             </mesh>
             {/* Cyan Accent line */}
-            <mesh position={[0, 0.15, 0.2]}>
+            <mesh position={[0, 0.15, 0.2]} material={matCyan}>
               <boxGeometry args={[0.2, 0.02, 0.4]} />
-              <primitive object={matCyan} />
             </mesh>
             {/* Muzzle */}
-            <mesh position={[0, 0.2, -0.4]} rotation={[Math.PI/2, 0, 0]}>
+            <mesh position={[0, 0.2, -0.4]} rotation={[Math.PI/2, 0, 0]} material={matMetal}>
               <cylinderGeometry args={[0.04, 0.05, 0.1, 16]} />
-              <primitive object={matMetal} />
             </mesh>
           </group>
         )}
@@ -110,51 +104,42 @@ export function WeaponModel({ type, isReloading, isAds, recoilOffset, lastShotTi
         {type === 'rifle' && (
           <group scale={0.9}>
             {/* M4-A1 Refined Silhouette */}
-            <mesh castShadow position={[0, 0.3, 0.4]}>
+            <mesh castShadow position={[0, 0.3, 0.4]} material={matGraphite}>
               <boxGeometry args={[0.2, 0.3, 1.2]} />
-              <primitive object={matGraphite} />
             </mesh>
             {/* Handguard with Rails */}
-            <mesh position={[0, 0.3, -0.6]}>
+            <mesh position={[0, 0.3, -0.6]} material={matGrip}>
               <boxGeometry args={[0.22, 0.22, 1.0]} />
-              <primitive object={matGrip} />
             </mesh>
             {/* Decorative Rails */}
             {[-1, 1].map(x => (
-              <mesh key={x} position={[x * 0.12, 0.3, -0.6]}>
+              <mesh key={x} position={[x * 0.12, 0.3, -0.6]} material={matMetal}>
                 <boxGeometry args={[0.02, 0.1, 0.8]} />
-                <primitive object={matMetal} />
               </mesh>
             ))}
             {/* Top Component */}
-            <mesh position={[0, 0.5, 0.2]}>
+            <mesh position={[0, 0.5, 0.2]} material={matMetal}>
               <boxGeometry args={[0.15, 0.1, 0.6]} />
-              <primitive object={matMetal} />
             </mesh>
             {/* Long Tactical Barrel */}
-            <mesh position={[0, 0.3, -1.4]} rotation={[Math.PI/2, 0, 0]}>
+            <mesh position={[0, 0.3, -1.4]} rotation={[Math.PI/2, 0, 0]} material={matMetal}>
               <cylinderGeometry args={[0.04, 0.04, 0.6, 12]} />
-              <primitive object={matMetal} />
             </mesh>
             {/* Suppressor / Compensator */}
-            <mesh position={[0, 0.3, -1.8]} rotation={[Math.PI/2, 0, 0]}>
+            <mesh position={[0, 0.3, -1.8]} rotation={[Math.PI/2, 0, 0]} material={matGraphite}>
               <cylinderGeometry args={[0.07, 0.07, 0.3, 6]} />
-              <primitive object={matGraphite} />
             </mesh>
             {/* Stock Assembly */}
-            <mesh position={[0, 0.3, 1.4]} rotation={[0, 0, 0]}>
+            <mesh position={[0, 0.3, 1.4]} rotation={[0, 0, 0]} material={matGraphite}>
               <boxGeometry args={[0.15, 0.4, 0.8]} />
-              <primitive object={matGraphite} />
             </mesh>
             {/* Magazine - High Capacity Look */}
-            <mesh position={[0, -0.2, 0.1]} rotation={[0.2, 0, 0]}>
+            <mesh position={[0, -0.2, 0.1]} rotation={[0.2, 0, 0]} material={matGrip}>
               <boxGeometry args={[0.18, 0.7, 0.3]} />
-              <primitive object={matGrip} />
             </mesh>
             {/* Cyan Detail */}
-            <mesh position={[0, 0.4, 0.4]}>
+            <mesh position={[0, 0.4, 0.4]} material={matCyan}>
               <sphereGeometry args={[0.02]} />
-              <primitive object={matCyan} />
             </mesh>
           </group>
         )}
@@ -162,36 +147,30 @@ export function WeaponModel({ type, isReloading, isAds, recoilOffset, lastShotTi
         {type === 'shotgun' && (
           <group scale={1.1}>
             {/* KRM-262 Heavy Silhouette */}
-            <mesh castShadow position={[0, 0.2, 0.3]}>
+            <mesh castShadow position={[0, 0.2, 0.3]} material={matGraphite}>
               <boxGeometry args={[0.32, 0.4, 1.0]} />
-              <primitive object={matGraphite} />
             </mesh>
             {/* Huge Ported Barrel */}
-            <mesh position={[0, 0.28, -0.9]} rotation={[Math.PI/2, 0, 0]}>
+            <mesh position={[0, 0.28, -0.9]} rotation={[Math.PI/2, 0, 0]} material={matMetal}>
               <cylinderGeometry args={[0.12, 0.12, 1.6, 16]} />
-              <primitive object={matMetal} />
             </mesh>
             {/* Industrial Pump Body */}
-            <mesh position={[0, 0.1, -0.6]}>
+            <mesh position={[0, 0.1, -0.6]} material={matGrip}>
               <boxGeometry args={[0.28, 0.25, 0.7]} />
-              <primitive object={matGrip} />
             </mesh>
             {/* Pump Grips Detail */}
             {[0.1, 0, -0.1].map(z => (
-               <mesh key={z} position={[0, 0, -0.6 + z]}>
+               <mesh key={z} position={[0, 0, -0.6 + z]} material={matMetal}>
                  <boxGeometry args={[0.3, 0.26, 0.05]} />
-                 <primitive object={matMetal} />
                </mesh>
             ))}
             {/* Heat Shield - Yellow / Tactical */}
-            <mesh position={[0, 0.42, -0.5]}>
+            <mesh position={[0, 0.42, -0.5]} material={matYellow}>
               <boxGeometry args={[0.1, 0.02, 0.6]} />
-              <primitive object={matYellow} />
             </mesh>
             {/* Heavy Stock */}
-            <mesh position={[0, 0.1, 1.1]} rotation={[-0.2, 0, 0]}>
+            <mesh position={[0, 0.1, 1.1]} rotation={[-0.2, 0, 0]} material={matGraphite}>
               <boxGeometry args={[0.25, 0.45, 0.7]} />
-              <primitive object={matGraphite} />
             </mesh>
           </group>
         )}
@@ -199,25 +178,21 @@ export function WeaponModel({ type, isReloading, isAds, recoilOffset, lastShotTi
         {type === 'sniper' && (
           <group scale={1.2}>
             {/* DL-Q33 Precision Silhouette */}
-            <mesh castShadow position={[0, 0.25, 0.6]}>
+            <mesh castShadow position={[0, 0.25, 0.6]} material={matGraphite}>
               <boxGeometry args={[0.2, 0.35, 1.4]} />
-              <primitive object={matGraphite} />
             </mesh>
             {/* Extreme Precision Barrel */}
-            <mesh position={[0, 0.32, -1.2]} rotation={[Math.PI/2, 0, 0]}>
+            <mesh position={[0, 0.32, -1.2]} rotation={[Math.PI/2, 0, 0]} material={matMetal}>
               <cylinderGeometry args={[0.03, 0.03, 3.2, 6]} />
-              <primitive object={matMetal} />
             </mesh>
             {/* Muzzle Brake */}
-            <mesh position={[0, 0.32, -2.8]} rotation={[Math.PI/2, 0, 0]}>
+            <mesh position={[0, 0.32, -2.8]} rotation={[Math.PI/2, 0, 0]} material={matGraphite}>
                <boxGeometry args={[0.12, 0.12, 0.12]} />
-               <primitive object={matGraphite} />
             </mesh>
             {/* High-Tech Scope */}
             <group position={[0, 0.55, 0.3]}>
-              <mesh rotation={[Math.PI/2, 0, 0]}>
+              <mesh rotation={[Math.PI/2, 0, 0]} material={matGraphite}>
                 <cylinderGeometry args={[0.14, 0.14, 1.0, 12]} />
-                <primitive object={matGraphite} />
               </mesh>
               {/* Internal Lens Glow */}
               <mesh position={[0, 0, -0.51]} rotation={[Math.PI/2, 0, 0]}>
@@ -225,20 +200,17 @@ export function WeaponModel({ type, isReloading, isAds, recoilOffset, lastShotTi
                 <meshBasicMaterial color="#22d3ee" transparent opacity={0.6} />
               </mesh>
               {/* External Cyan Ring */}
-              <mesh position={[0, 0, -0.52]}>
+              <mesh position={[0, 0, -0.52]} material={matCyan}>
                 <torusGeometry args={[0.13, 0.01, 8, 32]} />
-                <primitive object={matCyan} />
               </mesh>
             </group>
             {/* Technical Bipod Folded */}
-            <mesh position={[0, 0.15, -0.8]}>
+            <mesh position={[0, 0.15, -0.8]} material={matMetal}>
               <boxGeometry args={[0.25, 0.05, 0.3]} />
-              <primitive object={matMetal} />
             </mesh>
             {/* Ergo Grip */}
-            <mesh position={[0, -0.25, 1.0]} rotation={[-0.3, 0, 0]}>
+            <mesh position={[0, -0.25, 1.0]} rotation={[-0.3, 0, 0]} material={matGrip}>
               <boxGeometry args={[0.15, 0.5, 0.25]} />
-              <primitive object={matGrip} />
             </mesh>
           </group>
         )}

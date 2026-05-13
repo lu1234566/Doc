@@ -91,10 +91,10 @@ export function GameScene({
         gl={{ antialias: false, powerPreference: 'high-performance' }}
       >
         <PerspectiveCamera makeDefault fov={75} />
-        <ambientLight intensity={0.2} />
-        <hemisphereLight intensity={0.4} groundColor="#020617" color="#67e8f9" />
-        <directionalLight position={[10, 20, 10]} intensity={0.5} color="#cffafe" />
-        <fog attach="fog" args={['#020617', 20, cellSize * 15]} />
+        <ambientLight intensity={0.15} />
+        <hemisphereLight intensity={0.3} groundColor="#020617" color="#67e8f9" />
+        <directionalLight position={[20, 50, 10]} intensity={0.6} color="#cffafe" />
+        <fog attach="fog" args={['#020617', cellSize * 4, cellSize * 20]} />
 
         <World mapData={mapData} cellSize={cellSize} />
 
