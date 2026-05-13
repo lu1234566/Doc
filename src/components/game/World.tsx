@@ -10,49 +10,59 @@ interface MapProps {
 export function World({ mapData, cellSize }: MapProps) {
   // Advanced Tactical Materials
   const wallMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#0f172a', // Slate 900
-    roughness: 0.8,
-    metalness: 0.2,
+    color: '#0f172a', // Slate 900 base
+    roughness: 0.6,
+    metalness: 0.6,
   }), []);
 
   const wallTrimMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#0f172a', // Slate 900
+    color: '#020617', 
     emissive: '#0891b2', // Cyan 600
-    emissiveIntensity: 0.1,
-    metalness: 0.8,
+    emissiveIntensity: 0.6,
+    metalness: 0.9,
     roughness: 0.1,
   }), []);
 
   const floorMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#020617', // Slate 950
-    metalness: 0.1,
-    roughness: 0.9,
-  }), []);
-
-  const ceilingMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#020617',
-    metalness: 0,
-    roughness: 1,
+    color: '#020617', // Near Black Navy
+    metalness: 0.4,
+    roughness: 0.7,
   }), []);
 
   const barrelMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#991b1b', // Red 800
-    emissive: '#450a0a',
-    emissiveIntensity: 0.2,
-    metalness: 0.7,
-    roughness: 0.4,
+    color: '#1e293b', // Muted steel
+    metalness: 0.8,
+    roughness: 0.3,
+  }), []);
+
+  const barrelEnergyMaterial = useMemo(() => new THREE.MeshStandardMaterial({
+    color: '#22d3ee',
+    emissive: '#22d3ee',
+    emissiveIntensity: 3.0,
   }), []);
 
   const crateMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#0f172a', // Slate 900
-    metalness: 0.2,
-    roughness: 0.8,
+    color: '#1e293b', // Tactical Slate
+    metalness: 0.5,
+    roughness: 0.4,
   }), []);
 
   const frameMaterial = useMemo(() => new THREE.MeshStandardMaterial({
     color: '#000000',
-    metalness: 0.9,
+    metalness: 1.0,
     roughness: 0.1,
+  }), []);
+
+  const ceilingMaterial = useMemo(() => new THREE.MeshStandardMaterial({
+    color: '#0f172a',
+    metalness: 0.1,
+    roughness: 0.9,
+  }), []);
+
+  const tacticalYellow = useMemo(() => new THREE.MeshStandardMaterial({
+    color: '#fbbf24', // Amber
+    emissive: '#fbbf24',
+    emissiveIntensity: 0.3,
   }), []);
 
   const cells = useMemo(() => {
@@ -66,92 +76,83 @@ export function World({ mapData, cellSize }: MapProps) {
         if (cell === 1) { // Advanced Tactical Wall
           geometry.push(
             <group key={`wall-${x}-${y}`} position={[posX, cellSize / 2, posZ]}>
-              {/* Main Wall Segment */}
+              {/* Main Structure */}
               <mesh castShadow receiveShadow>
-                <boxGeometry args={[cellSize, cellSize, cellSize]} />
+                <boxGeometry args={[cellSize * 0.98, cellSize, cellSize * 0.98]} />
                 <primitive object={wallMaterial} />
               </mesh>
-              {/* Vertical Structural Beams */}
-              <mesh position={[cellSize/2 - 0.05, 0, 0]}>
-                <boxGeometry args={[0.1, cellSize, cellSize + 0.05]} />
-                <primitive object={frameMaterial} />
-              </mesh>
-              <mesh position={[-cellSize/2 + 0.05, 0, 0]}>
-                <boxGeometry args={[0.1, cellSize, cellSize + 0.05]} />
-                <primitive object={frameMaterial} />
-              </mesh>
-              {/* Top/Bottom Tactical Trims with Cyan Glow */}
-              <mesh position={[0, cellSize/2 - 0.05, 0]}>
-                <boxGeometry args={[cellSize + 0.08, 0.1, cellSize + 0.08]} />
+              {/* Corner Corner Pillars */}
+              {[[-1,-1],[1,-1],[-1,1],[1,1]].map(([px, pz], i) => (
+                <mesh key={i} position={[px * cellSize/2.1, 0, pz * cellSize/2.1]}>
+                  <boxGeometry args={[0.08, cellSize, 0.08]} />
+                  <primitive object={frameMaterial} />
+                </mesh>
+              ))}
+              {/* Horizontal Tech Bands */}
+              {[0.3, -0.3].map((h, i) => (
+                <mesh key={i} position={[0, h * cellSize, 0]}>
+                  <boxGeometry args={[cellSize * 1.02, 0.05, cellSize * 1.02]} />
+                  <primitive object={wallTrimMaterial} />
+                </mesh>
+              ))}
+              {/* Vertical Wiring Detail */}
+              <mesh position={[cellSize/2 + 0.01, 0, 0]}>
+                <boxGeometry args={[0.02, cellSize * 0.8, 0.1]} />
                 <primitive object={wallTrimMaterial} />
-              </mesh>
-              <mesh position={[0, -cellSize/2 + 0.05, 0]}>
-                <boxGeometry args={[cellSize + 0.08, 0.1, cellSize + 0.08]} />
-                <primitive object={wallTrimMaterial} />
-              </mesh>
-              {/* Interior Panel Line */}
-              <mesh position={[0, 0, cellSize/2]}>
-                <planeGeometry args={[cellSize * 0.8, 0.02]} />
-                <meshStandardMaterial color="#0891b2" emissive="#0891b2" emissiveIntensity={0.2} />
               </mesh>
             </group>
           );
-        } else if (cell === 2) { // Advanced Security Door/Crate
+        } else if (cell === 2) { // Industrial Tactical Crate
           geometry.push(
             <group key={`crate-${x}-${y}`} position={[posX, cellSize / 2, posZ]}>
-              {/* Heavy Crate Body */}
               <mesh castShadow receiveShadow>
-                <boxGeometry args={[cellSize * 0.8, cellSize * 0.8, cellSize * 0.8]} />
+                <boxGeometry args={[cellSize * 0.85, cellSize * 0.85, cellSize * 0.85]} />
                 <primitive object={crateMaterial} />
               </mesh>
-              {/* Corner Protectors */}
-              {[[-1, -1, -1], [1, -1, -1], [-1, 1, -1], [1, 1, -1], [-1, -1, 1], [1, -1, 1], [-1, 1, 1], [1, 1, 1]].map((pos, i) => (
-                <mesh key={i} position={[pos[0] * cellSize * 0.38, pos[1] * cellSize * 0.38, pos[2] * cellSize * 0.38]}>
-                  <boxGeometry args={[cellSize * 0.1, cellSize * 0.1, cellSize * 0.1]} />
-                  <primitive object={frameMaterial} />
-                </mesh>
-              ))}
-              {/* Tactical Label/Caution (Yellow - Muted) */}
-              <mesh position={[0, 0, cellSize * 0.41]}>
-                <planeGeometry args={[cellSize * 0.4, cellSize * 0.1]} />
-                <meshStandardMaterial color="#b45309" emissive="#b45309" emissiveIntensity={0.15} />
+              {/* Tactical Frame */}
+              <mesh>
+                 <boxGeometry args={[cellSize * 0.87, cellSize * 0.2, cellSize * 0.87]} />
+                 <primitive object={frameMaterial} />
               </mesh>
-              {/* Handling Bar */}
-              <mesh position={[0, cellSize * 0.3, cellSize * 0.43]}>
-                <boxGeometry args={[cellSize * 0.4, 0.02, 0.04]} />
-                <meshStandardMaterial color="#1e293b" metalness={1} />
+              <mesh rotation={[Math.PI/2, 0, 0]}>
+                 <boxGeometry args={[cellSize * 0.87, cellSize * 0.2, cellSize * 0.87]} />
+                 <primitive object={frameMaterial} />
               </mesh>
-              {/* Active Indicator (Cyan) */}
-              <mesh position={[cellSize * 0.35, cellSize * 0.35, cellSize * 0.43]}>
+              {/* Data Plate (Yellow) */}
+              <mesh position={[0, 0, cellSize * 0.43]}>
+                <planeGeometry args={[cellSize * 0.3, cellSize * 0.1]} />
+                <primitive object={tacticalYellow} />
+              </mesh>
+              {/* Active Sensor Light */}
+              <mesh position={[cellSize * 0.3, cellSize * 0.3, cellSize * 0.43]}>
                 <sphereGeometry args={[0.02, 8, 8]} />
-                <meshStandardMaterial color="#22d3ee" emissive="#22d3ee" emissiveIntensity={2} />
+                <meshStandardMaterial color="#22d3ee" emissive="#22d3ee" emissiveIntensity={4} />
               </mesh>
             </group>
           );
-        } else if (cell === 3) { // High-Energy Power Barrel
+        } else if (cell === 3) { // Energy Containment Barrel
           geometry.push(
             <group key={`barrel-${x}-${y}`} position={[posX, cellSize / 3, posZ]}>
-              {/* Reinforced Shell */}
               <mesh castShadow>
-                <cylinderGeometry args={[cellSize/3, cellSize/3, cellSize/1.5, 16]} />
+                <cylinderGeometry args={[cellSize/3, cellSize/3, cellSize/1.5, 12]} />
                 <primitive object={barrelMaterial} />
               </mesh>
-              {/* Industrial Ribs */}
-              {[cellSize/6, 0, -cellSize/6].map((h, i) => (
-                <mesh key={i} position={[0, h, 0]}>
-                  <torusGeometry args={[cellSize/3 + 0.015, 0.025, 8, 24]} />
+              {/* Structural Hoops */}
+              {[0.2, 0, -0.2].map((h, i) => (
+                <mesh key={i} position={[0, h * cellSize, 0]}>
+                  <torusGeometry args={[cellSize/3 + 0.01, 0.02, 6, 16]} />
                   <primitive object={frameMaterial} />
                 </mesh>
               ))}
-              {/* Core Energy Cylinder (Cyan Glow) */}
-              <mesh position={[0, 0, 0]}>
-                <cylinderGeometry args={[cellSize/3.5, cellSize/3.5, 0.1, 16]} />
-                <meshStandardMaterial color="#22d3ee" emissive="#22d3ee" emissiveIntensity={1.5} />
+              {/* Plasma Glow Core */}
+              <mesh>
+                <cylinderGeometry args={[cellSize/3.5, cellSize/3.5, 0.1, 12]} />
+                <primitive object={barrelEnergyMaterial} />
               </mesh>
-              {/* Warning Triangle s (Orange/Yellow) */}
-              <mesh position={[0, cellSize/8, cellSize/3 + 0.01]}>
-                <planeGeometry args={[cellSize/10, cellSize/10]} />
-                <meshStandardMaterial color="#f59e0b" emissive="#f59e0b" emissiveIntensity={0.5} transparent opacity={0.8} />
+              {/* Warning Stripes */}
+              <mesh position={[0, cellSize/4.5, cellSize/3 + 0.01]}>
+                <planeGeometry args={[cellSize/6, 0.02]} />
+                <primitive object={tacticalYellow} />
               </mesh>
             </group>
           );
@@ -160,7 +161,8 @@ export function World({ mapData, cellSize }: MapProps) {
     });
 
     return geometry;
-  }, [mapData, cellSize, wallMaterial, wallTrimMaterial, barrelMaterial, crateMaterial, frameMaterial]);
+  }, [mapData, cellSize, wallMaterial, wallTrimMaterial, barrelMaterial, barrelEnergyMaterial, crateMaterial, frameMaterial, tacticalYellow]);
+
 
   const mapWidth = mapData[0].length * cellSize;
   const mapHeight = mapData.length * cellSize;
@@ -168,26 +170,44 @@ export function World({ mapData, cellSize }: MapProps) {
   return (
     <group position={[-mapWidth / 2, 0, -mapHeight / 2]}>
       {/* Floor: Tactical Paneling */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[mapWidth / 2, 0, mapHeight / 2]} receiveShadow>
-        <planeGeometry args={[mapWidth * 2, mapHeight * 2]} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[mapWidth / 2, -0.01, mapHeight / 2]} receiveShadow>
+        <planeGeometry args={[mapWidth * 4, mapHeight * 4]} />
         <primitive object={floorMaterial} />
       </mesh>
       
       {/* Detailed Floor Paneling (Visual Only) */}
       {useMemo(() => (
-        <group position={[mapWidth / 2, 0.005, mapHeight / 2]}>
+        <group position={[mapWidth / 2, 0, mapHeight / 2]}>
+          {/* Main Structural Grid */}
           <gridHelper 
-            args={[mapWidth * 4, 128, 0x1e293b, 0x0f172a]} 
-            rotation={[0, 0, 0]}
+            args={[mapWidth * 4, 64, 0x1e293b, 0x020617]} 
+            position={[0, 0.01, 0]}
           />
-          {/* Subtle panel highlights */}
+          {/* Finer Accent Grid */}
           <gridHelper 
-            args={[mapWidth * 4, 32, 0x0891b2, 0x020617]} 
-            position={[0, 0.001, 0]}
-            visible={false}
+            args={[mapWidth * 4, 16, 0x0891b2, 0x020617]} 
+            position={[0, 0.005, 0]}
+            visible={true}
           />
+          {/* Procedural Floor Panels (Slightly raised squares for texture) */}
+          <group position={[0, 0.001, 0]}>
+             {/* We can't generate thousands of meshes here easily without performance hits, 
+                 so we use the grid helpers efficiently. I'll add some "conduits" instead. */}
+             {[...Array(5)].map((_, i) => (
+                <mesh key={i} position={[(i - 2) * cellSize * 4, 0.005, 0]} rotation={[0, 0, 0]}>
+                   <boxGeometry args={[0.05, 0.01, mapHeight * 4]} />
+                   <meshStandardMaterial color="#0891b2" emissive="#0891b2" emissiveIntensity={0.2} transparent opacity={0.3} />
+                </mesh>
+             ))}
+             {[...Array(5)].map((_, i) => (
+                <mesh key={i} position={[0, 0.005, (i - 2) * cellSize * 4]} rotation={[0, 0, 0]}>
+                   <boxGeometry args={[mapWidth * 4, 0.01, 0.05]} />
+                   <meshStandardMaterial color="#0891b2" emissive="#0891b2" emissiveIntensity={0.2} transparent opacity={0.3} />
+                </mesh>
+             ))}
+          </group>
         </group>
-      ), [mapWidth, mapHeight])}
+      ), [mapWidth, mapHeight, cellSize])}
 
       {/* Ceiling */}
       <mesh rotation={[Math.PI / 2, 0, 0]} position={[mapWidth / 2, cellSize, mapHeight / 2]}>

@@ -33,60 +33,69 @@ export function Enemy3D({ x, y, type, color, cellSize, isBoss, hp, maxHp, debug 
 
   // Dedicated materials for a more tactical look
   const baseMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#0f172a', // Deep Navy/Graphite
+    color: '#1a1a1a', // Industrial Graphite
     metalness: 0.8,
-    roughness: 0.2,
+    roughness: 0.3,
   }), []);
 
-  const gearMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#334155', // Industrial Slate
-    metalness: 0.5,
+  const plateMaterial = useMemo(() => new THREE.MeshStandardMaterial({
+    color: '#2d3748', // Slate plating
+    metalness: 0.6,
     roughness: 0.5,
   }), []);
 
   // Class-specific color overrides to follow the Art Pass exactly
   const tacticalColor = useMemo(() => {
     if (isBoss) return '#f43f5e'; // TITAN: Rose/Dark Red
-    if (type === 'rusher') return '#f87171'; // Rusher: Aggressive Red
-    if (type === 'sniper') return '#38bdf8'; // Sniper: Precision Blue
-    return '#fbbf24'; // Rifleman: Tactical Yellow
+    if (type === 'rusher') return '#ff3434'; // Rusher: Crimson
+    if (type === 'sniper') return '#06b6d4'; // Sniper: Cyan
+    return '#eab308'; // Rifleman: Amber
   }, [type, isBoss]);
 
   const emissiveMaterial = useMemo(() => new THREE.MeshStandardMaterial({
     color: tacticalColor,
     emissive: tacticalColor,
-    emissiveIntensity: isBoss ? 2 : 1,
+    emissiveIntensity: isBoss ? 5 : 2.5,
   }), [tacticalColor, isBoss]);
 
+  const frameMaterial = useMemo(() => new THREE.MeshStandardMaterial({
+    color: '#000000',
+    metalness: 1,
+    roughness: 0.1,
+  }), []);
+
   // Adjusted dimensions for health bar
-  const barWidth = isBoss ? (cellSize * 0.3) : (cellSize * 0.5);
-  const barHeight = isBoss ? (cellSize * 0.04) : (cellSize * 0.08);
+  const barWidth = isBoss ? (cellSize * 0.4) : (cellSize * 0.6);
+  const barHeight = isBoss ? (cellSize * 0.05) : (cellSize * 0.1);
 
   return (
     <group position={[x, (cellSize / 2) * scale, y]} scale={scale}>
-      <Float speed={3} rotationIntensity={0.1} floatIntensity={0.2}>
+      <Float speed={2} rotationIntensity={0.05} floatIntensity={0.1}>
         <group ref={meshRef}>
           {/* CLASS: RUSHER - Compact, Aggressive, Fast silhouette */}
           {type === 'rusher' && (
-            <group rotation={[0.5, 0, 0]} position={[0, -cellSize/8, 0]}>
-              {/* Lower Body/Engine */}
+            <group rotation={[0.4, 0, 0]} position={[0, 0, 0.1]}>
+              {/* Torso/Engine Core */}
               <mesh castShadow>
-                <boxGeometry args={[cellSize/3, cellSize/3, cellSize/2]} />
+                <boxGeometry args={[cellSize * 0.3, cellSize * 0.3, cellSize * 0.5]} />
                 <primitive object={baseMaterial} />
               </mesh>
-              {/* Front Blades */}
-              <mesh position={[cellSize/6, 0, cellSize/4]} rotation={[0, 0.4, 0]}>
-                <boxGeometry args={[0.02, cellSize/4, cellSize/3]} />
+              {/* Side Thrust Fins */}
+              {[-1, 1].map(s => (
+                <mesh key={s} position={[s * cellSize * 0.2, 0, -cellSize * 0.1]} rotation={[0, 0, s * 0.5]}>
+                  <boxGeometry args={[0.02, cellSize * 0.2, cellSize * 0.4]} />
+                  <primitive object={emissiveMaterial} />
+                </mesh>
+              ))}
+              {/* Forward Sensor Visor */}
+              <mesh position={[0, cellSize * 0.1, cellSize * 0.2]}>
+                <boxGeometry args={[cellSize * 0.25, 0.05, 0.1]} />
                 <primitive object={emissiveMaterial} />
               </mesh>
-              <mesh position={[-cellSize/6, 0, cellSize/4]} rotation={[0, -0.4, 0]}>
-                <boxGeometry args={[0.02, cellSize/4, cellSize/3]} />
-                <primitive object={emissiveMaterial} />
-              </mesh>
-              {/* Core Head */}
-              <mesh position={[0, cellSize/6, cellSize/8]}>
-                <sphereGeometry args={[cellSize/6, 8, 8]} />
-                <primitive object={emissiveMaterial} />
+              {/* Stabilizer Link */}
+              <mesh position={[0, -cellSize * 0.15, -cellSize * 0.2]}>
+                <cylinderGeometry args={[0.02, 0.02, cellSize * 0.3]} rotation={[Math.PI / 2, 0, 0]} />
+                <primitive object={frameMaterial} />
               </mesh>
             </group>
           )}
@@ -94,106 +103,128 @@ export function Enemy3D({ x, y, type, color, cellSize, isBoss, hp, maxHp, debug 
           {/* CLASS: RIFLEMAN - Standard, Balanced, Robust silhouette */}
           {type === 'rifleman' && (
             <group>
-              {/* Core Torso */}
+              {/* Main Armored Torso */}
               <mesh castShadow>
-                <capsuleGeometry args={[cellSize/4, cellSize/3, 4, 8]} />
+                <boxGeometry args={[cellSize * 0.4, cellSize * 0.6, cellSize * 0.3]} />
                 <primitive object={baseMaterial} />
               </mesh>
-              {/* Tactical Plating */}
-              <mesh position={[0, cellSize/10, 0]}>
-                <boxGeometry args={[cellSize/2, cellSize/4, cellSize/3]} />
-                <primitive object={gearMaterial} />
-              </mesh>
-              {/* Visor Unit */}
-              <mesh position={[0, cellSize/3, cellSize/6]}>
-                <boxGeometry args={[cellSize/3, cellSize/15, cellSize/20]} />
-                <primitive object={emissiveMaterial} />
-              </mesh>
-              {/* Attached Module */}
-              <mesh position={[cellSize/4, 0, cellSize/10]}>
-                <boxGeometry args={[cellSize/6, cellSize/4, cellSize/4]} />
-                <primitive object={baseMaterial} />
+              {/* Shoulder Pads */}
+              {[-1, 1].map(s => (
+                <mesh key={s} position={[s * cellSize * 0.25, cellSize * 0.2, 0]}>
+                  <boxGeometry args={[cellSize * 0.15, cellSize * 0.15, cellSize * 0.35]} />
+                  <primitive object={plateMaterial} />
+                </mesh>
+              ))}
+              {/* Head / Optic Unit */}
+              <group position={[0, cellSize * 0.35, 0]}>
+                <mesh>
+                  <boxGeometry args={[cellSize * 0.2, cellSize * 0.2, cellSize * 0.2]} />
+                  <primitive object={plateMaterial} />
+                </mesh>
+                <mesh position={[0, 0, cellSize * 0.1]}>
+                  <boxGeometry args={[cellSize * 0.15, 0.03, 0.01]} />
+                  <primitive object={emissiveMaterial} />
+                </mesh>
+              </group>
+              {/* Power Pack (Back) */}
+              <mesh position={[0, 0, -cellSize * 0.2]}>
+                <boxGeometry args={[cellSize * 0.25, cellSize * 0.4, cellSize * 0.1]} />
+                <primitive object={frameMaterial} />
               </mesh>
             </group>
           )}
 
           {/* CLASS: SNIPER - Tall, Slender, High-precision silhouette */}
           {type === 'sniper' && (
-            <group position={[0, cellSize/4, 0]}>
-              {/* Main Vertical Body */}
+            <group position={[0, cellSize * 0.1, 0]}>
+              {/* Slender Main Frame */}
               <mesh castShadow>
-                <cylinderGeometry args={[cellSize/12, cellSize/8, cellSize * 1.2, 6]} />
+                <cylinderGeometry args={[0.05, 0.08, cellSize * 1.3, 4]} />
                 <primitive object={baseMaterial} />
               </mesh>
-              {/* Sensor Head */}
-              <group position={[0, cellSize/2, 0]}>
+              {/* Sensor Head with Long Lens */}
+              <group position={[0, cellSize * 0.6, 0]}>
                 <mesh>
-                  <boxGeometry args={[cellSize/4, cellSize/8, cellSize/4]} />
-                  <primitive object={gearMaterial} />
+                  <boxGeometry args={[cellSize * 0.2, cellSize * 0.15, cellSize * 0.25]} />
+                  <primitive object={plateMaterial} />
                 </mesh>
-                <mesh position={[0, 0, cellSize/8]}>
-                  <sphereGeometry args={[cellSize/15]} />
+                {/* Rectangular Lens Glow */}
+                <mesh position={[0, 0, cellSize * 0.13]}>
+                  <planeGeometry args={[0.08, 0.04]} />
                   <primitive object={emissiveMaterial} />
                 </mesh>
               </group>
-              {/* Side Stabilizer */}
-              <mesh position={[-cellSize/6, -cellSize/4, 0]} rotation={[0, 0, 0.2]}>
-                <boxGeometry args={[0.05, cellSize/2, 0.05]} />
-                <primitive object={gearMaterial} />
-              </mesh>
+              {/* Side Stabilizer Rails */}
+              {[-1, 1].map(s => (
+                <mesh key={s} position={[s * cellSize * 0.1, 0, 0]}>
+                  <boxGeometry args={[0.01, cellSize * 0.8, 0.05]} />
+                  <primitive object={frameMaterial} />
+                </mesh>
+              ))}
             </group>
           )}
 
           {/* BOSS: TITAN - Heavy, Armored, Intimidating silhouette */}
           {isBoss && (
             <group>
-              {/* Heavy Frame */}
+              {/* Massive Main Chassis */}
               <mesh castShadow>
-                <boxGeometry args={[cellSize * 0.8, cellSize * 0.8, cellSize * 0.8]} />
+                <boxGeometry args={[cellSize * 0.9, cellSize * 0.9, cellSize * 0.9]} />
                 <primitive object={baseMaterial} />
               </mesh>
-              {/* Reactive Armor Plating */}
-              {[-1, 1].map(x => (
-                <mesh key={x} position={[x * cellSize * 0.45, 0, 0]}>
-                  <boxGeometry args={[0.1, cellSize * 0.7, cellSize * 0.6]} />
-                  <primitive object={gearMaterial} />
-                </mesh>
+              {/* Heavy Outer Armor Shells */}
+              {[1, -1].map(x => (
+                <group key={x} position={[x * cellSize * 0.5, 0, 0]}>
+                  <mesh>
+                    <boxGeometry args={[0.15, cellSize, cellSize]} />
+                    <primitive object={plateMaterial} />
+                  </mesh>
+                  {/* Energy Stripes on Armor */}
+                  <mesh position={[x * 0.08, 0, 0]}>
+                     <boxGeometry args={[0.01, cellSize * 0.8, 0.05]} />
+                     <primitive object={emissiveMaterial} />
+                  </mesh>
+                </group>
               ))}
-              {/* Upper Power Stabilizers */}
-              {[-1, 1].map(x => (
-                <mesh key={x} position={[x * cellSize * 0.3, cellSize * 0.4, 0]}>
-                  <boxGeometry args={[cellSize/4, cellSize/6, cellSize/3]} />
+              {/* Reinforced Top Plate */}
+              <mesh position={[0, cellSize * 0.5, 0]}>
+                <boxGeometry args={[cellSize * 0.8, 0.1, cellSize * 0.8]} />
+                <primitive object={frameMaterial} />
+              </mesh>
+              {/* CENTRAL HEART/NUCLEUS */}
+              <mesh position={[0, 0, cellSize * 0.4]}>
+                <sphereGeometry args={[cellSize * 0.3, 24, 24]} />
+                <primitive object={emissiveMaterial} />
+              </mesh>
+              {/* Defense Pylons */}
+              {[[-1,-1],[1,-1],[-1,1],[1,1]].map(([px, pz], i) => (
+                <mesh key={i} position={[px * cellSize * 0.3, cellSize * 0.5, pz * cellSize * 0.3]}>
+                  <cylinderGeometry args={[0.05, 0.05, cellSize * 0.3]} />
                   <primitive object={baseMaterial} />
                 </mesh>
               ))}
-              {/* MASSIVE GLOW CORE */}
-              <mesh position={[0, 0, cellSize/3]}>
-                <sphereGeometry args={[cellSize/4, 16, 16]} />
-                <primitive object={emissiveMaterial} />
-              </mesh>
-              {/* Top Sensor Array */}
-              <mesh position={[0, cellSize * 0.45, 0]}>
-                <boxGeometry args={[cellSize/3, 0.05, cellSize/3]} />
-                <primitive object={gearMaterial} />
-              </mesh>
             </group>
           )}
 
-          {/* Integrated Weapon System - Class Adjusted */}
-          <mesh 
-            position={[cellSize / 3, -cellSize / 10, cellSize / 4]} 
-            rotation={[Math.PI / 2, 0, 0]}
-          >
-            <cylinderGeometry 
-              args={[
-                type === 'sniper' ? 0.015 : 0.035, 
-                0.045, 
-                type === 'sniper' ? cellSize * 1.6 : cellSize * 0.7, 
-                8
-              ]} 
-            />
-            <primitive object={baseMaterial} />
-          </mesh>
+          {/* Integrated Weapon System - Class Adjusted Appearance */}
+          <group position={[cellSize * 0.25, -cellSize * 0.05, cellSize * 0.2]}>
+             <mesh rotation={[Math.PI / 2, 0, 0]}>
+                <cylinderGeometry 
+                  args={[
+                    type === 'sniper' ? 0.01 : 0.03, 
+                    type === 'sniper' ? 0.01 : 0.04, 
+                    type === 'sniper' ? cellSize * 1.5 : cellSize * 0.8, 
+                    8
+                  ]} 
+                />
+                <primitive object={frameMaterial} />
+             </mesh>
+             {/* Muzzle Detail */}
+             <mesh position={[0, 0, type === 'sniper' ? cellSize * 0.75 : cellSize * 0.4]} rotation={[Math.PI / 2, 0, 0]}>
+                <cylinderGeometry args={[type === 'sniper' ? 0.015 : 0.045, type === 'sniper' ? 0.015 : 0.045, 0.02, 16]} />
+                <primitive object={emissiveMaterial} />
+             </mesh>
+          </group>
 
           {/* Under-shadow Gradient (Visual only) */}
           <mesh position={[0, -cellSize / 2, 0]} rotation={[-Math.PI/2, 0, 0]}>
