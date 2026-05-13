@@ -50,11 +50,13 @@ import { sounds } from './game/SoundEngine';
 
 
 // --- Main Component ---
+const PLAYER_RADIUS = 30;
 // @ts-ignore
 const DEBUG_MODE = import.meta.env.DEV;
-const DEBUG_SAFE_MODE = false; // Safe mode disabled for production gameplay
+const DEBUG_SAFE_MODE = false; 
 
 const isBulletBlocking = (cell: number) => cell === 1 || cell === 2 || cell === 3;
+const isMovementBlockingCell = (cell: number) => cell === 1 || cell === 2 || cell === 3;
 
 /**
  * Checks if there is a clear line of sight between two points.
@@ -243,6 +245,7 @@ export default function App() {
   const [mapDataState, setMapDataState] = useState([...MAP.map(row => [...row])]);
   const lastShotTime = useRef(0);
   const recoilOffset = useRef(0);
+  const lastDamageSource = useRef<any>(null);
 
   // Mobile Control Refs
   const joystick = useRef({ active: false, startX: 0, startY: 0, curX: 0, curY: 0 });
@@ -727,22 +730,46 @@ export default function App() {
     const nx = player.current.x + dx * moveSpeed;
     const ny = player.current.y + dy * moveSpeed;
 
-    // Basic Collision & Interaction
-    const tryMove = (tx: number, ty: number) => {
-      if (Number.isNaN(tx) || Number.isNaN(ty) || tx < 0 || tx >= MAP[0].length || ty < 0 || ty >= MAP.length) return false;
-      const cell = mapData.current[ty][tx];
-      if (cell === 0) return true;
-      if (cell === 2) { // Door
-        if (mapData.current[ty]) mapData.current[ty][tx] = 0; // Open
-        setMapDataState([...mapData.current.map(row => [...row])]);
-        sounds.playReload();
-        return true;
+    // Movement Collision with Radius
+    const checkCollision = (px: number, py: number) => {
+      const radius = PLAYER_RADIUS;
+      const points = [
+        { x: px + radius, y: py },
+        { x: px - radius, y: py },
+        { x: px, y: py + radius },
+        { x: px, y: py - radius },
+        { x: px + radius * 0.7, y: py + radius * 0.7 },
+        { x: px - radius * 0.7, y: py + radius * 0.7 },
+        { x: px + radius * 0.7, y: py - radius * 0.7 },
+        { x: px - radius * 0.7, y: py - radius * 0.7 },
+      ];
+
+      for (const p of points) {
+        const tx = Math.floor(p.x / CELL_SIZE);
+        const ty = Math.floor(p.y / CELL_SIZE);
+        if (ty < 0 || ty >= mapData.current.length || tx < 0 || tx >= mapData.current[0].length) return true;
+        const cell = mapData.current[ty][tx];
+        
+        if (isMovementBlockingCell(cell)) {
+          // Auto-Interaction for Doors (was cell 2)
+          if (cell === 2) {
+             mapData.current[ty][tx] = 0;
+             setMapDataState([...mapData.current.map(row => [...row])]);
+             sounds.playReload();
+          }
+          return true;
+        }
       }
       return false;
     };
 
-    if (tryMove(Math.floor(nx / CELL_SIZE), Math.floor(player.current.y / CELL_SIZE))) player.current.x = nx;
-    if (tryMove(Math.floor(player.current.x / CELL_SIZE), Math.floor(ny / CELL_SIZE))) player.current.y = ny;
+    // Slide along walls
+    if (!checkCollision(nx, player.current.y)) {
+      player.current.x = nx;
+    }
+    if (!checkCollision(player.current.x, ny)) {
+      player.current.y = ny;
+    }
 
     // Pickup Collection
     pickups.current = pickups.current.filter((p) => {
@@ -885,14 +912,31 @@ export default function App() {
           // Shoot Logic
           const fireRate = e.isBoss ? 600 : (e.type === 'sniper' ? 3000 : e.type === 'rifleman' ? 900 : 1800);
           const canShoot = now - gameStartTime.current > 4000 && now - e.spawnTime > 1500;
-          if (canShoot && now - e.lastShot > fireRate && dist < 1200 && e.hasLineOfSight) {
-              e.lastShot = now;
-              
-              if (!DEBUG_SAFE_MODE && now - lastDamageTaken.current > 600) { // Enforced 600ms damage cooldown
-                  const baseDamage = e.type === 'sniper' ? 35 : e.type === 'rifleman' ? 12 : 8;
-                  const damage = (e.isBoss ? baseDamage * 2.5 : baseDamage) * DIFFICULTIES[difficulty].dmgMult;
-                  setHp(prev => {
-                      const newHp = Math.max(0, prev - damage);
+          
+          if (canShoot && now - e.lastShot > fireRate && dist < 1200) {
+              // FINAL REAL-TIME LOS VALIDATION AT DAMAGE MOMENT
+              const shotLOS = checkLineOfSightInfo(e.x, e.y, player.current.x, player.current.y, mapData.current);
+              e.hasLineOfSight = shotLOS.hasLOS;
+              e.blockedBy = shotLOS.blockedBy;
+
+              if (shotLOS.hasLOS) {
+                  e.lastShot = now;
+                  
+                  if (!DEBUG_SAFE_MODE && now - lastDamageTaken.current > 600) { 
+                      const baseDamage = e.type === 'sniper' ? 35 : e.type === 'rifleman' ? 12 : 8;
+                      const damage = (e.isBoss ? baseDamage * 2.5 : baseDamage) * DIFFICULTIES[difficulty].dmgMult;
+                      
+                      // Debug Data Storage
+                      lastDamageSource.current = {
+                        id: e.id,
+                        type: e.type,
+                        dist: Math.round(dist),
+                        hasLOS: shotLOS.hasLOS,
+                        blockedBy: shotLOS.blockedBy
+                      };
+
+                      setHp(prev => {
+                          const newHp = Math.max(0, prev - damage);
                       if (newHp === 0 && gameStateRef.current === 'playing' && !isRunEndingRef.current) {
                         isRunEndingRef.current = true;
                         const diffMult = DIFFICULTIES[difficulty].creditMult;
@@ -946,6 +990,7 @@ export default function App() {
                   sounds.playShot(e.type === 'sniper' ? 'sniper' : 'pistol');
               }
               tracers.current.push({ id: nextTracerId.current++, x1: e.x, y1: e.y, x2: player.current.x, y2: player.current.y, alpha: 1 });
+            }
           }
       } else {
           // Pathfinding: No LOS
@@ -1017,13 +1062,17 @@ export default function App() {
     if (DEBUG_MODE) {
       let nearestDist = 9999;
       let nearestEnemy: any = null;
+      let enemiesWithLOS = 0;
       enemies.current.forEach(e => {
         const dist = Math.hypot(e.x - player.current.x, e.y - player.current.y);
         if (dist < nearestDist) {
           nearestDist = dist;
           nearestEnemy = e;
         }
+        if (e.hasLineOfSight) enemiesWithLOS++;
       });
+
+      const dmg = lastDamageSource.current;
 
       setDebugData({
         fps,
@@ -1037,14 +1086,12 @@ export default function App() {
         pitch: player.current.pitch.toFixed(1),
         wave: waveRef.current,
         enemiesTotal: enemies.current.length,
-        enemiesState: enemiesState.length,
         enemiesRemaining,
+        enemiesWithLOS,
         nearestDist: nearestDist.toFixed(1),
         nearestType: nearestEnemy?.type || 'none',
         nearestLOS: nearestEnemy ? `${nearestEnemy.hasLineOfSight} (Blocked by: ${nearestEnemy.blockedBy ?? 'None'})` : 'none',
-        waveTime: ((Date.now() - gameStartTime.current) / 1000).toFixed(1),
-        gracePeriod: String(Date.now() - gameStartTime.current < 3000),
-        lastDmg: now - lastDamageTaken.current < 400 ? 'COOLDOWN' : 'READY'
+        lastDmgInfo: dmg ? `${dmg.type} | Dist:${dmg.dist} | LOS:${dmg.hasLOS} | BBy:${dmg.blockedBy}` : 'none'
       });
     }
 
@@ -1238,7 +1285,9 @@ export default function App() {
           <div className="text-white font-bold mt-1 border-b border-white/20 pb-0.5">ENEMY INTEL</div>
           <div>NEAR  | {debugData.nearestType} ({debugData.nearestDist}m)</div>
           <div>LOS   | {debugData.nearestLOS}</div>
-          <div>DMG   | {debugData.lastDmg}</div>
+          <div>WITH_LOS | {debugData.enemiesWithLOS}</div>
+          <div className="text-red-400 mt-1">LAST DMG SOURCE</div>
+          <div className="text-[8px]">{debugData.lastDmgInfo}</div>
           <div className="text-cyan-400 font-bold mt-1">SAFE_MODE: {String(DEBUG_SAFE_MODE)}</div>
         </div>
       )}

@@ -69,8 +69,8 @@ export function World({ mapData, cellSize }: MapProps) {
     
     mapData.forEach((row, y) => {
       row.forEach((cell, x) => {
-        const posX = x * cellSize;
-        const posZ = y * cellSize;
+        const posX = x * cellSize + cellSize / 2;
+        const posZ = y * cellSize + cellSize / 2;
 
         if (cell === 1) { // Advanced Tactical Wall
           geometry.push(
@@ -92,7 +92,7 @@ export function World({ mapData, cellSize }: MapProps) {
                 </mesh>
               ))}
               {/* Vertical Wiring Detail */}
-              <mesh position={[cellSize/2 + 0.01, 0, 0]} material={wallTrimMaterial}>
+              <mesh position={[cellSize/2 - 0.02, 0, 0]} material={wallTrimMaterial}>
                 <boxGeometry args={[0.02, cellSize * 0.8, 0.1]} />
               </mesh>
             </group>
@@ -101,21 +101,21 @@ export function World({ mapData, cellSize }: MapProps) {
           geometry.push(
             <group key={`crate-${x}-${y}`} position={[posX, cellSize / 2, posZ]}>
               <mesh castShadow receiveShadow material={crateMaterial}>
-                <boxGeometry args={[cellSize * 0.85, cellSize * 0.85, cellSize * 0.85]} />
+                <boxGeometry args={[cellSize * 0.82, cellSize * 0.82, cellSize * 0.82]} />
               </mesh>
               {/* Tactical Frame */}
               <mesh material={frameMaterial}>
-                 <boxGeometry args={[cellSize * 0.87, cellSize * 0.2, cellSize * 0.87]} />
+                 <boxGeometry args={[cellSize * 0.84, cellSize * 0.2, cellSize * 0.84]} />
               </mesh>
               <mesh rotation={[Math.PI/2, 0, 0]} material={frameMaterial}>
-                 <boxGeometry args={[cellSize * 0.87, cellSize * 0.2, cellSize * 0.87]} />
+                 <boxGeometry args={[cellSize * 0.84, cellSize * 0.2, cellSize * 0.84]} />
               </mesh>
               {/* Data Plate (Yellow) */}
-              <mesh position={[0, 0, cellSize * 0.43]} material={tacticalYellow}>
+              <mesh position={[0, 0, cellSize * 0.41]} material={tacticalYellow}>
                 <planeGeometry args={[cellSize * 0.3, cellSize * 0.1]} />
               </mesh>
               {/* Active Sensor Light */}
-              <mesh position={[cellSize * 0.3, cellSize * 0.3, cellSize * 0.43]}>
+              <mesh position={[cellSize * 0.3, cellSize * 0.3, cellSize * 0.41]}>
                 <sphereGeometry args={[0.02, 8, 8]} />
                 <meshStandardMaterial color="#22d3ee" emissive="#22d3ee" emissiveIntensity={4} />
               </mesh>
@@ -125,20 +125,20 @@ export function World({ mapData, cellSize }: MapProps) {
           geometry.push(
             <group key={`barrel-${x}-${y}`} position={[posX, cellSize / 3, posZ]}>
               <mesh castShadow material={barrelMaterial}>
-                <cylinderGeometry args={[cellSize/3, cellSize/3, cellSize/1.5, 12]} />
+                <cylinderGeometry args={[cellSize/3.2, cellSize/3.2, cellSize/1.5, 12]} />
               </mesh>
               {/* Structural Hoops */}
               {[0.2, 0, -0.2].map((h, i) => (
                 <mesh key={i} position={[0, h * cellSize, 0]} material={frameMaterial}>
-                  <torusGeometry args={[cellSize/3 + 0.01, 0.02, 6, 16]} />
+                  <torusGeometry args={[cellSize/3.1, 0.02, 6, 16]} />
                 </mesh>
               ))}
               {/* Plasma Glow Core */}
               <mesh material={barrelEnergyMaterial}>
-                <cylinderGeometry args={[cellSize/3.5, cellSize/3.5, 0.1, 12]} />
+                <cylinderGeometry args={[cellSize/3.8, cellSize/3.8, 0.1, 12]} />
               </mesh>
               {/* Warning Stripes */}
-              <mesh position={[0, cellSize/4.5, cellSize/3 + 0.01]} material={tacticalYellow}>
+              <mesh position={[0, cellSize/4.5, cellSize/3.1]} material={tacticalYellow}>
                 <planeGeometry args={[cellSize/6, 0.02]} />
               </mesh>
             </group>
