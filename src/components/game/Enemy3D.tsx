@@ -33,15 +33,15 @@ export function Enemy3D({ x, y, type, color, cellSize, isBoss, hp, maxHp, debug 
 
   // Dedicated materials for a more tactical look
   const baseMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#1a1a1a', // Industrial Graphite
-    metalness: 0.8,
-    roughness: 0.3,
+    color: '#334155', // Slate 600 - Lighter for visibility
+    metalness: 0.7,
+    roughness: 0.4,
   }), []);
 
   const plateMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#2d3748', // Slate plating
-    metalness: 0.6,
-    roughness: 0.5,
+    color: '#475569', // Slate 500
+    metalness: 0.5,
+    roughness: 0.6,
   }), []);
 
   // Class-specific color overrides to follow the Art Pass exactly
@@ -70,7 +70,6 @@ export function Enemy3D({ x, y, type, color, cellSize, isBoss, hp, maxHp, debug 
 
   return (
     <group position={[x, (cellSize / 2) * scale, y]} scale={scale}>
-      <Float speed={2} rotationIntensity={0.05} floatIntensity={0.1}>
         <group ref={meshRef}>
           {/* CLASS: RUSHER - Compact, Aggressive, Fast silhouette */}
           {type === 'rusher' && (
@@ -90,8 +89,8 @@ export function Enemy3D({ x, y, type, color, cellSize, isBoss, hp, maxHp, debug 
                 <boxGeometry args={[cellSize * 0.25, 0.05, 0.1]} />
               </mesh>
               {/* Stabilizer Link */}
-              <mesh position={[0, -cellSize * 0.15, -cellSize * 0.2]} material={frameMaterial}>
-                <cylinderGeometry args={[0.02, 0.02, cellSize * 0.3]} rotation={[Math.PI / 2, 0, 0]} />
+              <mesh position={[0, -cellSize * 0.15, -cellSize * 0.2]} material={frameMaterial} rotation={[Math.PI / 2, 0, 0]}>
+                <cylinderGeometry args={[0.02, 0.02, cellSize * 0.3]} />
               </mesh>
             </group>
           )}
@@ -205,14 +204,8 @@ export function Enemy3D({ x, y, type, color, cellSize, isBoss, hp, maxHp, debug 
              </mesh>
           </group>
 
-          {/* Under-shadow Gradient (Visual only) */}
-          <mesh position={[0, -cellSize / 2, 0]} rotation={[-Math.PI/2, 0, 0]}>
-            <circleGeometry args={[cellSize / 2]} />
-            <meshBasicMaterial color="black" transparent opacity={0.3} />
-          </mesh>
+          {/* Under-shadow Gradient Removed for Performance */}
         </group>
-      </Float>
-
       {/* 3D Health Bar Billboard - Hardened Visuals */}
       <Billboard
         follow={true}

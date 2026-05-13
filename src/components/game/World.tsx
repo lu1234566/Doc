@@ -16,16 +16,16 @@ export function World({ mapData, cellSize }: MapProps) {
 
   const wallTrimMaterial = useMemo(() => new THREE.MeshStandardMaterial({
     color: '#020617', 
-    emissive: '#06b6d4', // Bright Cyan 
-    emissiveIntensity: 4.0, // Forced high for verification
+    emissive: '#06b6d4', 
+    emissiveIntensity: 1.5,
     metalness: 0.9,
     roughness: 0.1,
   }), []);
 
   const floorMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#020617', // Near Black Navy
-    metalness: 0.4,
-    roughness: 0.7,
+    color: '#1e293b', 
+    metalness: 0.3,
+    roughness: 0.8,
   }), []);
 
   const barrelMaterial = useMemo(() => new THREE.MeshStandardMaterial({
@@ -166,20 +166,20 @@ export function World({ mapData, cellSize }: MapProps) {
         <group position={[mapWidth / 2, 0, mapHeight / 2]}>
           {/* Main Structural Grid */}
           <gridHelper 
-            args={[mapWidth * 4, 64, 0x1e293b, 0x020617]} 
+            args={[mapWidth * 4, 32, 0x475569, 0x0f172a]} 
             position={[0, 0.01, 0]}
           />
-          {/* Finer Accent Grid */}
+          {/* Finer Accent Grid (Much subtle) */}
           <gridHelper 
-            args={[mapWidth * 4, 16, 0x0891b2, 0x020617]} 
+            args={[mapWidth * 4, 8, 0x0e7490, 0x0f172a]} 
             position={[0, 0.005, 0]}
             visible={true}
           />
         </group>
       ), [mapWidth, mapHeight])}
 
-      {/* Ceiling */}
-      <mesh rotation={[Math.PI / 2, 0, 0]} position={[mapWidth / 2, cellSize, mapHeight / 2]} material={ceilingMaterial}>
+      {/* Ceiling: Raised for visual airiness */}
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[mapWidth / 2, cellSize * 2.5, mapHeight / 2]} material={ceilingMaterial}>
         <planeGeometry args={[mapWidth * 2, mapHeight * 2]} />
       </mesh>
 

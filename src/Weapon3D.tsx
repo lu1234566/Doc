@@ -6,11 +6,10 @@ import * as THREE from 'three';
 export function Weapon3D({ type, isReloading, isAds, recoilOffset, lastShotTime }: { type: string, isReloading: boolean, isAds: boolean, recoilOffset: number, lastShotTime: number }) {
   return (
     <div style={{ position: 'absolute', bottom: 0, right: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 10 }}>
-      <Canvas shadows camera={{ position: [0, 0, 5], fov: 50 }} style={{ pointerEvents: 'none' }}>
-        <ambientLight intensity={0.5} />
-        <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1} castShadow />
-        <pointLight position={[-10, -10, -10]} />
-        <Environment preset="city" />
+      <Canvas camera={{ position: [0, 0, 5], fov: 50 }} style={{ pointerEvents: 'none' }}>
+        <ambientLight intensity={0.7} />
+        <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1.5} />
+        <pointLight position={[-10, -10, -10]} intensity={0.5} />
         <WeaponModel type={type} isReloading={isReloading} isAds={isAds} recoilOffset={recoilOffset} lastShotTime={lastShotTime} />
       </Canvas>
     </div>
@@ -23,8 +22,8 @@ export function WeaponModel({ type, isReloading, isAds, recoilOffset, lastShotTi
   const flashMeshRef = useRef<THREE.Mesh>(null);
 
   // Tactical Materials
-  const matGraphite = useMemo(() => new THREE.MeshStandardMaterial({ color: '#1a202c', metalness: 0.7, roughness: 0.3 }), []);
-  const matMetal = useMemo(() => new THREE.MeshStandardMaterial({ color: '#4a5568', metalness: 0.9, roughness: 0.1 }), []);
+  const matGraphite = useMemo(() => new THREE.MeshStandardMaterial({ color: '#2d3748', metalness: 0.5, roughness: 0.5 }), []);
+  const matMetal = useMemo(() => new THREE.MeshStandardMaterial({ color: '#718096', metalness: 0.8, roughness: 0.2 }), []);
   const matGrip = useMemo(() => new THREE.MeshStandardMaterial({ color: '#0f172a', metalness: 0.1, roughness: 0.9 }), []);
   const matCyan = useMemo(() => new THREE.MeshStandardMaterial({ color: '#22d3ee', emissive: '#22d3ee', emissiveIntensity: 2 }), []);
   const matYellow = useMemo(() => new THREE.MeshStandardMaterial({ color: '#fbbf24', emissive: '#fbbf24', emissiveIntensity: 1.5 }), []);
@@ -71,8 +70,7 @@ export function WeaponModel({ type, isReloading, isAds, recoilOffset, lastShotTi
           <meshBasicMaterial color="#fbbf24" transparent opacity={0.6} />
       </mesh>
 
-      <Float speed={1.5} rotationIntensity={0.02} floatIntensity={0.02}>
-        {type === 'pistol' && (
+      {type === 'pistol' && (
           <group scale={0.8}>
             {/* P-99 Refined Silhouette */}
             <mesh castShadow position={[0, 0.2, 0.2]} material={matGraphite}>
@@ -214,7 +212,6 @@ export function WeaponModel({ type, isReloading, isAds, recoilOffset, lastShotTi
             </mesh>
           </group>
         )}
-      </Float>
     </group>
   );
 }
