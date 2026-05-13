@@ -75,6 +75,7 @@ const getSafePlayerStart = () => {
 
 export default function App() {
   const gameContainerRef = useRef<HTMLDivElement>(null);
+  const pointerLockCooldownRef = useRef(0);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gameState, setGameState] = useState<'start' | 'playing' | 'dead' | 'win' | 'upgrades'>('start');
   const gameStateRef = useRef(gameState);
@@ -828,15 +829,15 @@ export default function App() {
           if (dist > targetDist + 16) {
               moveX = cos * e.speed;
               moveY = sin * e.speed;
-          } else if (dist < targetDist - 16) {
+          } else if (dist < targetDist - 32) {
               moveX = -cos * e.speed;
               moveY = -sin * e.speed;
           }
           
-          // Strafe if very close to player to avoid clipping
-          if (dist < 100) {
-            moveX += -sin * e.speed * 0.5;
-            moveY += cos * e.speed * 0.5;
+          // Strafe if very close to player to avoid clipping (increased distance)
+          if (dist < 150) {
+            moveX += -sin * e.speed * 0.7;
+            moveY += cos * e.speed * 0.7;
           }
           
           // Anti-Stuck: if trying to move but distance doesn't change
@@ -855,12 +856,12 @@ export default function App() {
           }
 
           // Shoot Logic
-          const fireRate = e.isBoss ? 600 : (e.type === 'sniper' ? 3000 : e.type === 'rifleman' ? 800 : 1500);
-          const canShoot = now - gameStartTime.current > 3000 && now - e.spawnTime > 1000;
+          const fireRate = e.isBoss ? 600 : (e.type === 'sniper' ? 3000 : e.type === 'rifleman' ? 900 : 1800);
+          const canShoot = now - gameStartTime.current > 4000 && now - e.spawnTime > 1500;
           if (canShoot && now - e.lastShot > fireRate && dist < 1200) {
               e.lastShot = now;
               
-              if (!DEBUG_SAFE_MODE && now - lastDamageTaken.current > 400) { // Enforced damage cooldown
+              if (!DEBUG_SAFE_MODE && now - lastDamageTaken.current > 600) { // Enforced 600ms damage cooldown
                   const baseDamage = e.type === 'sniper' ? 35 : e.type === 'rifleman' ? 12 : 8;
                   const damage = (e.isBoss ? baseDamage * 2.5 : baseDamage) * DIFFICULTIES[difficulty].dmgMult;
                   setHp(prev => {
@@ -1133,25 +1134,57 @@ export default function App() {
         player.current.pitch = clamp(player.current.pitch - e.movementY * 0.1, -25, 25);
     };
 
+    const handlePointerLockChange = () => {
+      if (document.pointerLockElement === null) {
+        // When user exits lock, set the cooldown to prevent immediate re-entry failing
+        pointerLockCooldownRef.current = Date.now();
+      }
+    };
+    const handlePointerLockError = () => {
+      console.warn('Pointer lock error event caught');
+      // On error, reset cooldown so they can try again if the browser allows it
+      pointerLockCooldownRef.current = 0;
+    };
+
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
     // Bind mouse events to window to capture even if out of container during drag/lock
     window.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mouseup', handleMouseUp);
     window.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('pointerlockchange', handlePointerLockChange);
+    document.addEventListener('pointerlockerror', handlePointerLockError);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mouseup', handleMouseUp);
       window.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('pointerlockchange', handlePointerLockChange);
+      document.removeEventListener('pointerlockerror', handlePointerLockError);
     };
   }, [gameState, currentWeapon]);
 
   const togglePointerLock = () => {
     if (mobileMode) return;
     if (gameContainerRef.current) {
-        gameContainerRef.current.requestPointerLock();
+        if (document.pointerLockElement === gameContainerRef.current) return;
+        
+        const now = Date.now();
+        if (now - pointerLockCooldownRef.current < 1200) return; // Standard cooldown ~1.2s to be safe
+        pointerLockCooldownRef.current = now;
+
+        try {
+            const promise = gameContainerRef.current.requestPointerLock();
+            // Handle browsers that return a promise
+            if (promise && typeof (promise as any).catch === 'function') {
+                (promise as any).catch((e: Error) => {
+                    console.warn('Pointer lock request failed:', e.message);
+                });
+            }
+        } catch (err) {
+            console.warn('Pointer lock initiation error:', err);
+        }
     }
   };
 

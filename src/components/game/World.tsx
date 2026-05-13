@@ -16,11 +16,11 @@ export function World({ mapData, cellSize }: MapProps) {
   }), []);
 
   const wallTrimMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#1e293b', // Slate 800
+    color: '#0f172a', // Slate 900
     emissive: '#0891b2', // Cyan 600
-    emissiveIntensity: 0.4,
-    metalness: 0.5,
-    roughness: 0.3,
+    emissiveIntensity: 0.1,
+    metalness: 0.8,
+    roughness: 0.1,
   }), []);
 
   const floorMaterial = useMemo(() => new THREE.MeshStandardMaterial({
@@ -44,9 +44,9 @@ export function World({ mapData, cellSize }: MapProps) {
   }), []);
 
   const crateMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#1e293b', // Slate 800
-    metalness: 0.4,
-    roughness: 0.6,
+    color: '#0f172a', // Slate 900
+    metalness: 0.2,
+    roughness: 0.8,
   }), []);
 
   const frameMaterial = useMemo(() => new THREE.MeshStandardMaterial({
@@ -92,7 +92,7 @@ export function World({ mapData, cellSize }: MapProps) {
               {/* Interior Panel Line */}
               <mesh position={[0, 0, cellSize/2]}>
                 <planeGeometry args={[cellSize * 0.8, 0.02]} />
-                <meshStandardMaterial color="#0891b2" emissive="#0891b2" emissiveIntensity={0.8} />
+                <meshStandardMaterial color="#0891b2" emissive="#0891b2" emissiveIntensity={0.2} />
               </mesh>
             </group>
           );
@@ -114,7 +114,7 @@ export function World({ mapData, cellSize }: MapProps) {
               {/* Tactical Label/Caution (Yellow - Muted) */}
               <mesh position={[0, 0, cellSize * 0.41]}>
                 <planeGeometry args={[cellSize * 0.4, cellSize * 0.1]} />
-                <meshStandardMaterial color="#b45309" emissive="#b45309" emissiveIntensity={0.4} />
+                <meshStandardMaterial color="#b45309" emissive="#b45309" emissiveIntensity={0.15} />
               </mesh>
               {/* Handling Bar */}
               <mesh position={[0, cellSize * 0.3, cellSize * 0.43]}>
@@ -184,6 +184,7 @@ export function World({ mapData, cellSize }: MapProps) {
           <gridHelper 
             args={[mapWidth * 4, 32, 0x0891b2, 0x020617]} 
             position={[0, 0.001, 0]}
+            visible={false}
           />
         </group>
       ), [mapWidth, mapHeight])}
