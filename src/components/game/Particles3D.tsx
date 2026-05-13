@@ -24,17 +24,14 @@ export function Particles3D({ particles, cellSize, mapData }: { particles: Parti
           position={[p.x - mapWidth / 2, cellSize / 3, p.y - mapHeight / 2]}
         >
           {p.color === '#fef08a' ? (
-            <sphereGeometry args={[p.size / 6, 6, 6]} />
+            <sphereGeometry args={[p.size / 8, 4, 4]} />
           ) : (
-            <boxGeometry args={[p.size / 4, p.size / 4, p.size / 4]} />
+            <boxGeometry args={[p.size / 6, p.size / 6, p.size / 6]} />
           )}
-          <meshStandardMaterial 
+          <meshBasicMaterial 
             color={p.color} 
             transparent 
-            opacity={p.life} 
-            emissive={p.color} 
-            emissiveIntensity={p.color === '#fef08a' ? 3 : 1} 
-            metalness={0.8}
+            opacity={p.life * 0.7} 
           />
         </mesh>
       ))}

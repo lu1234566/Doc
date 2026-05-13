@@ -1444,35 +1444,41 @@ export default function App() {
             />
 
             {/* Action Buttons */}
-            <div className="absolute right-4 md:right-10 bottom-24 md:bottom-32 flex flex-col items-end gap-3 md:gap-6 pointer-events-none z-[60]">
+            <div className={`absolute right-4 md:right-10 bottom-24 md:bottom-32 flex flex-col items-end gap-3 md:gap-6 pointer-events-none z-[60] ${mobileMode ? 'scale-90 origin-bottom-right' : ''}`}>
               
               <div className="flex gap-2 md:gap-4">
-                 {/* ADS Button */}
-                 <button 
-                  className={`w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center border-2 backdrop-blur-md pointer-events-auto transition-transform active:scale-95 ${player.current.isAds ? 'bg-yellow-500/40 border-yellow-500 text-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.3)]' : 'bg-slate-900/60 border-slate-700 text-slate-400'}`}
+                  {/* ADS Button */}
+                  <button 
+                  className={`w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center border-2 backdrop-blur-md pointer-events-auto transition-transform active:scale-95 ${player.current.isAds ? 'bg-cyan-500/40 border-cyan-500 text-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.3)]' : 'bg-slate-900/60 border-slate-700 text-slate-400'}`}
                   onTouchStart={(e) => {
                     e.preventDefault();
                     keys.current['c'] = !keys.current['c'];
                   }}
                 >
-                  <Target size={28} />
+                  <div className="flex flex-col items-center">
+                    <Target size={24} />
+                    <span className="text-[8px] font-black uppercase mt-0.5">ADS</span>
+                  </div>
                 </button>
 
                 {/* Reload Button */}
                 <button 
-                  className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-slate-900/60 border-2 border-slate-700 text-white flex items-center justify-center backdrop-blur-md pointer-events-auto active:scale-95 transition-transform"
+                  className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-slate-900/60 border-2 border-slate-700 text-white flex items-center justify-center backdrop-blur-md pointer-events-auto active:scale-95 transition-transform"
                   onTouchStart={(e) => {
                     e.preventDefault();
                     reload();
                   }}
                 >
-                  <RefreshCcw size={28} className={isReloading ? 'animate-spin text-yellow-500' : ''} />
+                  <div className="flex flex-col items-center">
+                    <RefreshCcw size={24} className={isReloading ? 'animate-spin text-yellow-500' : ''} />
+                    <span className="text-[8px] font-black uppercase mt-0.5">Rel</span>
+                  </div>
                 </button>
               </div>
 
               {/* Fire Button */}
               <button 
-                className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-red-600/30 border-4 border-red-500/50 text-red-500 flex items-center justify-center backdrop-blur-xl pointer-events-auto active:scale-90 transition-all shadow-[0_0_30px_rgba(239,68,68,0.2)] active:border-red-500 active:bg-red-500/50"
+                className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-red-600/30 border-4 border-red-500/50 text-red-500 flex items-center justify-center backdrop-blur-xl pointer-events-auto active:scale-90 transition-all shadow-[0_0_40px_rgba(239,68,68,0.3)] active:border-red-500 active:bg-red-500/50"
                 onTouchStart={(e) => {
                   e.preventDefault();
                   keys.current['m_left'] = true;
@@ -1487,14 +1493,14 @@ export default function App() {
                   keys.current['m_left'] = false;
                 }}
               >
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-red-400/30 flex items-center justify-center">
-                   <Target size={28} className="md:w-8 md:h-8" />
+                <div className="w-14 h-14 md:w-16 md:h-16 rounded-full border-2 border-red-400/30 flex items-center justify-center">
+                   <Zap size={32} className="md:w-10 md:h-10" />
                 </div>
               </button>
             </div>
             
             {/* Weapon Selector (Mobile) */}
-            <div className="absolute top-16 left-4 md:left-10 flex flex-col gap-1 md:gap-2 pointer-events-auto z-[60]">
+            <div className={`absolute left-4 md:left-10 flex flex-col gap-1 md:gap-2 pointer-events-auto z-[60] transition-all ${mobileMode ? 'top-20' : 'top-16'}`}>
               {(['pistol', 'rifle', 'shotgun', 'sniper'] as WeaponType[]).map(weapon => (
                 <button
                   key={weapon}
@@ -1510,7 +1516,7 @@ export default function App() {
                       reloadTimeoutRef.current = null;
                     }
                   }}
-                  className={`px-3 md:px-4 py-1.5 md:py-2 rounded-lg border backdrop-blur-md text-[8px] md:text-[10px] font-black uppercase tracking-widest transition-all ${currentWeapon === weapon ? 'bg-yellow-500 border-yellow-400 text-slate-950 shadow-lg' : 'bg-slate-900/60 border-slate-700 text-slate-400'}`}
+                  className={`px-3 md:px-4 py-2 rounded-lg border backdrop-blur-md text-[9px] font-black uppercase tracking-widest transition-all ${currentWeapon === weapon ? 'bg-cyan-500 border-cyan-400 text-slate-950 shadow-lg scale-105' : 'bg-slate-900/60 border-slate-700 text-white/40'}`}
                 >
                   {WEAPONS[weapon].name}
                 </button>
@@ -1547,27 +1553,41 @@ export default function App() {
            {/* Hit Marker */}
            {Date.now() - hitMarker.time < 120 && (
              <motion.div 
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1.2, opacity: 1 }}
+              initial={{ scale: 0.7, opacity: 0 }}
+              animate={{ scale: 1.1, opacity: 1 }}
               className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-50"
              >
-                <div className="relative w-10 h-10">
-                   <div className={`absolute top-0 left-0 w-4 h-[2px] ${hitMarker.killed ? 'bg-red-500 shadow-[0_0_8px_red]' : 'bg-cyan-400 shadow-[0_0_8px_cyan]'} rotate-45 origin-left`} />
-                   <div className={`absolute top-0 right-0 w-4 h-[2px] ${hitMarker.killed ? 'bg-red-500 shadow-[0_0_8px_red]' : 'bg-cyan-400 shadow-[0_0_8px_cyan]'} -rotate-45 origin-right`} />
-                   <div className={`absolute bottom-0 left-0 w-4 h-[2px] ${hitMarker.killed ? 'bg-red-500 shadow-[0_0_8px_red]' : 'bg-cyan-400 shadow-[0_0_8px_cyan]'} -rotate-45 origin-left`} />
-                   <div className={`absolute bottom-0 right-0 w-4 h-[2px] ${hitMarker.killed ? 'bg-red-500 shadow-[0_0_8px_red]' : 'bg-cyan-400 shadow-[0_0_8px_cyan]'} rotate-45 origin-right`} />
+                <div className="relative w-8 h-8">
+                   <div className={`absolute top-0 left-0 w-3 h-[1.5px] ${hitMarker.killed ? 'bg-red-500 shadow-[0_0_8px_red]' : 'bg-cyan-400 shadow-[0_0_8px_cyan]'} rotate-45 origin-left`} />
+                   <div className={`absolute top-0 right-0 w-3 h-[1.5px] ${hitMarker.killed ? 'bg-red-500 shadow-[0_0_8px_red]' : 'bg-cyan-400 shadow-[0_0_8px_cyan]'} -rotate-45 origin-right`} />
+                   <div className={`absolute bottom-0 left-0 w-3 h-[1.5px] ${hitMarker.killed ? 'bg-red-500 shadow-[0_0_8px_red]' : 'bg-cyan-400 shadow-[0_0_8px_cyan]'} -rotate-45 origin-left`} />
+                   <div className={`absolute bottom-0 right-0 w-3 h-[1.5px] ${hitMarker.killed ? 'bg-red-500 shadow-[0_0_8px_red]' : 'bg-cyan-400 shadow-[0_0_8px_cyan]'} rotate-45 origin-right`} />
                 </div>
              </motion.div>
            )}
-
+ 
            {/* Crosshair Overlay */}
            {gameState === 'playing' && !(currentWeapon === 'sniper' && player.current.isAds) && (
              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none flex items-center justify-center">
-                {/* Center dot */}
-                <div className="w-[3px] h-[3px] bg-cyan-400 rounded-full shadow-[0_0_5px_cyan] z-10" />
-                {/* Cross lines */}
-                <div className={`w-6 h-[1.5px] bg-cyan-400/60 shadow-[0_0_5px_rgba(34,211,238,0.5)] absolute ${player.current.isAds ? 'opacity-30 scale-75' : 'opacity-100'}`} />
-                <div className={`h-6 w-[1.5px] bg-cyan-400/60 shadow-[0_0_5px_rgba(34,211,238,0.5)] absolute ${player.current.isAds ? 'opacity-30 scale-75' : 'opacity-100'}`} />
+                {/* Tactical Brackets */}
+                <div className={`relative flex items-center justify-center transition-all duration-300 ${player.current.isAds ? 'scale-50 opacity-40' : 'scale-100 opacity-100'}`}>
+                  {/* Center Dot */}
+                  <div className="w-1 h-1 bg-cyan-400 rounded-full shadow-[0_0_4px_cyan]" />
+                  
+                  {/* Horizontal */}
+                  <div className="absolute w-5 h-[1px] bg-cyan-400/40" />
+                  <div className="absolute h-5 w-[1px] bg-cyan-400/40" />
+
+                  {/* Outer Indicators (Tactical Style) */}
+                  {!player.current.isAds && (
+                    <>
+                      <div className="absolute -top-4 w-1.5 h-[1.5px] bg-cyan-500/80" />
+                      <div className="absolute -bottom-4 w-1.5 h-[1.5px] bg-cyan-500/80" />
+                      <div className="absolute -left-4 h-1.5 w-[1.5px] bg-cyan-500/80" />
+                      <div className="absolute -right-4 h-1.5 w-[1.5px] bg-cyan-500/80" />
+                    </>
+                  )}
+                </div>
              </div>
            )}
 
@@ -1626,86 +1646,145 @@ export default function App() {
               </div>
             </div>
 
-            {/* Weapon & Ammo Card */}
-            <div className={`absolute pointer-events-none z-40 flex items-center gap-2 md:gap-4 transition-all duration-300 ${mobileMode ? 'top-4 right-4 scale-75 origin-top-right' : 'bottom-6 right-6'}`}>
-              <button 
-                onClick={reload}
-                className="w-10 h-10 md:w-14 md:h-14 bg-slate-900/90 backdrop-blur-xl border border-slate-700 hover:border-yellow-500 rounded-xl flex items-center justify-center shadow-2xl transition-colors pointer-events-auto group hidden md:flex"
-              >
-                <RefreshCcw size={20} className={`text-slate-400 group-hover:text-yellow-500 ${isReloading ? 'animate-spin text-yellow-500' : ''}`} />
-              </button>
-               <div className="bg-slate-900/90 backdrop-blur-xl border-l-4 border-cyan-400 p-2 md:p-4 rounded-xl flex flex-col gap-1 md:gap-2 shadow-[0_0_20px_rgba(34,211,238,0.1)] pointer-events-none">
-                <div className="flex items-center gap-2 md:gap-6">
-                  <div className="flex flex-col">
-                    <span className="text-[8px] md:text-[10px] uppercase tracking-[0.2em] text-cyan-500/60 font-bold">Weapon System</span>
-                    <span className="text-lg md:text-2xl font-black text-white italic tracking-tighter uppercase leading-none mt-1 drop-shadow-md">{WEAPONS[currentWeapon].name}</span>
-                  </div>
-                  <div className="h-8 md:h-12 w-px bg-slate-700/50" />
-                  <div className="flex items-end gap-1">
-                    <span className={`text-3xl md:text-5xl font-mono font-bold leading-none ${ammo.mag < 5 ? 'text-red-500 animate-pulse' : 'text-cyan-400 drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]'}`}>
-                      {isReloading ? '--' : ammo.mag}
-                    </span>
-                    <span className="text-sm md:text-xl font-mono text-slate-500 mb-0.5 md:mb-1">/ {ammo.reserve}</span>
-                  </div>
-                </div>
-                {isReloading && (
-                  <div className="h-1 bg-slate-800 rounded-full overflow-hidden w-full">
-                    <motion.div 
-                      key={lastShotTime.current} // To restart animation if interrupted, actually key mostly doesn't matter here
-                      initial={{ width: 0 }}
-                      animate={{ width: '100%' }}
-                      transition={{ duration: WEAPONS[currentWeapon].reloadTime / 1000 }}
-                      className="h-full bg-cyan-500 shadow-[0_0_8px_cyan]" 
-                    />
-                  </div>
-                )}
-              </div>
+            {/* Weapon & Ammo - Tactically Framed */}
+            <div className={`absolute pointer-events-none z-40 transition-all duration-300 ${mobileMode ? 'top-4 right-4 scale-90 origin-top-right' : 'bottom-8 right-8'}`}>
+               <div className="relative group">
+                 {/* Outer Decoration */}
+                 <div className="absolute -inset-1 bg-cyan-500/20 blur-[2px] rounded-2xl" />
+                 
+                 <div className="relative bg-slate-900/90 backdrop-blur-2xl border border-white/10 rounded-2xl overflow-hidden shadow-2xl flex flex-col min-w-[200px]">
+                    {/* Header Strip */}
+                    <div className="bg-cyan-500/10 border-b border-white/5 py-1.5 px-4 flex justify-between items-center">
+                       <span className="text-[9px] font-black text-cyan-400 uppercase tracking-[0.3em]">Combat Module</span>
+                       <div className="flex gap-0.5">
+                         {[1, 2, 3].map(i => <div key={i} className={`w-1 h-1 rounded-full ${i <= (stats.kills % 3) + 1 ? 'bg-cyan-500' : 'bg-slate-700'}`} />)}
+                       </div>
+                    </div>
+
+                    <div className="p-4 flex items-center justify-between gap-6">
+                       <div className="flex flex-col">
+                          <span className="text-lg md:text-2xl font-black text-white tracking-tighter uppercase italic leading-none">{WEAPONS[currentWeapon].name}</span>
+                          <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-1">Status: Operational</span>
+                       </div>
+
+                       <div className="flex items-baseline gap-1 bg-black/40 px-3 py-1 rounded-lg border border-white/5">
+                          <span className={`text-3xl md:text-5xl font-mono font-bold leading-none ${ammo.mag < 5 ? 'text-red-500 animate-pulse' : 'text-cyan-400'}`}>
+                             {isReloading ? '--' : ammo.mag}
+                          </span>
+                          <span className="text-sm md:text-lg font-mono text-slate-600">/ {ammo.reserve}</span>
+                       </div>
+                    </div>
+
+                    {/* Ammo Capacity Visualizer (Animated Segments) */}
+                    <div className="px-4 pb-4">
+                       <div className="flex gap-0.5 h-1.5">
+                         {Array.from({ length: 12 }).map((_, i) => (
+                           <div 
+                             key={i} 
+                             className={`flex-1 rounded-sm transition-all duration-300 ${
+                               isReloading 
+                                 ? 'bg-slate-800 animate-pulse' 
+                                 : i / 12 < (ammo.mag / WEAPONS[currentWeapon].magSize) 
+                                   ? 'bg-cyan-500 shadow-[0_0_8px_rgba(34,211,238,0.5)]' 
+                                   : 'bg-slate-800'
+                             }`} 
+                           />
+                         ))}
+                       </div>
+                    </div>
+
+                    {isReloading && (
+                      <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm flex flex-col items-center justify-center gap-2">
+                        <RefreshCcw size={20} className="text-cyan-400 animate-spin" />
+                        <span className="text-[10px] font-black text-white uppercase tracking-widest">Reloading Module...</span>
+                      </div>
+                    )}
+                 </div>
+               </div>
             </div>
 
-            {/* Health Bar Bottom */}
-            <div className={`absolute flex flex-col pointer-events-none z-40 transition-all ${mobileMode ? 'bottom-6 left-1/2 -translate-x-1/2 w-48 scale-90' : 'bottom-6 left-6 w-48'}`}>
-               <div className="flex items-center gap-2 mb-1 md:mb-2 bg-slate-950/50 px-2 py-1 rounded w-fit self-center md:self-start">
-                 <Users size={12} className="text-cyan-400" />
-                 <span className="text-white font-black text-[10px] md:text-xs uppercase tracking-tighter">Units Detected: {enemiesRemaining}</span>
+            {/* Health Bar - Tactical Integrity */}
+            <div className={`absolute flex flex-col pointer-events-none z-40 transition-all ${mobileMode ? 'top-4 left-1/2 -translate-x-1/2 w-48 scale-90' : 'bottom-8 left-8 w-64'}`}>
+               <div className="flex items-center justify-between mb-2">
+                 <div className="flex items-center gap-2 bg-slate-900/60 backdrop-blur-md px-2 py-1 rounded-t-lg border-t border-x border-cyan-500/30">
+                    <Shield size={12} className={hp < 30 ? 'text-red-500 animate-pulse' : 'text-cyan-400'} />
+                    <span className="text-white font-black text-[9px] uppercase tracking-widest">Integrity</span>
+                 </div>
+                 <span className={`font-mono text-xs font-bold ${hp < 30 ? 'text-red-500' : 'text-white'}`}>{Math.round(hp)}%</span>
                </div>
-               <div className="h-3 md:h-4 bg-slate-900 rounded-full border border-slate-700 overflow-hidden">
+               
+               <div className="relative h-4 bg-slate-900/80 rounded-sm border border-slate-700/50 overflow-hidden backdrop-blur-md overflow-hidden">
+                  {/* Grid Background in Bar */}
+                  <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '10% 100%' }} />
+                  
                   <motion.div 
                     animate={{ width: `${hp}%` }}
-                    className={`h-full ${hp < 30 ? 'bg-red-500 shadow-[0_0_10px_red]' : 'bg-cyan-500 shadow-[0_0_10px_rgba(34,211,238,0.5)]'}`}
-                  />
+                    className={`h-full relative overflow-hidden ${hp < 30 ? 'bg-red-500 shadow-[0_0_20px_red]' : 'bg-cyan-500 shadow-[0_0_20px_rgba(34,211,238,0.3)]'}`}
+                  >
+                    {/* Interior Scanline */}
+                    <div className="absolute inset-y-0 right-0 w-2 bg-white/40 blur-[2px]" />
+                  </motion.div>
                </div>
-               <div className="mt-1 md:mt-2 flex justify-between text-[8px] md:text-[10px] text-slate-500 font-bold uppercase tracking-widest px-1">
-                  <span>Armor Integrity</span>
-                  <span>{hp}%</span>
+
+               {!mobileMode && (
+                 <div className="mt-2 flex items-center justify-between bg-black/40 px-2 py-1 rounded border border-white/5">
+                   <div className="flex items-center gap-2">
+                      <Users size={10} className="text-red-500" />
+                      <span className="text-[8px] text-slate-500 uppercase font-black tracking-widest">Active Hostiles: {enemiesRemaining}</span>
+                   </div>
+                   <span className="text-[8px] text-cyan-600 font-bold uppercase tracking-tighter items-center hidden md:flex">Scanner Active</span>
+                 </div>
+               )}
+            </div>
+
+            {/* Top Stats HUD (Wave & Protocol) */}
+            <div className={`absolute pointer-events-none z-50 flex gap-1 transition-all ${mobileMode ? 'top-4 left-4 scale-90 origin-top-left' : 'top-6 left-6 items-start'}`}>
+               <div className="flex flex-col">
+                 <div className="flex items-center gap-2 bg-slate-900/60 backdrop-blur-md px-3 py-1.5 rounded-t-lg border-t border-x border-cyan-500/30">
+                   <Target size={12} className="text-cyan-400" />
+                   <span className="text-cyan-400 font-bold text-[8px] uppercase tracking-[0.2em] leading-none text-nowrap">Wave</span>
+                 </div>
+                 <div className="bg-slate-900/40 backdrop-blur-md px-3 py-1 rounded-b-lg border-b border-x border-cyan-500/30 flex items-end gap-1">
+                   <span className="text-white font-black text-2xl tracking-tighter leading-none">{wave}</span>
+                   <span className="text-slate-500 text-[10px] font-bold mb-0.5">/ 5</span>
+                 </div>
+               </div>
+
+               <div className="flex flex-col">
+                 <div className="flex items-center gap-2 bg-slate-900/60 backdrop-blur-md px-3 py-1.5 rounded-t-lg border-t border-x border-slate-700">
+                    <Zap size={12} className="text-yellow-500" />
+                    <span className="text-yellow-500 font-bold text-[8px] uppercase tracking-[0.2em] leading-none text-nowrap">Protocol</span>
+                 </div>
+                 <div className="bg-slate-900/40 backdrop-blur-md px-3 py-1 rounded-b-lg border-b border-x border-slate-700">
+                    <span className="text-white font-black text-xs italic tracking-tighter leading-none uppercase">{difficulty}</span>
+                 </div>
                </div>
             </div>
 
-            {/* Top Stats HUD */}
-            <div className={`absolute pointer-events-none z-50 flex gap-2 transition-all ${mobileMode ? 'top-4 left-4 scale-75 origin-top-left' : 'top-6 left-6 items-start'}`}>
-               <div className="flex items-center gap-2 md:gap-3 bg-slate-900/80 px-3 md:px-4 py-1.5 md:py-2 rounded-lg border-l-4 border-cyan-500 backdrop-blur-md">
-                 <div className="flex flex-col">
-                   <span className="text-cyan-400 font-black text-[8px] md:text-[9px] uppercase tracking-widest leading-none">Sector Wave</span>
-                   <span className="text-white font-black text-lg md:text-2xl tracking-tighter leading-none mt-1">{wave}<span className="text-slate-600 text-xs md:text-sm ml-1">/ 5</span></span>
+            {/* Top Right Score & Global Stats */}
+            <div className={`absolute pointer-events-none z-50 flex flex-col items-end gap-1 transition-all ${mobileMode ? 'top-20 right-4 scale-90 origin-top-right' : 'top-6 right-6'}`}>
+               <div className="flex flex-col items-end">
+                 <div className="bg-slate-900/60 backdrop-blur-md px-4 py-1 rounded-t-lg border-t border-x border-yellow-500/30">
+                    <span className="text-yellow-500 font-bold text-[8px] uppercase tracking-[0.2em] leading-none">Operation Score</span>
+                 </div>
+                 <div className="bg-slate-900/40 backdrop-blur-md px-4 py-1.5 rounded-b-lg border-b border-x border-yellow-500/30">
+                    <span className="text-white font-black text-2xl tracking-tighter leading-none">{score.toLocaleString()}</span>
                  </div>
                </div>
-               <div className="flex items-center gap-2 md:gap-3 bg-slate-900/80 px-3 md:px-4 py-1.5 md:py-2 rounded-lg border-l-4 backdrop-blur-md hidden md:flex" style={{ borderColor: DIFFICULTIES[difficulty].color }}>
-                 <div className="flex flex-col">
-                   <span className="font-black text-[8px] md:text-[9px] uppercase tracking-widest leading-none opacity-60" style={{ color: DIFFICULTIES[difficulty].color }}>Protocol</span>
-                   <span className="text-white font-black text-[10px] md:text-xs italic tracking-tighter leading-none mt-1 uppercase">{difficulty}</span>
-                 </div>
-               </div>
-            </div>
 
-            <div className={`absolute pointer-events-none z-50 flex flex-col items-end gap-1 md:gap-2 transition-all ${mobileMode ? 'bottom-20 right-4 scale-75 origin-bottom-right' : 'top-6 right-6'}`}>
-               <div className="bg-slate-900/80 px-3 md:px-4 py-1.5 md:py-2 rounded-lg border-r-4 border-yellow-500 backdrop-blur-md flex flex-col items-end">
-                  <span className="text-yellow-400 font-black text-[8px] md:text-[9px] uppercase tracking-widest leading-none">Score</span>
-                  <span className="text-white font-black text-lg md:text-2xl tracking-tighter mt-1 leading-none">{score.toLocaleString()}</span>
-               </div>
-               <div className="bg-slate-900/60 px-2 md:px-3 py-1 rounded-lg backdrop-blur-sm text-[8px] md:text-[9px] font-black text-slate-400 flex gap-2 md:gap-4 uppercase tracking-tighter">
-                 <span>Acc: {stats.shotsFired > 0 ? Math.round((stats.shotsHit / stats.shotsFired) * 100) : 0}%</span>
-                 <span className="text-slate-600">|</span>
-                 <span>Kills: {stats.kills}</span>
-               </div>
+               {!mobileMode && (
+                 <div className="flex gap-4 px-3 py-1 bg-slate-950/40 backdrop-blur-sm rounded-lg border border-white/5 text-[8px] font-bold text-slate-400 uppercase tracking-widest shadow-lg">
+                    <div className="flex items-center gap-1.5">
+                      <Target size={10} className="text-cyan-500/60" />
+                      <span>Accuracy: {stats.shotsFired > 0 ? Math.round((stats.shotsHit / stats.shotsFired) * 100) : 0}%</span>
+                    </div>
+                    <div className="w-px h-2 bg-white/10" />
+                    <div className="flex items-center gap-1.5">
+                      <Skull size={10} className="text-red-500/60" />
+                      <span>Neutralized: {stats.kills}</span>
+                    </div>
+                 </div>
+               )}
             </div>
 
             {/* Wave Announcement */}
@@ -1917,68 +1996,81 @@ export default function App() {
                   setSelectedLabWeapon={setSelectedLabWeapon}
                 />
               ) : (
-                <div className={`p-12 rounded-3xl border-4 ${gameState === 'win' ? 'border-yellow-500 bg-yellow-500/10' : 'border-red-500 bg-red-500/10'} shadow-2xl w-full max-w-xl`}>
-                    <h2 className={`text-8xl font-black italic tracking-tighter mb-2 ${gameState === 'win' ? 'text-yellow-500' : 'text-red-500'}`}>
-                       {gameState === 'win' ? 'SUCCESS' : 'FAILED'}
-                    </h2>
-                    <div className="mb-4 inline-block px-3 py-1 rounded-full bg-slate-900 border border-white/10 text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: DIFFICULTIES[difficulty].color }}>
-                      {DIFFICULTIES[difficulty].name} PROTOCOL
-                    </div>
-                    <p className="text-slate-400 font-black uppercase tracking-[0.3em] mb-10 text-xs">{gameState === 'win' ? 'Sector Secured. All hostiles neutralized.' : 'Mission Aborted. Biological signature lost.'}</p>
+                <div className={`p-8 md:p-12 rounded-[2.5rem] bg-slate-900/90 border-4 backdrop-blur-2xl ${gameState === 'win' ? 'border-yellow-500 shadow-[0_0_60px_rgba(234,179,8,0.2)]' : 'border-red-600 shadow-[0_0_60px_rgba(220,38,38,0.2)]'} w-full max-w-2xl relative overflow-hidden`}>
+                    {/* Decorative Background Elements */}
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
                     
-                    <div className="bg-slate-950 px-6 py-5 rounded-3xl border-2 border-white/5 mb-8 text-left flex justify-between items-center shadow-inner relative overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/10 to-transparent" />
-                        <div className="relative z-10">
-                           <span className="block text-yellow-500 text-[10px] uppercase font-black mb-1 tracking-[0.2em]">Credits Recovered</span>
-                           <motion.span 
-                            initial={{ scale: 0.5, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            className="text-5xl font-black text-white tabular-nums drop-shadow-[0_0_15px_rgba(234,179,8,0.3)]"
-                           >
-                             +{earnedCredits.toLocaleString()}
-                           </motion.span>
-                        </div>
-                        <div className="text-right relative z-10">
-                           <span className="block text-slate-500 text-[10px] uppercase font-black mb-1 tracking-widest">Global Balance</span>
-                           <span className="text-xl font-black text-slate-400 tabular-nums">{tacticalCredits.toLocaleString()}</span>
-                        </div>
-                    </div>
+                    <div className="relative z-10 flex flex-col items-center">
+                      <div className={`mb-6 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/50 border border-white/10 text-[10px] font-black uppercase tracking-[0.3em]`} style={{ color: DIFFICULTIES[difficulty].color }}>
+                        <Target size={14} />
+                        {DIFFICULTIES[difficulty].name} PROTOCOL COMPLETE
+                      </div>
 
-                    <div className="grid grid-cols-2 gap-4 text-left mb-10">
-                       <div className="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
-                          <span className="block text-slate-500 text-[10px] uppercase font-black mb-1">Final Score</span>
-                          <span className="text-2xl font-black text-white">{score.toLocaleString()}</span>
-                       </div>
-                       <div className="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
-                          <span className="block text-slate-500 text-[10px] uppercase font-black mb-1">Combat Wave</span>
-                          <span className="text-2xl font-black text-white">{wave}</span>
-                       </div>
-                       <div className="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
-                          <span className="block text-slate-500 text-[10px] uppercase font-black mb-1">Accuracy</span>
-                          <span className="text-2xl font-black text-white">{stats.shotsFired > 0 ? Math.round((stats.shotsHit / stats.shotsFired) * 100) : 0}%</span>
-                       </div>
-                       <div className="bg-slate-900/50 p-4 rounded-2xl border border-white/5">
-                          <span className="block text-slate-500 text-[10px] uppercase font-black mb-1">Total Kills</span>
-                          <span className="text-2xl font-black text-white">{stats.kills}</span>
-                       </div>
-                    </div>
+                      <h2 className={`text-6xl md:text-8xl font-black italic tracking-tighter mb-4 text-center ${gameState === 'win' ? 'text-yellow-500 text-shadow-[0_0_20px_rgba(234,179,8,0.5)]' : 'text-red-600 text-shadow-[0_0_20px_rgba(220,38,38,0.5)]'}`}>
+                         {gameState === 'win' ? 'SUCCESS' : 'SYSTEM FAILURE'}
+                      </h2>
 
-                    <div className="flex gap-4">
-                      <button 
-                        onClick={initGame}
-                        className={`flex-1 py-5 rounded-2xl text-xl font-black uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-95 shadow-xl ${gameState === 'win' ? 'bg-yellow-500 text-slate-950' : 'bg-red-600 text-white'}`}
-                      >
-                        Re-Deploy Target
-                      </button>
-                      <button 
-                        onClick={() => {
-                          setMenuView('main');
-                          setGameState('start');
-                        }}
-                        className="px-6 py-5 bg-slate-900 text-white rounded-2xl border border-white/10 hover:bg-slate-800 transition-all font-black uppercase text-xs"
-                      >
-                        Menu
-                      </button>
+                      <p className="text-white/60 font-medium uppercase tracking-[0.2em] mb-12 text-center text-[10px] md:text-sm max-w-md mx-auto leading-relaxed">
+                        {gameState === 'win' 
+                          ? 'Strategic objective achieved. Sector successfully neutralized and secured for secondary extraction.' 
+                          : 'Critical integrity loss detected. Mission protocol aborted. Biological signal terminated in active sector.'
+                        }
+                      </p>
+                      
+                      <div className="w-full bg-black/40 p-1 rounded-[2rem] border border-white/10 shadow-2xl mb-8 relative group overflow-hidden">
+                          <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/10 via-transparent to-transparent opacity-50" />
+                          
+                          <div className="relative z-10 flex flex-col md:flex-row justify-between items-center px-8 py-6 gap-6">
+                            <div className="flex flex-col items-center md:items-start">
+                               <span className="text-yellow-500 text-[10px] font-black mb-1 uppercase tracking-[0.4em]">Resource Salvage</span>
+                               <motion.div className="flex items-center gap-3">
+                                  <Coins className="text-yellow-500" size={32} />
+                                  <span className="text-5xl md:text-6xl font-black text-white tabular-nums tracking-tighter">
+                                    +{earnedCredits.toLocaleString()}
+                                  </span>
+                               </motion.div>
+                            </div>
+                            <div className="text-center md:text-right border-t md:border-t-0 md:border-l border-white/10 pt-4 md:pt-0 md:pl-8">
+                               <span className="block text-white/30 text-[9px] uppercase font-bold mb-1 tracking-widest leading-none">Account Balance</span>
+                               <span className="text-2xl font-black text-white/60 tabular-nums leading-none tracking-tight">{tacticalCredits.toLocaleString()}</span>
+                            </div>
+                          </div>
+                      </div>
+
+                      {/* Performance Data Grid */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full mb-12">
+                         {[
+                           { label: 'Score', value: score.toLocaleString(), color: 'text-white' },
+                           { label: 'Max Wave', value: wave, color: 'text-cyan-400' },
+                           { label: 'Kills', value: stats.kills, color: 'text-red-500' },
+                           { label: 'Accuracy', value: `${stats.shotsFired > 0 ? Math.round((stats.shotsHit / stats.shotsFired) * 100) : 0}%`, color: 'text-green-500' }
+                         ].map((stat, i) => (
+                           <div key={i} className="bg-white/5 p-4 rounded-2xl border border-white/5 flex flex-col items-center gap-1 group hover:border-white/20 transition-colors">
+                              <span className="text-[8px] text-white/30 uppercase font-bold tracking-widest">{stat.label}</span>
+                              <span className={`text-xl font-black ${stat.color} tracking-tight`}>{stat.value}</span>
+                           </div>
+                         ))}
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row gap-4 w-full">
+                        <button 
+                          onClick={initGame}
+                          className={`flex-1 py-5 rounded-2xl shadow-xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 group relative overflow-hidden ${gameState === 'win' ? 'bg-yellow-500 text-slate-950 font-black' : 'bg-red-600 text-white font-black'}`}
+                        >
+                          <Target className="group-hover:rotate-12 transition-transform" />
+                          <span className="text-xl uppercase tracking-tighter italic">Re-Deploy Target</span>
+                        </button>
+                        <button 
+                          onClick={() => {
+                            sounds.playUiClick();
+                            setMenuView('main');
+                            setGameState('start');
+                          }}
+                          className="px-10 py-5 bg-white/5 text-white/60 rounded-2xl border border-white/10 hover:bg-white/10 hover:text-white transition-all font-black uppercase text-xs tracking-widest"
+                        >
+                          Missions
+                        </button>
+                      </div>
                     </div>
                 </div>
               )}

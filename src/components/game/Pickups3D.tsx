@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
-import { Float, Text } from '@react-three/drei';
+import { Billboard } from '@react-three/drei';
+import { createPickupTexture } from '../../lib/textures';
 
 interface Pickup {
   id: number;
@@ -21,64 +22,90 @@ export function Pickups3D({ pickups, cellSize, mapData }: Pickups3DProps) {
   const mapWidth = mapData[0].length * cellSize;
   const mapHeight = mapData.length * cellSize;
 
+  // Memoized materials for performance
+  const boxMaterial = useMemo(() => new THREE.MeshStandardMaterial({
+    color: '#334155',
+    metalness: 0.7,
+    roughness: 0.3,
+  }), []);
+
+  const healthIconTexture = useMemo(() => createPickupTexture('health'), []);
+  const ammoIconTexture = useMemo(() => createPickupTexture('ammo'), []);
+
+  const healthIconMaterial = useMemo(() => new THREE.MeshBasicMaterial({
+    map: healthIconTexture,
+    transparent: true,
+    side: THREE.DoubleSide
+  }), [healthIconTexture]);
+
+  const ammoIconMaterial = useMemo(() => new THREE.MeshBasicMaterial({
+    map: ammoIconTexture,
+    transparent: true,
+    side: THREE.DoubleSide
+  }), [ammoIconTexture]);
+
+  const healthAccentMaterial = useMemo(() => new THREE.MeshStandardMaterial({
+    color: '#ef4444',
+    emissive: '#ef4444',
+    emissiveIntensity: 0.4,
+  }), []);
+
+  const ammoAccentMaterial = useMemo(() => new THREE.MeshStandardMaterial({
+    color: '#fbbf24',
+    emissive: '#fbbf24',
+    emissiveIntensity: 0.4,
+  }), []);
+
   return (
     <>
-      {pickups.map((p) => (
-        <group 
-          key={p.id} 
-          position={[p.x - mapWidth / 2, cellSize / 3, p.y - mapHeight / 2]}
-        >
-          <Float speed={2} rotationIntensity={1} floatIntensity={1.5}>
-            <group rotation={[0, p.rotation, 0]}>
-              {/* Main Container */}
-              <mesh castShadow receiveShadow>
-                <boxGeometry args={[14, 14, 14]} />
-                <meshStandardMaterial 
-                  color="#1e293b" 
-                  metalness={0.8} 
-                  roughness={0.2} 
-                />
-              </mesh>
-              {/* Colored Accents/Corners */}
-              <mesh>
-                <boxGeometry args={[16, 4, 16]} />
-                <meshStandardMaterial 
-                   color={p.type === 'health' ? '#ef4444' : '#fbbf24'} 
-                   emissive={p.type === 'health' ? '#ef4444' : '#f59e0b'}
-                   emissiveIntensity={0.5}
-                />
-              </mesh>
-              {/* Floating Symbol */}
-              <mesh position={[0, 18, 0]} rotation={[0, p.rotation * 2, 0]}>
-                {p.type === 'health' ? (
-                  <octahedronGeometry args={[8]} />
-                ) : (
-                  <cylinderGeometry args={[6, 6, 4, 3]} />
-                )}
-                <meshStandardMaterial 
-                  color={p.type === 'health' ? '#ef4444' : '#22d3ee'} 
-                  emissive={p.type === 'health' ? '#ef4444' : '#22d3ee'}
-                  emissiveIntensity={2}
-                />
-              </mesh>
+      {pickups.map((p) => {
+         const posX = p.x - mapWidth / 2;
+         const posZ = p.y - mapHeight / 2;
+         
+         return (
+            <group key={p.id} position={[posX, cellSize / 5, posZ]}>
+              <AnimatedPickup 
+                type={p.type} 
+                boxMaterial={boxMaterial}
+                accentMaterial={p.type === 'health' ? healthAccentMaterial : ammoAccentMaterial}
+                iconMaterial={p.type === 'health' ? healthIconMaterial : ammoIconMaterial}
+              />
+              <PointLightWithPulse color={p.type === 'health' ? '#ef4444' : '#fbbf24'} />
             </group>
-            
-            <Text
-              position={[0, 35, 0]}
-              fontSize={10}
-              color="white"
-              anchorX="center"
-              anchorY="middle"
-              maxWidth={100}
-            >
-              {p.type.toUpperCase()}
-            </Text>
-          </Float>
-          
-          <PointLightWithPulse color={p.type === 'health' ? '#ef4444' : '#22d3ee'} />
-        </group>
-      ))}
+         );
+      })}
     </>
+  );
+}
+
+function AnimatedPickup({ type, boxMaterial, accentMaterial, iconMaterial }: any) {
+  const groupRef = React.useRef<THREE.Group>(null);
+  
+  useFrame((state) => {
+    if (groupRef.current) {
+      groupRef.current.position.y = Math.sin(state.clock.elapsedTime * 2) * 2;
+      groupRef.current.rotation.y += 0.01;
+    }
+  });
+
+  return (
+    <group ref={groupRef}>
+      {/* Main Tactical Crate */}
+      <mesh castShadow material={boxMaterial}>
+        <boxGeometry args={[12, 8, 12]} />
+      </mesh>
+      {/* Visual Reinforcements */}
+      <mesh position={[0, 0, 0]} material={accentMaterial}>
+        <boxGeometry args={[13, 2, 13]} />
+      </mesh>
+      
+      {/* Floating Icon Billboard */}
+      <Billboard position={[0, 12, 0]}>
+        <mesh material={iconMaterial}>
+          <planeGeometry args={[10, 10]} />
+        </mesh>
+      </Billboard>
+    </group>
   );
 }
 
@@ -87,9 +114,9 @@ function PointLightWithPulse({ color }: { color: string }) {
   
   useFrame((state) => {
     if (lightRef.current) {
-      lightRef.current.intensity = 1 + Math.sin(state.clock.elapsedTime * 4) * 0.5;
+      lightRef.current.intensity = 0.5 + Math.sin(state.clock.elapsedTime * 3) * 0.3;
     }
   });
 
-  return <pointLight ref={lightRef} distance={60} color={color} />;
+  return <pointLight ref={lightRef} distance={40} color={color} intensity={0.5} />;
 }

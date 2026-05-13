@@ -20,7 +20,6 @@ export function Tracers3D({ tracers, cellSize, mapData }: { tracers: Tracer[], c
         const p1 = new THREE.Vector3(t.x1 - mapWidth / 2, cellSize / 2.5, t.y1 - mapHeight / 2);
         const p2 = new THREE.Vector3(t.x2 - mapWidth / 2, cellSize / 2.5, t.y2 - mapHeight / 2);
         
-        // Simple line simulation using a thin box or Line component
         const midPoint = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5);
         const distance = p1.distanceTo(p2);
         
@@ -30,20 +29,20 @@ export function Tracers3D({ tracers, cellSize, mapData }: { tracers: Tracer[], c
               onUpdate={(self) => self.lookAt(p2)}
               rotation={[Math.PI / 2, 0, 0]}
             >
-              <cylinderGeometry args={[0.1, 0.05, distance, 4]} />
+              <cylinderGeometry args={[0.04, 0.02, distance, 6]} />
               <meshBasicMaterial 
-                color="#22d3ee" // Cyan energy bolts
+                color="#22d3ee" 
                 transparent 
-                opacity={t.alpha * 0.8} 
+                opacity={t.alpha * 0.4} 
               />
             </mesh>
-            {/* Core Glow */}
+            {/* High Intensity Core Line */}
             <mesh 
               onUpdate={(self) => self.lookAt(p2)}
               rotation={[Math.PI / 2, 0, 0]}
             >
-              <cylinderGeometry args={[0.04, 0.04, distance, 4]} />
-              <meshBasicMaterial color="white" transparent opacity={t.alpha} />
+              <cylinderGeometry args={[0.015, 0.015, distance, 4]} />
+              <meshBasicMaterial color="white" transparent opacity={t.alpha * 0.6} />
             </mesh>
           </group>
         );
