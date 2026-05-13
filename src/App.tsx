@@ -61,10 +61,15 @@ const isBulletBlocking = (cell: number) => cell === 1 || cell === 2 || cell === 
  * Returns true if the path is clear of bullet-blocking obstacles.
  */
 const checkLineOfSight = (x1: number, y1: number, x2: number, y2: number, mapData: number[][]) => {
+  const result = checkLineOfSightInfo(x1, y1, x2, y2, mapData);
+  return result.hasLOS;
+};
+
+const checkLineOfSightInfo = (x1: number, y1: number, x2: number, y2: number, mapData: number[][]) => {
   const dx = x2 - x1;
   const dy = y2 - y1;
   const dist = Math.sqrt(dx * dx + dy * dy);
-  if (dist < 1) return true;
+  if (dist < 1) return { hasLOS: true };
   
   const steps = Math.ceil(dist / 8); 
   const cos = dx / dist;
@@ -76,11 +81,11 @@ const checkLineOfSight = (x1: number, y1: number, x2: number, y2: number, mapDat
     const tx = Math.floor((x1 + cos * checkDist) / CELL_SIZE);
     const ty = Math.floor((y1 + sin * checkDist) / CELL_SIZE);
     
-    if (ty < 0 || ty >= mapData.length || tx < 0 || tx >= mapData[0].length) return false;
+    if (ty < 0 || ty >= mapData.length || tx < 0 || tx >= mapData[0].length) return { hasLOS: false, blockedBy: -1 };
     const cell = mapData[ty][tx];
-    if (isBulletBlocking(cell)) return false;
+    if (isBulletBlocking(cell)) return { hasLOS: false, blockedBy: cell };
   }
-  return true;
+  return { hasLOS: true };
 };
 
 const getSafePlayerStart = () => {
@@ -834,8 +839,9 @@ export default function App() {
       const cos = Math.cos(angleToPlayer);
       const sin = Math.sin(angleToPlayer);
 
-      const hasLineOfSight = checkLineOfSight(e.x, e.y, player.current.x, player.current.y, mapData.current);
-      e.hasLineOfSight = hasLineOfSight; // Store for debug
+      const losInfo = checkLineOfSightInfo(e.x, e.y, player.current.x, player.current.y, mapData.current);
+      e.hasLineOfSight = losInfo.hasLOS;
+      e.blockedBy = losInfo.blockedBy; // Store for debug
 
       // Behavioral logic
       let targetDist = 0;
@@ -846,7 +852,7 @@ export default function App() {
       let moveX = 0;
       let moveY = 0;
 
-      if (hasLineOfSight) {
+      if (e.hasLineOfSight) {
           if (dist > targetDist + 16) {
               moveX = cos * e.speed;
               moveY = sin * e.speed;
@@ -879,7 +885,7 @@ export default function App() {
           // Shoot Logic
           const fireRate = e.isBoss ? 600 : (e.type === 'sniper' ? 3000 : e.type === 'rifleman' ? 900 : 1800);
           const canShoot = now - gameStartTime.current > 4000 && now - e.spawnTime > 1500;
-          if (canShoot && now - e.lastShot > fireRate && dist < 1200) {
+          if (canShoot && now - e.lastShot > fireRate && dist < 1200 && e.hasLineOfSight) {
               e.lastShot = now;
               
               if (!DEBUG_SAFE_MODE && now - lastDamageTaken.current > 600) { // Enforced 600ms damage cooldown
@@ -1035,7 +1041,7 @@ export default function App() {
         enemiesRemaining,
         nearestDist: nearestDist.toFixed(1),
         nearestType: nearestEnemy?.type || 'none',
-        nearestLOS: String(!!nearestEnemy?.hasLineOfSight),
+        nearestLOS: nearestEnemy ? `${nearestEnemy.hasLineOfSight} (Blocked by: ${nearestEnemy.blockedBy ?? 'None'})` : 'none',
         waveTime: ((Date.now() - gameStartTime.current) / 1000).toFixed(1),
         gracePeriod: String(Date.now() - gameStartTime.current < 3000),
         lastDmg: now - lastDamageTaken.current < 400 ? 'COOLDOWN' : 'READY'
