@@ -1,62 +1,103 @@
 import React, { useMemo } from 'react';
 import * as THREE from 'three';
+import { useTexture } from '@react-three/drei';
+import { ASSETS } from '../../game/assets';
 
 interface MapProps {
   mapData: number[][];
   cellSize: number;
 }
 
-export function World({ mapData, cellSize }: MapProps) {
-  const wallMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#172033',
-    roughness: 0.76,
-    metalness: 0.24,
-  }), []);
+function configureTexture(texture: THREE.Texture, repeatX = 1, repeatY = 1) {
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(repeatX, repeatY);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 4;
+  texture.needsUpdate = true;
+  return texture;
+}
 
-  const wallFaceMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#263449',
-    roughness: 0.7,
-    metalness: 0.26,
-  }), []);
+export function World({ mapData, cellSize }: MapProps) {
+  const textureMap = useTexture({
+    floor: ASSETS.textures.floor,
+    wall: ASSETS.textures.wall,
+    wallAlt: ASSETS.textures.wallAlt,
+    crate: ASSETS.textures.crate,
+    barrel: ASSETS.textures.barrel,
+    sectorDecal: ASSETS.decals.sector,
+    warningDecal: ASSETS.decals.warning,
+  });
+
+  const mapWidth = mapData[0].length * cellSize;
+  const mapHeight = mapData.length * cellSize;
+
+  const textures = useMemo(() => {
+    configureTexture(textureMap.floor, mapData[0].length / 2, mapData.length / 2);
+    configureTexture(textureMap.wall, 1, 1);
+    configureTexture(textureMap.wallAlt, 1, 1);
+    configureTexture(textureMap.crate, 1, 1);
+    configureTexture(textureMap.barrel, 1, 1);
+    configureTexture(textureMap.sectorDecal, 1, 1);
+    configureTexture(textureMap.warningDecal, 1, 1);
+    return textureMap;
+  }, [textureMap, mapData]);
+
+  const wallMaterial = useMemo(() => new THREE.MeshStandardMaterial({
+    color: '#cbd5e1',
+    map: textures.wall,
+    roughness: 0.78,
+    metalness: 0.18,
+  }), [textures.wall]);
+
+  const wallAltMaterial = useMemo(() => new THREE.MeshStandardMaterial({
+    color: '#cbd5e1',
+    map: textures.wallAlt,
+    roughness: 0.78,
+    metalness: 0.18,
+  }), [textures.wallAlt]);
 
   const wallTrimMaterial = useMemo(() => new THREE.MeshStandardMaterial({
     color: '#164e63',
     emissive: '#0891b2',
-    emissiveIntensity: 0.18,
+    emissiveIntensity: 0.14,
     metalness: 0.35,
     roughness: 0.55,
   }), []);
 
   const floorMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#273449',
-    metalness: 0.12,
-    roughness: 0.88,
-  }), []);
+    color: '#dbeafe',
+    map: textures.floor,
+    metalness: 0.08,
+    roughness: 0.9,
+  }), [textures.floor]);
 
   const crateMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#334155',
-    metalness: 0.25,
-    roughness: 0.62,
-  }), []);
+    color: '#f8fafc',
+    map: textures.crate,
+    metalness: 0.2,
+    roughness: 0.68,
+  }), [textures.crate]);
 
   const barrelMaterial = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#334155',
-    metalness: 0.38,
-    roughness: 0.52,
-  }), []);
+    color: '#f8fafc',
+    map: textures.barrel,
+    metalness: 0.32,
+    roughness: 0.56,
+  }), [textures.barrel]);
 
   const barrelEnergyMaterial = useMemo(() => new THREE.MeshStandardMaterial({
     color: '#fb923c',
     emissive: '#f97316',
-    emissiveIntensity: 0.55,
+    emissiveIntensity: 0.45,
     roughness: 0.4,
     metalness: 0.1,
   }), []);
 
   const frameMaterial = useMemo(() => new THREE.MeshStandardMaterial({
     color: '#0f172a',
-    metalness: 0.45,
-    roughness: 0.45,
+    metalness: 0.42,
+    roughness: 0.5,
   }), []);
 
   const warningMaterial = useMemo(() => new THREE.MeshStandardMaterial({
@@ -67,22 +108,53 @@ export function World({ mapData, cellSize }: MapProps) {
     metalness: 0.2,
   }), []);
 
+  const sectorDecalMaterial = useMemo(() => new THREE.MeshBasicMaterial({
+    map: textures.sectorDecal,
+    transparent: true,
+    opacity: 0.34,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  }), [textures.sectorDecal]);
+
+  const warningDecalMaterial = useMemo(() => new THREE.MeshBasicMaterial({
+    map: textures.warningDecal,
+    transparent: true,
+    opacity: 0.5,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  }), [textures.warningDecal]);
+
   const cells = useMemo(() => {
     const geometry: React.ReactNode[] = [];
+    const decalGeometry: React.ReactNode[] = [];
 
     mapData.forEach((row, y) => {
       row.forEach((cell, x) => {
         const posX = x * cellSize + cellSize / 2;
         const posZ = y * cellSize + cellSize / 2;
 
+        if (cell === 0 && x > 1 && y > 1 && x < row.length - 2 && y < mapData.length - 2) {
+          if ((x + y) % 11 === 0) {
+            decalGeometry.push(
+              <mesh key={`sector-decal-${x}-${y}`} rotation={[-Math.PI / 2, 0, ((x + y) % 4) * Math.PI / 2]} position={[posX, 0.018, posZ]} material={sectorDecalMaterial}>
+                <planeGeometry args={[cellSize * 0.72, cellSize * 0.72]} />
+              </mesh>
+            );
+          } else if ((x * 3 + y) % 17 === 0) {
+            decalGeometry.push(
+              <mesh key={`warning-decal-${x}-${y}`} rotation={[-Math.PI / 2, 0, x % 2 ? Math.PI / 2 : 0]} position={[posX, 0.02, posZ]} material={warningDecalMaterial}>
+                <planeGeometry args={[cellSize * 0.82, cellSize * 0.34]} />
+              </mesh>
+            );
+          }
+        }
+
         if (cell === 1) {
+          const material = (x + y) % 2 === 0 ? wallMaterial : wallAltMaterial;
           geometry.push(
             <group key={`wall-${x}-${y}`} position={[posX, cellSize / 2, posZ]}>
-              <mesh receiveShadow material={wallMaterial}>
+              <mesh receiveShadow material={material}>
                 <boxGeometry args={[cellSize * 0.98, cellSize, cellSize * 0.98]} />
-              </mesh>
-              <mesh position={[0, cellSize * 0.18, cellSize * 0.495]} material={wallFaceMaterial}>
-                <boxGeometry args={[cellSize * 0.62, cellSize * 0.34, 0.018]} />
               </mesh>
               <mesh position={[0, cellSize * 0.34, cellSize * 0.506]} material={wallTrimMaterial}>
                 <boxGeometry args={[cellSize * 0.48, 0.024, 0.02]} />
@@ -118,11 +190,8 @@ export function World({ mapData, cellSize }: MapProps) {
       });
     });
 
-    return geometry;
-  }, [mapData, cellSize, wallMaterial, wallFaceMaterial, wallTrimMaterial, barrelMaterial, barrelEnergyMaterial, crateMaterial, frameMaterial, warningMaterial]);
-
-  const mapWidth = mapData[0].length * cellSize;
-  const mapHeight = mapData.length * cellSize;
+    return [...decalGeometry, ...geometry];
+  }, [mapData, cellSize, wallMaterial, wallAltMaterial, wallTrimMaterial, barrelMaterial, barrelEnergyMaterial, crateMaterial, frameMaterial, warningMaterial, sectorDecalMaterial, warningDecalMaterial]);
 
   return (
     <group position={[-mapWidth / 2, 0, -mapHeight / 2]}>
