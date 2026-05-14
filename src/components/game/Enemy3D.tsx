@@ -1,8 +1,9 @@
 import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { Billboard, useTexture } from '@react-three/drei';
+import { Billboard } from '@react-three/drei';
 import { ASSETS } from '../../game/assets';
+import { useEdgeTransparentTexture } from '../../game/useEdgeTransparentTexture';
 
 interface EnemyProps {
   x: number;
@@ -68,18 +69,12 @@ export function Enemy3D({ x, y, type, color, cellSize, isBoss, hp, maxHp, debug 
     roughness: 0.1,
   }), []);
 
-  const emblemTexture = useTexture(getEnemyEmblemPath(type, isBoss));
-  const configuredEmblemTexture = useMemo(() => {
-    emblemTexture.colorSpace = THREE.SRGBColorSpace;
-    emblemTexture.anisotropy = 4;
-    emblemTexture.needsUpdate = true;
-    return emblemTexture;
-  }, [emblemTexture]);
+  const configuredEmblemTexture = useEdgeTransparentTexture(getEnemyEmblemPath(type, isBoss));
 
   const emblemMaterial = useMemo(() => new THREE.MeshBasicMaterial({
     map: configuredEmblemTexture,
     transparent: true,
-    alphaTest: 0.08,
+    alphaTest: 0.12,
     side: THREE.DoubleSide,
   }), [configuredEmblemTexture]);
 
@@ -159,7 +154,7 @@ export function Enemy3D({ x, y, type, color, cellSize, isBoss, hp, maxHp, debug 
 
           <Billboard position={[0, cellSize * 0.16, cellSize * 0.36]}>
             <mesh material={emblemMaterial}>
-              <planeGeometry args={[cellSize * 0.34, cellSize * 0.34]} />
+              <planeGeometry args={[cellSize * 0.22, cellSize * 0.22]} />
             </mesh>
           </Billboard>
 
