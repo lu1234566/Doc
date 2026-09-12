@@ -1,13 +1,464 @@
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Google AI Studio App</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fatura → Sage 50 | v0.6.6.1 Unificada</title>
+<style>
+:root{--bg:#f3f6fb;--panel:#fff;--panel2:#f8fafc;--line:#dce3ed;--text:#182231;--muted:#667085;--blue:#2457d6;--blue2:#eaf0ff;--green:#177245;--greenbg:#e8f7ef;--amber:#9a6700;--amberbg:#fff3d6;--red:#b42318;--redbg:#fff0ee;--shadow:#1018280b;font-family:Inter,Segoe UI,Arial,sans-serif}
+:root[data-theme="dark"]{--bg:#0f172a;--panel:#111827;--panel2:#172033;--line:#2b3950;--text:#e7edf7;--muted:#9ba8bb;--blue:#7aa2ff;--blue2:#1b2a4b;--green:#78d6a3;--greenbg:#133326;--amber:#f0c36b;--amberbg:#3b2c12;--red:#ff9289;--redbg:#3d1d1b;--shadow:#00000026}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text)}button,input,select{font:inherit}button{cursor:pointer}
+header{height:58px;background:#101828;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 20px;position:sticky;top:0;z-index:20}.brand{font-weight:800}.brand small{font-weight:500;color:#b9c5d7;margin-left:8px}.headActions{display:flex;gap:8px;align-items:center}.iconbtn{border:1px solid #344054;background:#1d2939;color:white;border-radius:9px;padding:8px 10px}
+.app{max-width:1600px;margin:auto;padding:15px}.topnav{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}.navbtn{border:1px solid var(--line);background:var(--panel);color:var(--text);padding:10px 14px;border-radius:10px;font-weight:650}.navbtn.active{background:var(--blue);color:white;border-color:var(--blue)}
+.view{display:none}.view.active{display:block}.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 3px var(--shadow);padding:14px}.card h2,.card h3{margin:0 0 12px}.muted{color:var(--muted)}.small{font-size:12px}.row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.between{justify-content:space-between}.primary{background:var(--blue)!important;color:white!important;border-color:var(--blue)!important;font-weight:700}.danger{color:var(--red)!important}.btn{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:9px;padding:9px 12px}.btn:disabled{opacity:.45;cursor:not-allowed}.pill{padding:5px 8px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);font-size:12px;color:var(--muted)}
+.msg{padding:10px 12px;border-radius:9px;background:var(--blue2);color:var(--text);font-size:13px;flex:1;min-width:260px}.msg.ok{background:var(--greenbg);color:var(--green)}.msg.err{background:var(--redbg);color:var(--red)}
+.workspace{display:grid;grid-template-columns:minmax(350px,.86fr) minmax(650px,1.4fr);gap:14px;margin-top:14px}.viewerTools{display:flex;gap:7px;align-items:center;margin-bottom:9px;flex-wrap:wrap}.viewer{background:#070b13;border-radius:12px;min-height:525px;height:67vh;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:18px}.viewer img{max-width:100%;transform-origin:top center}.drop{min-height:525px;height:67vh;border:2px dashed var(--line);border-radius:12px;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:25px}.thumbs{display:flex;gap:8px;overflow:auto;margin-top:10px}.thumb{height:70px;width:58px;object-fit:cover;border-radius:7px;border:2px solid transparent;cursor:pointer}.thumb.active{border-color:var(--blue)}
+.tabs{display:flex;gap:6px;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:12px;flex-wrap:wrap}.tab{border:0;background:transparent;color:var(--muted);padding:7px 10px;border-radius:8px}.tab.active{background:var(--blue2);color:var(--blue);font-weight:700}.panel{display:none}.panel.active{display:block}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}.stat{border:1px solid var(--line);background:var(--panel2);border-radius:10px;padding:10px}.stat small{color:var(--muted);display:block}.stat b{font-size:18px}.meta{border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:10px;background:var(--panel2);display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.meta small{display:block;color:var(--muted)}
+.ocrbox{border:1px solid var(--line);border-radius:10px;max-height:58vh;overflow:auto;background:var(--panel2);padding:8px}.ocrpage{margin:8px 4px 13px}.ocrpage h4{font-size:12px;color:var(--muted);margin:5px}.ocrline{font-family:Consolas,monospace;font-size:12px;padding:5px 7px;border-radius:6px;display:grid;grid-template-columns:74px 1fr;gap:8px}.ocrline:hover{background:var(--blue2)}.ocrline.hl{background:var(--amberbg);outline:1px solid var(--amber)}.lineid{color:var(--muted)}
+.tableWrap{overflow:auto;max-height:58vh;border:1px solid var(--line);border-radius:10px}table{width:100%;border-collapse:collapse;font-size:12px;min-width:1050px}th,td{padding:8px 7px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{position:sticky;top:0;background:var(--panel2);z-index:1;color:var(--muted)}tr.clickable{cursor:pointer}tr.clickable:hover{background:var(--panel2)}
+.status{display:inline-block;padding:4px 7px;border-radius:999px;font-size:11px;font-weight:700}.status.confirmado,.status.finalizada{background:var(--greenbg);color:var(--green)}.status.revisar{background:var(--amberbg);color:var(--amber)}.status.rejeitado{background:var(--redbg);color:var(--red)}
+select.inline{max-width:260px;padding:5px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--text)}.empty{padding:32px;color:var(--muted);text-align:center}
+.histFilters,.baseToolbar,.settingsGrid{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}.historyTable{min-width:850px}.detailGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}.kv{padding:9px;background:var(--panel2);border:1px solid var(--line);border-radius:9px}.kv small{display:block;color:var(--muted)}
+.baseStats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}.baseList{max-height:55vh;overflow:auto}.formgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.field{display:flex;flex-direction:column;gap:6px}.field input,.field select{padding:9px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--text)}.switch{display:flex;align-items:center;gap:8px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}
+.notice{padding:12px;border:1px solid var(--line);background:var(--panel2);border-radius:10px;margin-top:12px;line-height:1.45}.modalBack{position:fixed;inset:0;background:#0008;display:none;align-items:center;justify-content:center;padding:16px;z-index:50}.modalBack.show{display:flex}.modal{width:min(820px,96vw);max-height:90vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:16px}.modal h3{margin-top:0}
+@media(max-width:1050px){.workspace{grid-template-columns:1fr}.viewer,.drop{height:48vh;min-height:380px}.stats,.meta,.baseStats{grid-template-columns:1fr 1fr}.formgrid,.detailGrid{grid-template-columns:1fr}}
 
+.sageConnect{display:grid;grid-template-columns:1.1fr .9fr;gap:12px;margin-bottom:12px}
+.connCard{border:1px solid var(--line);background:var(--panel2);border-radius:12px;padding:12px}
+.connCard h3{margin:0 0 8px}.detectList{display:grid;gap:7px;margin-top:10px}
+.detectItem{padding:9px;border:1px solid var(--line);background:var(--panel);border-radius:9px;font-size:12px}
+.detectItem b{display:block;margin-bottom:3px}.codeish{font-family:Consolas,monospace;font-size:11px;word-break:break-all;color:var(--muted)}
+.goodDot,.warnDot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}.goodDot{background:var(--green)}.warnDot{background:var(--amber)}
+.backupBox{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+@media(max-width:1050px){.sageConnect,.backupBox{grid-template-columns:1fr}}
+
+.toolbarSelect{padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--text);font-weight:650}.headActions{max-width:78vw;flex-wrap:wrap;justify-content:flex-end}pre.ocrbox{font-family:Consolas,monospace;font-size:12px}.note{display:block;color:var(--muted);margin-top:8px;line-height:1.45}
+</style>
+</head>
+<body>
+<header><div class="brand">Fatura → Sage 50 <small>v0.6.6.1 · Local + Gemini + Sage</small></div><div class="headActions"><span id="ocrBadge" class="pill">OCR local: não iniciado</span><span id="modeBadge" class="pill">Modo: Híbrido</span><span id="geminiUsage" class="pill">Gemini hoje: 0</span><span id="apiBadge" class="pill">API não testada</span><button class="iconbtn" id="themeBtn" title="Alternar modo claro/escuro">◐</button></div></header>
+<div class="app">
+<nav class="topnav"><button class="navbtn active" data-view="new">Nova Fatura</button><button class="navbtn" data-view="history">Histórico</button><button class="navbtn" data-view="base">Base Sage</button><button class="navbtn" data-view="settings">Configurações</button></nav>
+
+<section id="view-new" class="view active">
+<div class="card"><div class="row"><button class="btn" id="addBtn">Adicionar foto(s)</button><input id="files" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden><select id="ocrMode" class="toolbarSelect"><option value="hybrid">Híbrido — OCR local + Gemini (1)</option><option value="local">Somente local — PaddleOCR (0)</option><option value="gemini1">Gemini direto (1)</option><option value="gemini2">Gemini auditável (2)</option></select><button class="btn" id="testApiBtn">Testar API</button><button class="btn primary" id="analyzeBtn" disabled>Analisar fatura</button><button class="btn" id="newInvoiceBtn">Nova fatura</button><span class="pill" id="fileCount">0 fotos</span><div class="msg" id="msg">Adicione uma ou mais fotos da mesma fatura.</div></div></div>
+<div class="workspace">
+<section class="card"><h3>Documento</h3><div class="viewerTools"><button class="btn" id="rotL">↶ Rodar</button><button class="btn" id="rotR">↷ Rodar</button><span class="pill">Zoom <span id="zoomLabel">100%</span></span><input id="zoom" type="range" min="60" max="220" value="100"></div><div id="drop" class="drop"><div><b>Arraste as fotos aqui</b><br><br>JPG, PNG ou WebP<br><span class="small">Pode selecionar várias fotos da mesma fatura.</span></div></div><div id="viewer" class="viewer" style="display:none"><img id="mainImg"></div><div id="thumbs" class="thumbs"></div></section>
+<section class="card"><div class="tabs"><button class="tab active" data-tab="ocr">OCR bruto</button><button class="tab" data-tab="localocr">OCR local</button><button class="tab" data-tab="items">Artigos</button><button class="tab" data-tab="rejected">Rejeitados</button><button class="tab" data-tab="diagnostic">Diagnóstico</button></div>
+<div id="ocr" class="panel active"><div class="stats"><div class="stat"><small>Linhas OCR</small><b id="stLines">0</b></div><div class="stat"><small>Candidatos</small><b id="stItems">0</b></div><div class="stat"><small>Rejeitados</small><b id="stReject">0</b></div><div class="stat"><small>Base Sage</small><b id="stBase">0</b></div></div><div id="docMeta" class="meta"><div><small>Fornecedor</small><b>—</b></div><div><small>NIF</small><b>—</b></div><div><small>Documento</small><b>—</b></div><div><small>Data</small><b>—</b></div></div><div id="ocrBox" class="ocrbox"><div class="empty">O OCR bruto aparecerá aqui sem ser reescrito pela etapa de artigos.</div></div></div>
+<div id="items" class="panel"><div class="row between" style="margin-bottom:10px"><div class="small muted">A base Sage é cruzada localmente; não é enviada ao Gemini.</div><div class="row"><button class="btn" id="approveAllBtn">Aprovar correspondências fortes</button><button class="btn" id="txtBtn" disabled>Gerar TXT Sage</button><button class="btn" id="csvBtn" disabled>CSV auditoria</button></div></div><div class="tableWrap"><table><thead><tr><th>Estado</th><th>Origem</th><th>Ref. lida</th><th>Descrição lida</th><th>Qtd</th><th>Preço</th><th>Sugestão Sage</th><th>Ação</th></tr></thead><tbody id="itemsBody"><tr><td colspan="8"><div class="empty">Nenhum candidato ainda.</div></td></tr></tbody></table></div></div>
+
+<div id="localocr" class="panel"><div class="row between" style="margin-bottom:10px"><div><b>PaddleOCR local</b><div class="small muted">Roda no seu navegador/PC. Nenhuma imagem é enviada ao Gemini neste passo.</div></div><button class="btn" id="reinitOcrBtn">Inicializar/Reinicializar OCR</button></div><pre id="localOcrBox" class="ocrbox" style="white-space:pre-wrap">O OCR local aparecerá aqui quando o modo Local ou Híbrido for usado.</pre></div>
+<div id="diagnostic" class="panel"><div class="stats"><div class="stat"><small>Pipeline</small><b id="diagPipeline" style="font-size:13px">—</b></div><div class="stat"><small>OCR local</small><b id="diagLocal" style="font-size:13px">—</b></div><div class="stat"><small>Gemini usadas</small><b id="diagGemini">0</b></div><div class="stat"><small>Tempo local</small><b id="diagTime">—</b></div></div><pre id="diagBox" class="ocrbox" style="white-space:pre-wrap">Nenhum diagnóstico ainda.</pre></div>
+<div id="rejected" class="panel"><div class="tableWrap"><table style="min-width:650px"><thead><tr><th>Origem</th><th>Texto</th><th>Motivo</th></tr></thead><tbody id="rejBody"><tr><td colspan="3"><div class="empty">Nenhuma linha rejeitada ainda.</div></td></tr></tbody></table></div></div>
+<div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary" id="finalizeBtn" disabled>Finalizar e arquivar fatura</button></div></section>
+</div></section>
+
+<section id="view-history" class="view"><div class="card"><div class="row between"><div><h2>Histórico</h2><div class="muted small">Faturas finalizadas ou guardadas para revisão.</div></div><div class="histFilters"><input id="histSearch" placeholder="Fornecedor, documento..." style="padding:9px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--text)"><select id="histStatus" style="padding:9px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--text)"><option value="">Todos os estados</option><option>Finalizada</option><option>Revisar</option></select></div></div><div class="tableWrap" style="max-height:65vh"><table class="historyTable"><thead><tr><th>Data</th><th>Fornecedor</th><th>Documento</th><th>Artigos</th><th>Aprovados</th><th>Estado</th><th></th></tr></thead><tbody id="historyBody"></tbody></table></div></div></section>
+
+<section id="view-base" class="view">
+<div class="card">
+  <div class="row between">
+    <div><h2>Base Sage</h2><div class="muted small">A base permanece local neste PC e é usada no cruzamento pós-OCR.</div></div>
+    <div class="baseToolbar">
+      <button class="btn" id="detectSageBtn">Procurar Companion Sage</button>
+      <button class="btn primary" id="importBaseBtn">Importar/Atualizar CSV ou TXT</button>
+      <input id="baseFile" type="file" accept=".csv,.txt,text/csv,text/plain" hidden>
+      <button class="btn" id="clearBaseBtn">Limpar base</button>
+    </div>
+  </div>
+
+  <div class="sageConnect">
+    <div class="connCard">
+      <h3>Companion Sage 50</h3>
+      <div class="small muted">O Companion ficará responsável somente por ler a base local do Sage. OCR, Gemini, histórico e exportações permanecem nesta aplicação web.</div>
+      <div class="row" style="margin-top:10px">
+        <span id="sageDetectBadge" class="pill">Companion não ligado</span>
+        <button class="btn" id="exportSageDiagBtn" disabled>Exportar diagnóstico</button>
+        <button class="btn primary" id="syncCompanionBtn" disabled>Sincronizar artigos</button>
+      </div>
+      <div id="sageDetectResults" class="detectList"><div class="detectItem muted">Endpoint esperado: <b>http://127.0.0.1:8766</b>. Enquanto o Companion não estiver instalado, use CSV/TXT normalmente.</div></div>
+    </div>
+    <div class="connCard">
+      <h3>Protocolo local</h3>
+      <div class="field"><label>Endereço do Companion</label><input id="companionUrl" value="http://127.0.0.1:8766"></div>
+      <div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn" id="saveSageProfileBtn">Guardar endereço</button></div>
+      <small class="note">O app web consulta somente localhost. O Companion futuro expõe estado, empresas e artigos em modo leitura; ele não faz OCR e não escreve diretamente na base SQL.</small>
+      <select id="sageProduct" hidden><option value="50c">Sage 50c</option></select><input id="sageCompanyId" hidden><select id="sageInteropSelect" hidden><option></option></select>
+    </div>
+  </div>
+
+  <div class="baseStats">
+    <div class="stat"><small>Artigos</small><b id="baseCount">0</b></div>
+    <div class="stat"><small>Correspondências aprendidas</small><b id="mappingCount">0</b></div>
+    <div class="stat"><small>Última atualização</small><b id="baseUpdated" style="font-size:13px">—</b></div>
+    <div class="stat"><small>Fonte</small><b id="baseSource" style="font-size:13px">—</b></div>
+  </div>
+
+  <div id="mappingBox" class="notice" style="display:none">
+    <b>Mapeamento de colunas</b>
+    <div class="formgrid" style="margin-top:10px">
+      <div class="field"><label>Referência Sage</label><select id="colRef"></select></div>
+      <div class="field"><label>Descrição</label><select id="colDesc"></select></div>
+      <div class="field"><label>Fornecedor</label><select id="colSupplier"></select></div>
+      <div class="field"><label>Referência do fornecedor</label><select id="colSupplierRef"></select></div>
+      <div class="field"><label>Unidade</label><select id="colUnit"></select></div>
+      <div class="field"><label>Preço de compra</label><select id="colPrice"></select></div>
+    </div>
+    <div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn primary" id="saveBaseBtn">Guardar base</button></div>
+  </div>
+
+  <div class="tableWrap baseList">
+    <table><thead><tr><th>Referência</th><th>Descrição</th><th>Fornecedor</th><th>Ref. fornecedor</th><th>Unidade</th><th>Preço</th></tr></thead>
+      <tbody id="baseBody"><tr><td colspan="6"><div class="empty">Importe uma exportação de artigos do Sage em CSV ou TXT.</div></td></tr></tbody>
+    </table>
+  </div>
+  <div class="notice"><b>Estratégia unificada</b><br>CSV/TXT continua como método universal. Quando o Companion estiver instalado, ele apenas sincronizará a base Sage via localhost. O OCR local roda no navegador com PaddleOCR/ONNX; o Gemini permanece opcional.</div>
+</div>
+</section>
+
+<section id="view-settings" class="view"><div class="card"><h2>Configurações</h2><div class="formgrid"><div class="field"><label>Tema</label><select id="themeSelect"><option value="system">Sistema</option><option value="light">Claro</option><option value="dark">Escuro</option></select></div><div class="field"><label>Separador do TXT Sage</label><select id="txtSeparator"><option value=";">Ponto e vírgula (;)</option><option value="|">Barra vertical (|)</option><option value="\t">Tabulação</option></select></div></div><h3 style="margin-top:18px">Campos do TXT Sage</h3><div class="settingsGrid"><label class="switch"><input type="checkbox" id="txtRef" checked disabled> Referência Sage</label><label class="switch"><input type="checkbox" id="txtQty" checked> Quantidade</label><label class="switch"><input type="checkbox" id="txtPrice" checked> Preço unitário</label></div><div class="notice">O TXT inclui <b>somente artigos aprovados</b>. O CSV continua sendo a saída de auditoria completa. As preferências desta aba ficam guardadas localmente no navegador.</div>
+<h3 style="margin-top:18px">Backup do app</h3>
+<div class="backupBox">
+  <div class="connCard"><b>Exportar backup</b><div class="small muted" style="margin:6px 0 10px">Inclui Histórico, Base Sage e correspondências aprendidas. A API Gemini não é incluída.</div><button class="btn" id="exportBackupBtn">Exportar backup JSON</button></div>
+  <div class="connCard"><b>Restaurar backup</b><div class="small muted" style="margin:6px 0 10px">Útil para migrar para outro PC ou ajudar outra pessoa a configurar o app.</div><button class="btn" id="importBackupBtn">Importar backup JSON</button><input id="backupFile" type="file" accept=".json,application/json" hidden></div>
+</div><h3 style="margin-top:18px">OCR local</h3><div class="formgrid"><div class="field"><label>Backend local</label><select id="ocrBackend"><option value="wasm">WASM/CPU — mais compatível</option><option value="auto">Automático</option><option value="webgpu">WebGPU/GPU</option></select></div><div class="field"><label>Modelo</label><input value="PP-OCRv5_mobile (det + rec)" disabled></div></div><div class="row" style="margin-top:10px"><button class="btn" id="settingsInitOcr">Inicializar OCR local</button><span id="settingsOcrStatus" class="pill">Ainda não inicializado</span></div><div class="notice">O modelo é baixado pelo navegador e executado no seu PC. Começamos por WASM/CPU por ser o caminho já validado; WebGPU continua disponível para teste.</div>
+<h3 style="margin-top:18px">API Gemini</h3><div class="formgrid"><div class="field" style="grid-column:1/-1"><label>Gemini API key</label><input id="geminiKey" type="password" placeholder="Cole uma chave nova da Gemini API"></div><div class="field"><label>Guardar chave</label><select id="keyStore"><option value="session">Só nesta sessão</option><option value="local">Neste navegador</option></select></div><div class="field"><label>Modelo</label><input value="gemini-3.6-flash" disabled></div></div><div class="row" style="margin-top:10px"><button class="btn primary" id="saveApiKey">Guardar chave</button><button class="btn" id="settingsTestApi">Testar API</button><button class="btn danger" id="removeApiKey">Remover chave</button><span class="pill">Modelo fixo: gemini-3.6-flash</span></div><div class="notice">A chave não é incorporada no site. Escolha “Só nesta sessão” se estiver num PC compartilhado.</div></div></section>
+</div>
+
+<div class="modalBack" id="historyModal"><div class="modal"><div class="row between"><h3>Fatura arquivada</h3><button class="btn" id="closeHistoryModal">Fechar</button></div><div id="historyDetail"></div></div></div>
+
+<script>const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const MODEL = "gemini-3.6-flash";
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
+const OCR_WORKER_URL = "https://fatura-sage-ocr-official-test.vercel.app";
+let ocrFrame=null;const ocrPending=new Map();
+window.addEventListener("message",e=>{if(e.origin!==new URL(OCR_WORKER_URL).origin||e.data?.type!=="FATURA_SAGE_OCR_REPLY")return;const p=ocrPending.get(e.data.id);if(!p)return;ocrPending.delete(e.data.id);clearTimeout(p.timer);e.data.ok?p.resolve(e.data.result):p.reject(new Error(e.data.error||"OCR worker falhou"));});
+function ensureOcrFrame(){if(ocrFrame&&document.body.contains(ocrFrame))return ocrFrame;ocrFrame=document.createElement("iframe");ocrFrame.src=OCR_WORKER_URL;ocrFrame.title="Motor OCR local";ocrFrame.style.cssText="position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;left:-10000px;top:-10000px;border:0";ocrFrame.addEventListener("load",()=>{ocrFrame.dataset.loaded="1"},{once:true});document.body.appendChild(ocrFrame);return ocrFrame;}
+function ocrRpc(type,payload={},timeoutMs=180000){const frame=ensureOcrFrame(),id=`ocr-${Date.now()}-${Math.random().toString(36).slice(2)}`;return new Promise((resolve,reject)=>{const timer=setTimeout(()=>{ocrPending.delete(id);reject(new Error("Tempo esgotado ao aguardar o motor OCR local."))},timeoutMs);ocrPending.set(id,{resolve,reject,timer});const target=new URL(OCR_WORKER_URL).origin;const send=()=>{try{const {transfer=[],...body}=payload;frame.contentWindow.postMessage({type,id,...body},target,transfer)}catch(e){clearTimeout(timer);ocrPending.delete(id);reject(e)}};if(frame.dataset.loaded==="1")send();else frame.addEventListener("load",send,{once:true});});}
+const DB_NAME = "FaturaSage06";
+const DB_VER = 1;
+let db = null;
+let photos = [], selected = 0, rotation = 0;
+let analysis = null, articleState = [], activeHistoryId = null;
+let baseData = [], baseMeta = null, learned = {}, tempParsed = null;
+let ocrReady = false, ocrSummary = null, lastLocalDiag = null;
+let companionState = null;
+function msg(t, k="") { $("msg").textContent=t; $("msg").className="msg "+k; }
+function nowIso(){ return new Date().toISOString(); }
+function norm(s){ return String(s??"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase().replace(/[^A-Z0-9]+/g," ").trim(); }
+function compactNorm(s){ return norm(s).replace(/\s+/g,""); }
+function tokenSet(s){ return new Set(norm(s).split(/\s+/).filter(x=>x.length>1)); }
+function jaccard(a,b){ const A=tokenSet(a),B=tokenSet(b); if(!A.size||!B.size)return 0; let n=0; A.forEach(x=>B.has(x)&&n++); return n/(A.size+B.size-n); }
+function safeFilePart(s){ return String(s||"fatura").replace(/[^\w.-]+/g,"_").slice(0,80); }
+function download(data,name,type){ const b=new Blob([data],{type}),a=document.createElement("a"); a.href=URL.createObjectURL(b); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); }
+function idbOpen(){ return new Promise((resolve,reject)=>{ const r=indexedDB.open(DB_NAME,DB_VER); r.onupgradeneeded=()=>{ const d=r.result; if(!d.objectStoreNames.contains("invoices"))d.createObjectStore("invoices",{keyPath:"id"}); if(!d.objectStoreNames.contains("kv"))d.createObjectStore("kv",{keyPath:"key"}); }; r.onsuccess=()=>{db=r.result;resolve(db)}; r.onerror=()=>reject(r.error); }); }
+function idbPut(store,val){ return new Promise((res,rej)=>{ const tx=db.transaction(store,"readwrite"); tx.objectStore(store).put(val); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); }); }
+function idbGet(store,key){ return new Promise((res,rej)=>{ const r=db.transaction(store).objectStore(store).get(key); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+function idbAll(store){ return new Promise((res,rej)=>{ const r=db.transaction(store).objectStore(store).getAll(); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+function idbDelete(store,key){ return new Promise((res,rej)=>{ const tx=db.transaction(store,"readwrite"); tx.objectStore(store).delete(key); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); }); }
+async function migrateOldOnlineData(){
+const existingBase=await idbGet("kv","sageBase");
+if(!existingBase){
+try{
+const old=JSON.parse(localStorage.getItem("sagebase")||"[]");
+if(Array.isArray(old)&&old.length){
+const rows=old.map(x=>({reference:x.reference||"",description:x.description||"",supplier:"",supplier_ref:"",unit:"",price:""}));
+await idbPut("kv",{key:"sageBase",rows,meta:{source:"migração da primeira app online",updatedAt:nowIso(),count:rows.length}});
+}
+}catch{}
+}
+const oldHist=localStorage.getItem("hist");
+if(oldHist){
+try{
+const arr=JSON.parse(oldHist);
+const current=await idbAll("invoices");
+if(Array.isArray(arr)&&arr.length&&!current.length){
+for(const x of arr){
+const id="MIG-"+Math.random().toString(36).slice(2)+Date.now();
+const raw=x.data?.raw||"";
+const lines=raw.split(/\r?\n/).filter(Boolean).map((t,i)=>({id:`P1-L${String(i+1).padStart(3,"0")}`,image_index:1,text:t}));
+const arts=(x.data?.articles||[]).map((a,i)=>({approval:"Pendente",source_line_ids:[],source_text:a.source||"",reference:null,description:a.description||a.source||null,quantity:a.quantity||null,unit_price:a.price||null,discount:null,total:null,vat:null,selectedSage:null}));
+await idbPut("invoices",{id,createdAt:x.at||nowIso(),updatedAt:nowIso(),status:"Revisar",supplier:x.supplier||"",supplierTaxId:"",documentNumber:x.document||"",documentDate:"",articleCount:arts.length,approvedCount:0,analysis:{pipeline:"migrated_web_alpha",document:{supplier:x.supplier||"",supplier_tax_id:null,document_number:x.document||"",document_date:null},ocr_lines:lines,ocr_raw:raw,articles:[],rejected:[]},items:arts,photos:[]});
+}
+}
+}catch{}
+}
+}
+async function loadPersisted(){
+const b=await idbGet("kv","sageBase"),m=await idbGet("kv","learned"),cp=await idbGet("kv","companion");
+if(b){baseData=b.rows||[];baseMeta=b.meta||null}
+if(m)learned=m.value||{};
+if(cp?.url)$("companionUrl").value=cp.url;
+$("stBase").textContent=baseData.length;
+renderBase();
+}
+function applyTheme(pref){ localStorage.setItem("themePref",pref); let actual=pref; if(pref==="system")actual=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"; document.documentElement.dataset.theme=actual; $("themeSelect").value=pref; }
+function saveTxtSettings(){ localStorage.setItem("txtSeparator",$("txtSeparator").value); localStorage.setItem("txtQty",$("txtQty").checked?"1":"0"); localStorage.setItem("txtPrice",$("txtPrice").checked?"1":"0"); }
+function loadSettings(){
+applyTheme(localStorage.getItem("themePref")||"system");
+$("txtSeparator").value=localStorage.getItem("txtSeparator")||";";
+$("txtQty").checked=localStorage.getItem("txtQty")!=="0";
+$("txtPrice").checked=localStorage.getItem("txtPrice")!=="0";
+$("ocrBackend").value=localStorage.getItem("ocrBackend")||"wasm";
+$("ocrMode").value=localStorage.getItem("ocrMode")||"hybrid";
+$("modeBadge").textContent="Modo: "+modeLabel($("ocrMode").value);
+const hasLocal=!!localStorage.getItem("gkey"),hasSession=!!sessionStorage.getItem("gkey");
+$("keyStore").value=hasLocal?"local":"session";
+$("geminiKey").value=hasLocal?localStorage.getItem("gkey")||"":hasSession?sessionStorage.getItem("gkey")||"":"";
+updateUsageBadge();
+}
+$("themeBtn").onclick=()=>applyTheme(document.documentElement.dataset.theme==="dark"?"light":"dark");
+$("themeSelect").onchange=e=>applyTheme(e.target.value);
+matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change",()=>{if((localStorage.getItem("themePref")||"system")==="system")applyTheme("system")});
+$("txtSeparator").onchange=saveTxtSettings; $("txtQty").onchange=saveTxtSettings; $("txtPrice").onchange=saveTxtSettings;
+$("ocrMode").onchange=e=>{localStorage.setItem("ocrMode",e.target.value);$("modeBadge").textContent="Modo: "+modeLabel(e.target.value);};
+$("ocrBackend").onchange=e=>{localStorage.setItem("ocrBackend",e.target.value); ocrReady=false; $("settingsOcrStatus").textContent="Backend alterado; reinicialize"; $("ocrBadge").textContent="OCR local: reinicializar";};
+function modeLabel(m){ return ({local:"Local 0",hybrid:"Híbrido 1",gemini1:"Gemini 1",gemini2:"Gemini 2"})[m]||m; }
+function openView(v){ document.querySelectorAll(".navbtn").forEach(b=>b.classList.toggle("active",b.dataset.view===v)); document.querySelectorAll(".view").forEach(x=>x.classList.toggle("active",x.id==="view-"+v)); if(v==="history")renderHistory(); if(v==="base")renderBase(); }
+document.querySelectorAll(".navbtn").forEach(b=>b.onclick=()=>openView(b.dataset.view));
+function openTab(n){ document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.tab===n)); document.querySelectorAll(".panel").forEach(x=>x.classList.toggle("active",x.id===n)); }
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>openTab(b.dataset.tab));
+$("addBtn").onclick=()=>$("files").click();
+$("files").onchange=e=>addFiles([...e.target.files]);
+["dragenter","dragover"].forEach(ev=>$("drop").addEventListener(ev,e=>e.preventDefault()));
+$("drop").addEventListener("drop",e=>{e.preventDefault();addFiles([...e.dataTransfer.files])});
+async function addFiles(list){
+const v=list.filter(f=>/^image\/(jpeg|png|webp)$/.test(f.type));
+if(!v.length){msg("Use JPG, PNG ou WebP.","err");return}
+if(analysis&&photos.length){ if(!confirm("Existe uma fatura analisada na tela. Guardar como Revisar e iniciar outra?"))return; await archiveCurrent("Revisar",true); }
+v.forEach(f=>photos.push({file:f,url:URL.createObjectURL(f)})); selected=Math.max(0,photos.length-v.length); renderPhotos(); resetAnalysis(false); msg(`${v.length} foto(s) adicionada(s). Pronto para analisar.`);
+}
+function renderPhotos(){
+$("fileCount").textContent=`${photos.length} foto${photos.length===1?"":"s"}`; $("analyzeBtn").disabled=!photos.length;
+$("drop").style.display=photos.length?"none":"flex"; $("viewer").style.display=photos.length?"flex":"none";
+if(photos.length)$("mainImg").src=photos[selected].url;
+$("thumbs").innerHTML=photos.map((p,i)=>`<img class="thumb ${i===selected?"active":""}" data-i="${i}" src="${p.url}" title="${esc(p.file.name)}">`).join("");
+document.querySelectorAll(".thumb").forEach(t=>t.onclick=()=>{selected=+t.dataset.i;rotation=0;renderPhotos();applyTransform()});
+}
+function applyTransform(){ const z=+$("zoom").value; $("zoomLabel").textContent=z+"%"; $("mainImg").style.transform=`scale(${z/100}) rotate(${rotation}deg)`; }
+$("zoom").oninput=applyTransform; $("rotL").onclick=()=>{rotation-=90;applyTransform()}; $("rotR").onclick=()=>{rotation+=90;applyTransform()};
+function resetAnalysis(clearPhotos=true){
+analysis=null;articleState=[];
+$("stLines").textContent="0";$("stItems").textContent="0";$("stReject").textContent="0";
+$("ocrBox").innerHTML='<div class="empty">O OCR bruto aparecerá aqui sem ser reescrito pela etapa de artigos.</div>';
+$("localOcrBox").textContent="O OCR local aparecerá aqui quando o modo Local ou Híbrido for usado.";
+$("itemsBody").innerHTML='<tr><td colspan="8"><div class="empty">Nenhum candidato ainda.</div></td></tr>';
+$("rejBody").innerHTML='<tr><td colspan="3"><div class="empty">Nenhuma linha rejeitada ainda.</div></td></tr>';
+$("docMeta").innerHTML='<div><small>Fornecedor</small><b>—</b></div><div><small>NIF</small><b>—</b></div><div><small>Documento</small><b>—</b></div><div><small>Data</small><b>—</b></div>';
+$("diagPipeline").textContent="—";$("diagLocal").textContent="—";$("diagGemini").textContent="0";$("diagTime").textContent="—";$("diagBox").textContent="Nenhum diagnóstico ainda.";
+$("txtBtn").disabled=true;$("csvBtn").disabled=true;$("finalizeBtn").disabled=true;
+if(clearPhotos){activeHistoryId=null;photos.forEach(p=>URL.revokeObjectURL(p.url));photos=[];selected=0;rotation=0;$("zoom").value=100;renderPhotos();applyTransform();$("files").value="";}
+}
+$("newInvoiceBtn").onclick=async()=>{ if(analysis){if(confirm("Guardar a fatura atual como Revisar antes de iniciar outra?"))await archiveCurrent("Revisar",true);else resetAnalysis(true)} else resetAnalysis(true); msg("Pronto para a próxima fatura.");openView("new"); };
+async function compressedBase64(file,max=3000,q=.95){ const bmp=await createImageBitmap(file),sc=Math.min(1,max/Math.max(bmp.width,bmp.height)),c=document.createElement("canvas");c.width=Math.round(bmp.width*sc);c.height=Math.round(bmp.height*sc);c.getContext("2d",{alpha:false}).drawImage(bmp,0,0,c.width,c.height);const blob=await new Promise(r=>c.toBlob(r,"image/jpeg",q)),buf=await blob.arrayBuffer(),bytes=new Uint8Array(buf);let binary="",chunk=0x8000;for(let i=0;i<bytes.length;i+=chunk)binary+=String.fromCharCode(...bytes.subarray(i,i+chunk));return{mimeType:"image/jpeg",data:btoa(binary),originalName:file.name,width:c.width,height:c.height}; }
+async function archivePhotoData(){ const out=[];for(const p of photos){try{out.push(await compressedBase64(p.file,1600,.72))}catch{}}return out; }
+function getApiKey(){ return localStorage.getItem("gkey")||sessionStorage.getItem("gkey")||$("geminiKey").value.trim(); }
+function usageKey(){ return new Date().toISOString().slice(0,10); }
+function getUsage(){ try{const o=JSON.parse(localStorage.getItem("geminiUsage")||"{}");return o.date===usageKey()?o.count||0:0}catch{return 0} }
+function addUsage(n=1){ localStorage.setItem("geminiUsage",JSON.stringify({date:usageKey(),count:getUsage()+n})); updateUsageBadge(); }
+function updateUsageBadge(){ $("geminiUsage").textContent=`Gemini hoje: ${getUsage()}`; }
+$("saveApiKey").onclick=()=>{ const k=$("geminiKey").value.trim(); localStorage.removeItem("gkey");sessionStorage.removeItem("gkey"); if(k)($("keyStore").value==="local"?localStorage:sessionStorage).setItem("gkey",k); $("apiBadge").textContent=k?"API guardada":"API não configurada"; msg("Configuração Gemini guardada.","ok"); };
+$("removeApiKey").onclick=()=>{localStorage.removeItem("gkey");sessionStorage.removeItem("gkey");$("geminiKey").value="";$("apiBadge").textContent="API não configurada";};
+async function geminiCall(parts,schema){
+const key=getApiKey(); if(!key)throw new Error("Configure a Gemini API key em Configurações.");
+const body={contents:[{role:"user",parts}],generationConfig:{response_mime_type:"application/json",response_schema:schema}};
+const r=await fetch(GEMINI_URL,{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:JSON.stringify(body)});
+const p=await r.json(); if(!r.ok)throw new Error(p?.error?.message||`HTTP ${r.status}`);
+const text=(p.candidates?.[0]?.content?.parts||[]).map(x=>x.text||"").join("").trim(); if(!text)throw new Error("Gemini não devolveu JSON.");
+addUsage(1); try{return JSON.parse(text)}catch{throw new Error("Gemini devolveu JSON inválido: "+text.slice(0,300));}
+}
+async function testApi(){ try{await geminiCall([{text:'Retorne somente {"ok":true}'}],{type:"object",properties:{ok:{type:"boolean"}},required:["ok"]});$("apiBadge").textContent="API OK";$("apiBadge").style.color="var(--green)";msg(`API OK — ${MODEL}.`,"ok");return true}catch(e){$("apiBadge").textContent="API com erro";$("apiBadge").style.color="var(--red)";msg("Teste da API falhou: "+e.message,"err");return false} }
+$("testApiBtn").onclick=testApi;$("settingsTestApi").onclick=testApi;
+async function initLocalOcr(force=false){const backend=$("ocrBackend").value||"wasm";$("ocrBadge").textContent="OCR local: carregando…";$("settingsOcrStatus").textContent="A carregar motor oficial…";const t0=performance.now();try{ocrSummary=await ocrRpc("FATURA_SAGE_OCR_INIT",{backend,force},180000);ocrReady=true;$("ocrBadge").textContent="OCR local: operacional";$("ocrBadge").style.color="var(--green)";$("settingsOcrStatus").textContent=`Pronto · det:${ocrSummary.detProvider||"?"} · rec:${ocrSummary.recProvider||"?"}`;lastLocalDiag={initMs:Math.round(performance.now()-t0),backendRequested:backend,summary:ocrSummary,worker:OCR_WORKER_URL};return ocrSummary}catch(e){ocrReady=false;$("ocrBadge").textContent="OCR local: falhou";$("ocrBadge").style.color="var(--red)";$("settingsOcrStatus").textContent="Falha: "+e.message;throw e}}
+$("settingsInitOcr").onclick=()=>initLocalOcr(true).catch(e=>alert(e.message));$("reinitOcrBtn").onclick=()=>initLocalOcr(true).catch(e=>alert(e.message));
+async function runLocalOcr(){const backend=$("ocrBackend").value||"wasm";if(!ocrReady)await initLocalOcr(false);const files=[],transfer=[];for(const p of photos){const buf=await p.file.arrayBuffer();files.push({name:p.file.name,mimeType:p.file.type,buffer:buf});transfer.push(buf)}msg("Executando PaddleOCR local no seu PC…");const result=await ocrRpc("FATURA_SAGE_OCR_RUN",{backend,files,transfer},240000);$("ocrBadge").textContent="OCR local: operacional";$("ocrBadge").style.color="var(--green)";lastLocalDiag={...(lastLocalDiag||{}),runMs:result.runMs,recognized:result.recognized,engine:result.engine,worker:OCR_WORKER_URL};return result}
+const nullableString={type:"string",nullable:true};
+const documentSchema={type:"object",properties:{supplier:nullableString,supplier_tax_id:nullableString,document_number:nullableString,document_date:nullableString},required:["supplier","supplier_tax_id","document_number","document_date"]};
+const articleItemSchema={type:"object",properties:{source_line_ids:{type:"array",items:{type:"string"}},source_text:{type:"string"},reference:nullableString,description:nullableString,quantity:nullableString,unit_price:nullableString,discount:nullableString,total:nullableString,vat:nullableString},required:["source_line_ids","source_text","reference","description","quantity","unit_price","discount","total","vat"]};
+const rejectedItemSchema={type:"object",properties:{source_line_ids:{type:"array",items:{type:"string"}},source_text:{type:"string"},reason_code:{type:"string"},reason_detail:{type:"string"}},required:["source_line_ids","source_text","reason_code","reason_detail"]};
+const parseSchema={type:"object",properties:{document:documentSchema,articles:{type:"array",items:articleItemSchema},rejected:{type:"array",items:rejectedItemSchema}},required:["document","articles","rejected"]};
+const directSchema={type:"object",properties:{document:documentSchema,ocr_lines:{type:"array",items:{type:"object",properties:{id:{type:"string"},image_index:{type:"integer"},text:{type:"string"}},required:["id","image_index","text"]}},articles:{type:"array",items:articleItemSchema},rejected:{type:"array",items:rejectedItemSchema}},required:["document","ocr_lines","articles","rejected"]};
+const ocrPagesSchema={type:"object",properties:{pages:{type:"array",items:{type:"object",properties:{image_index:{type:"integer"},lines:{type:"array",items:{type:"string"}}},required:["image_index","lines"]}}},required:["pages"]};
+function imagePartsFromPrepared(imgs){ const parts=[];imgs.forEach((img,i)=>{parts.push({text:`IMAGEM ${i+1}`});parts.push({inline_data:{mime_type:img.mimeType,data:img.data}})});return parts; }
+function validateParsed(parsed,lines){
+const map=new Map(lines.map(l=>[l.id,l])); const articles=[],rejected=[];
+for(const a of parsed.articles||[]){
+const ids=[...new Set((a.source_line_ids||[]).filter(id=>map.has(id)))]; if(!ids.length){rejected.push({source_line_ids:[],source_text:a.source_text||"",reason_code:"SEM_ORIGEM_OCR",reason_detail:"Candidato descartado porque não aponta para linha OCR real."});continue}
+const src=ids.map(id=>map.get(id).text).join(" "); const trace=v=>{if(v==null||String(v).trim()==="")return null;const nv=compactNorm(v),ns=compactNorm(src);return !nv||ns.includes(nv)?String(v):null};
+articles.push({source_line_ids:ids,source_text:src,reference:trace(a.reference),description:trace(a.description),quantity:trace(a.quantity),unit_price:trace(a.unit_price),discount:trace(a.discount),total:trace(a.total),vat:trace(a.vat)});
+}
+for(const r of parsed.rejected||[]){ const ids=[...new Set((r.source_line_ids||[]).filter(id=>map.has(id)))]; if(!ids.length)continue; rejected.push({source_line_ids:ids,source_text:ids.map(id=>map.get(id).text).join(" "),reason_code:r.reason_code||"REJEITADO",reason_detail:r.reason_detail||""}); }
+return{document:parsed.document||{},articles,rejected};
+}
+function extractLocalDocument(lines){
+const raw=lines.map(x=>x.text).join("\n");
+const find=(re)=>raw.match(re)?.[1]?.trim()||null;
+const supplier=find(/(?:FORNECEDOR|SUPPLIER)\s*[:\-]?\s*([^\n]+)/i);
+const tax=find(/\bNIF\s*[:\-]?\s*([0-9 .-]{8,14})/i);
+const doc=find(/\b(?:FT|FR|FATURA|DOCUMENTO)\s*[:#\-]?\s*([A-Z0-9/._-]{3,})/i);
+const date=find(/\b(?:DATA|DATE)\s*[:\-]?\s*(\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4})/i)||raw.match(/\b(\d{1,2}[\/.-]\d{1,2}[\/.-]\d{4})\b/)?.[1]||null;
+return{supplier,supplier_tax_id:tax,document_number:doc,document_date:date};
+}
+function localBox(l){
+const p=Array.isArray(l.poly)?l.poly:[];
+if(!p.length)return{left:0,right:0,top:0,bottom:0,cy:0,h:1};
+const xs=p.map(q=>Number(q?.[0])||0),ys=p.map(q=>Number(q?.[1])||0),left=Math.min(...xs),right=Math.max(...xs),top=Math.min(...ys),bottom=Math.max(...ys);
+return{left,right,top,bottom,cy:(top+bottom)/2,h:Math.max(1,bottom-top)};
+}
+function medianNum(a){const v=a.filter(Number.isFinite).slice().sort((x,y)=>x-y);if(!v.length)return 0;const m=Math.floor(v.length/2);return v.length%2?v[m]:(v[m-1]+v[m])/2;}
+function reconstructLocalRows(lines){
+const byPage=new Map();for(const l of lines||[]){const page=+l.image_index||1;(byPage.get(page)||byPage.set(page,[]).get(page)).push({...l,_box:localBox(l)});}const out=[];
+for(const[page,items0]of[...byPage.entries()].sort((a,b)=>a[0]-b[0])){
+const usable=items0.filter(x=>x._box.h>1&&Number.isFinite(x._box.cy));const medianH=Math.max(6,medianNum(usable.map(x=>x._box.h))||20);const items=usable.slice().sort((a,b)=>a._box.cy-b._box.cy||a._box.left-b._box.left);const rows=[];
+for(const it of items){let best=null,bestScore=Infinity;for(const row of rows){const anchorCy=medianNum(row.items.map(x=>x._box.cy)),anchorH=Math.max(4,medianNum(row.items.map(x=>x._box.h))||medianH),dy=Math.abs(it._box.cy-anchorCy),limit=Math.max(4,Math.min(medianH*.45,Math.max(anchorH,it._box.h)*.55)),repTop=anchorCy-anchorH/2,repBottom=anchorCy+anchorH/2,overlap=Math.max(0,Math.min(it._box.bottom,repBottom)-Math.max(it._box.top,repTop)),ratio=overlap/Math.max(1,Math.min(it._box.h,anchorH));if(dy<=limit||ratio>=.62){const score=dy/Math.max(1,medianH)-(ratio*.35);if(score<bestScore){best=row;bestScore=score}}}if(best)best.items.push(it);else rows.push({items:[it]});}
+rows.sort((a,b)=>medianNum(a.items.map(x=>x._box.cy))-medianNum(b.items.map(x=>x._box.cy)));
+rows.forEach((row,idx)=>{row.items.sort((a,b)=>a._box.left-b._box.left);const source_line_ids=row.items.map(x=>x.id),text=row.items.map(x=>String(x.text||'').trim()).filter(Boolean).join(' ').replace(/\s+/g,' ').trim();if(text){const boxes=row.items.map(x=>x._box);out.push({id:`P${page}-R${String(idx+1).padStart(3,'0')}`,image_index:page,text,source_line_ids,poly:null,_row:true,_parts:row.items.length,_cy:medianNum(boxes.map(x=>x.cy)),_h:Math.max(4,medianNum(boxes.map(x=>x.h))||medianH),_left:Math.min(...boxes.map(x=>x.left)),_right:Math.max(...boxes.map(x=>x.right))});}});}
+return out;}
+function attachLocalValueRows(rows){
+const all=(rows||[]).map(r=>({...r,source_line_ids:[...(r.source_line_ids||[])]})),used=new Set();
+const pages=[...new Set(all.map(r=>r.image_index||1))];
+for(const page of pages){const pr=all.filter(r=>(r.image_index||1)===page);const textRows=pr.filter(r=>/[A-Za-zÀ-ÿ]/.test(r.text||''));const numericRows=pr.filter(r=>!/[A-Za-zÀ-ÿ]/.test(r.text||'')&&/\d/.test(r.text||''));const medH=Math.max(6,medianNum(pr.map(r=>+r._h||0))||18);
+for(const n of numericRows){let best=null,bestDy=Infinity;for(const t of textRows){const dy=Math.abs((+n._cy||0)-(+t._cy||0));const limit=Math.max(7,Math.min(24,medH*.95,Math.max(+n._h||medH,+t._h||medH)*1.15));const toRight=(+n._left||0)>=((+t._left||0)+Math.min(40,Math.max(8,((+t._right||0)-(+t._left||0))*.08)));if(dy<=limit&&toRight&&dy<bestDy){best=t;bestDy=dy}}if(!best)continue;
+const parts=[{text:best.text,left:+best._left||0},{text:n.text,left:+n._left||0}].sort((a,b)=>a.left-b.left);best.text=parts.map(x=>x.text).join(' ').replace(/\s+/g,' ').trim();best.source_line_ids=[...new Set([...(best.source_line_ids||[]),...(n.source_line_ids||[])])];best._parts=(best._parts||1)+(n._parts||1);best._right=Math.max(+best._right||0,+n._right||0);used.add(n.id);}}
+return all.filter(r=>!used.has(r.id));}
+function localParseArticles(rows,rawLines=rows){
+rows=attachLocalValueRows(rows);const fiscal=/\b(TOTAL(?:\s+A\s+PAGAR)?|SUBTOTAL|IVA|VAT|NIF|FATURA|DOCUMENTO|DATA|CLIENTE|FORNECEDOR|MORADA|ENDEREÇO|PAGAMENTO|IBAN|EUR|TAXA|BASE\s+INCID|TRANSPORTE|TELEFONE|EMAIL|VENCIMENTO|CONTRIBUINTE)\b/i;const amountRe=/(?:^|\s)(\d{1,3}(?:[.\s]\d{3})*[.,]\d{1,4}|\d+[.,]\d{1,4})(?=\s|€|EUR|$)/gi;const articles=[],rejected=[],doc=extractLocalDocument(rawLines);
+for(const l of rows||[]){const text=String(l.text||'').trim(),ids=(l.source_line_ids?.length?l.source_line_ids:[l.id]).filter(Boolean);if(!text)continue;if(fiscal.test(text)){rejected.push({source_line_ids:ids,source_text:text,reason_code:"CAMPO_NAO_ARTIGO",reason_detail:"Linha reconstruída identificada como cabeçalho, fiscal, total ou metadado."});continue}const prices=[...text.matchAll(amountRe)].map(m=>({v:m[1],i:(m.index||0)+m[0].indexOf(m[1])}));if((l._parts||ids.length)>10||prices.length>4){rejected.push({source_line_ids:ids,source_text:text,reason_code:"AGRUPAMENTO_AMBIGUO",reason_detail:"Muitos blocos OCR ou valores monetários na mesma linha. A aplicação recusou este agrupamento em vez de criar um artigo incorreto."});continue}const hasLetters=/[A-Za-zÀ-ÿ]/.test(text),tokens=text.split(/\s+/),first=tokens[0]||"";let reference=/^(?=.*\d)[A-Z0-9._\/-]{3,}$/i.test(first)||/^\d{3,}$/.test(first)?first:null;const baseMatch=baseData.length?findMatches({reference,description:text},doc)[0]:null;const beforeFirstPrice=prices.length?text.slice(0,prices[0].i).trim():text;const pureNums=[...beforeFirstPrice.matchAll(/(?:^|\s)(\d+(?:[.,]\d{1,3})?)(?=\s|$)/g)].map(m=>m[1]);const evidence=(prices.length>=2)||(prices.length>=1&&pureNums.length>=1)||(reference&&prices.length>=1)||(baseMatch&&baseMatch.score>=.55);if(!hasLetters||!evidence){if(text.length>=5)rejected.push({source_line_ids:ids,source_text:text,reason_code:"ESTRUTURA_INSUFICIENTE",reason_detail:"A linha visual não tem evidência suficiente de artigo."});continue}let quantity=null,unit_price=null,total=null,description=text;if(prices.length){total=prices.at(-1).v;if(prices.length>=2)unit_price=prices.at(-2).v;const cut=prices.length>=2?prices.at(-2).i:prices[0].i,before=text.slice(0,cut).trim();const nums=[...before.matchAll(/(?:^|\s)(\d+(?:[.,]\d{1,3})?)(?=\s|$)/g)].map(m=>m[1]);if(nums.length){const cand=nums.at(-1),n=Number(cand.replace(",","."));if(Number.isFinite(n)&&n>0&&n<100000)quantity=cand;}description=before;}if(reference){const re=new RegExp("^"+reference.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\s*","i");description=description.replace(re,"").trim();}if(quantity){const qre=new RegExp("(?:^|\\s)"+quantity.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"(?:\\s+(?:UN|UND|UNID|CX|CAIXA|KG|G|L|LT|ML))?\\s*$","i");description=description.replace(qre,"").trim();}if(!description||description.length<2)description=text;articles.push({source_line_ids:ids,source_text:text,reference,description,quantity,unit_price,discount:null,total,vat:null,local_row_id:l.id});}
+return{document:doc,articles,rejected};}
+async function runGeminiDirect(imgs){
+const prompt=`Leia estas fotos de uma mesma fatura portuguesa. Transcreva fielmente TODAS as linhas em ocr_lines e atribua IDs P1-L001, P1-L002... por imagem, em ordem visual. Identifique somente linhas reais de artigos. Não invente, normalize ou complete dados. Campo incerto deve ser null. source_line_ids deve apontar somente para IDs criados em ocr_lines. Cabeçalhos, NIF, moradas, totais, IVA-resumo e rodapés vão para rejected quando relevantes.`;
+const p=await geminiCall([{text:prompt},...imagePartsFromPrepared(imgs)],directSchema);
+const lines=(p.ocr_lines||[]).filter(x=>x?.id&&x?.text).map((x,i)=>({id:String(x.id),image_index:+x.image_index||1,text:String(x.text)}));
+const val=validateParsed(p,lines); return{pipeline:"gemini_direct_1",document:val.document,ocr_lines:lines,ocr_raw:lines.map(x=>x.text).join("\n"),articles:val.articles,rejected:val.rejected,gemini_calls:1,local_ocr:null};
+}
+async function runGeminiAudit(imgs){
+const p1=await geminiCall([{text:"Faça somente transcrição visual literal das imagens de uma mesma fatura. Não interprete artigos, não corrija grafia, não complete caracteres. Para cada imagem devolva linhas na ordem visual. image_index começa em 1."},...imagePartsFromPrepared(imgs)],ocrPagesSchema);
+const lines=[];for(const page of p1.pages||[]){let n=1;for(const t of page.lines||[]){if(!String(t).trim())continue;lines.push({id:`P${page.image_index}-L${String(n++).padStart(3,"0")}`,image_index:+page.image_index||1,text:String(t)})}}
+const txt=lines.map(x=>`${x.id}\t${x.text}`).join("\n");
+const p2=await geminiCall([{text:`Você receberá SOMENTE linhas OCR de uma fatura. Reconstrua somente candidatos reais a artigos usando exclusivamente estas linhas. Não invente ou complete campos. source_line_ids só pode conter IDs presentes. Tudo duvidoso vai para rejected. Extraia também metadados do documento quando visíveis.\n\nLINHAS OCR:\n${txt}`}],parseSchema);
+const val=validateParsed(p2,lines);return{pipeline:"gemini_audit_2",document:val.document,ocr_lines:lines,ocr_raw:lines.map(x=>x.text).join("\n"),articles:val.articles,rejected:val.rejected,gemini_calls:2,local_ocr:null};
+}
+async function runHybrid(imgs,local){
+const txt=local.lines.map(x=>`${x.id}\t${x.text}`).join("\n");
+const prompt=`Analise estas fotos de uma fatura portuguesa usando o OCR LOCAL abaixo apenas como pista. A imagem original é a autoridade visual. Reconstrua somente artigos reais. Não invente, normalize ou complete campos. source_line_ids só pode usar IDs do OCR local fornecido; se a leitura local estiver errada, use null/rejected em vez de criar outro ID. Extraia metadados do documento.\n\nOCR LOCAL:\n${txt}`;
+const p=await geminiCall([{text:prompt},...imagePartsFromPrepared(imgs)],parseSchema);
+const val=validateParsed(p,local.lines);return{pipeline:"hybrid_local_gemini_1",document:val.document,ocr_lines:local.lines,ocr_raw:local.raw,articles:val.articles,rejected:val.rejected,gemini_calls:1,local_ocr:local};
+}
+async function runLocalOnly(local){ const rows=reconstructLocalRows(local.lines);local.reconstructed_rows=rows;const p=localParseArticles(rows,local.lines);return{pipeline:"local_paddle_0_rows_v3_values",document:p.document,ocr_lines:local.lines,ocr_raw:local.raw,articles:p.articles,rejected:p.rejected,gemini_calls:0,local_ocr:local}; }
+$("analyzeBtn").onclick=async()=>{
+if(!photos.length)return; $("analyzeBtn").disabled=true; openTab("ocr"); const mode=$("ocrMode").value; localStorage.setItem("ocrMode",mode); $("modeBadge").textContent="Modo: "+modeLabel(mode);
+try{
+let local=null,imgs=[];
+if(mode==="local"||mode==="hybrid"){
+msg("Inicializando OCR local…"); local=await runLocalOcr(); $("localOcrBox").textContent=local.raw||"(nenhum texto)";
+}
+if(mode!=="local"){
+msg("Preparando imagens para Gemini…"); for(let i=0;i<photos.length;i++){msg(`Preparando foto ${i+1}/${photos.length}…`);imgs.push(await compressedBase64(photos[i].file));}
+}
+if(mode==="local")analysis=await runLocalOnly(local);
+else if(mode==="hybrid")analysis=await runHybrid(imgs,local);
+else if(mode==="gemini1")analysis=await runGeminiDirect(imgs);
+else analysis=await runGeminiAudit(imgs);
+analysis.mode=mode; analysis.createdAt=nowIso();
+articleState=(analysis.articles||[]).map((a,i)=>({...a,_id:i,approval:"Pendente",selectedSage:null,topMatches:findMatches(a,analysis.document)}));
+renderAnalysis();
+const dups=await findDuplicateInvoices(analysis.document||{}); await archiveCurrent("Revisar",false);
+if(dups.length)msg(`Análise concluída. Atenção: existe(m) ${dups.length} fatura(s) com o mesmo fornecedor/documento.`,"err"); else msg(`Análise concluída — ${modeLabel(mode)}. Guardada no Histórico como Revisar.`,"ok");
+}catch(e){console.error(e);msg("Falha no OCR/análise: "+e.message,"err");openTab("diagnostic");$("diagBox").textContent=e?.stack||String(e);}
+finally{$("analyzeBtn").disabled=!photos.length;}
+};
+async function findDuplicateInvoices(doc){ const num=norm(doc?.document_number||""),tax=norm(doc?.supplier_tax_id||""),supplier=norm(doc?.supplier||"");if(!num)return[];const all=await idbAll("invoices");return all.filter(x=>x.id!==activeHistoryId&&norm(x.documentNumber||"")===num&&((tax&&norm(x.supplierTaxId||"")===tax)||(!tax&&supplier&&norm(x.supplier||"")===supplier))); }
+function renderAnalysis(){
+const lines=analysis?.ocr_lines||[],rej=analysis?.rejected||[],doc=analysis?.document||{};
+$("stLines").textContent=lines.length;$("stItems").textContent=articleState.length;$("stReject").textContent=rej.length;$("stBase").textContent=baseData.length;
+$("docMeta").innerHTML=`<div><small>Fornecedor</small><b>${esc(doc.supplier||"—")}</b></div><div><small>NIF</small><b>${esc(doc.supplier_tax_id||"—")}</b></div><div><small>Documento</small><b>${esc(doc.document_number||"—")}</b></div><div><small>Data</small><b>${esc(doc.document_date||"—")}</b></div>`;
+const g={};lines.forEach(l=>(g[l.image_index]??=[]).push(l));$("ocrBox").innerHTML=Object.keys(g).length?Object.entries(g).map(([p,ls])=>`<div class="ocrpage"><h4>FOTO ${p}</h4>${ls.map(l=>`<div class="ocrline" id="line-${esc(l.id)}"><span class="lineid">${esc(l.id)}</span><span>${esc(l.text)}</span></div>`).join("")}</div>`).join(""):'<div class="empty">Nenhuma linha legível.</div>';
+if(analysis.local_ocr){const rr=analysis.local_ocr.reconstructed_rows||[];$("localOcrBox").textContent=(rr.length?"LINHAS RECONSTRUÍDAS PARA ARTIGOS\n"+rr.map(r=>`${r.id}  ${r.text}`).join("\n")+"\n\nOCR BRUTO\n":"")+(analysis.local_ocr.raw||"(nenhum texto)");}
+renderItems();
+$("rejBody").innerHTML=rej.length?rej.map(x=>`<tr class="clickable" data-lines="${esc((x.source_line_ids||[]).join(","))}"><td>${esc((x.source_line_ids||[]).join(", "))}</td><td>${esc(x.source_text||"")}</td><td><b>${esc(x.reason_code||"")}</b>${x.reason_detail?" — "+esc(x.reason_detail):""}</td></tr>`).join(""):'<tr><td colspan="3"><div class="empty">Nenhuma linha rejeitada.</div></td></tr>';
+renderDiagnostic();wireSourceRows();$("csvBtn").disabled=false;$("finalizeBtn").disabled=false;updateTxtButton();
+}
+function renderDiagnostic(){
+$("diagPipeline").textContent=analysis?.pipeline||"—";$("diagLocal").textContent=analysis?.local_ocr?"Sim":"Não";$("diagGemini").textContent=analysis?.gemini_calls??0;$("diagTime").textContent=analysis?.local_ocr?.runMs!=null?`${analysis.local_ocr.runMs} ms`:"—";
+const diag={mode:analysis?.mode,pipeline:analysis?.pipeline,gemini_calls:analysis?.gemini_calls,ocr_local:analysis?.local_ocr?{runMs:analysis.local_ocr.runMs,recognized:analysis.local_ocr.recognized,reconstructed_rows:(analysis.local_ocr.reconstructed_rows||[]).length,pages:(analysis.local_ocr.pages||[]).map(p=>({image_index:p.image_index,metrics:p.metrics,runtime:p.runtime,items:p.items.slice(0,20)}))}:null,engine:lastLocalDiag?{initMs:lastLocalDiag.initMs,backendRequested:lastLocalDiag.backendRequested,summary:lastLocalDiag.summary}:null};
+$("diagBox").textContent=JSON.stringify(diag,null,2);
+}
+function learnedKey(supplier,a){return norm(supplier)+"|"+norm(a.reference||"")+"|"+norm(a.description||a.source_text||"")}
+function findMatches(a,doc=analysis?.document||{}){
+if(!baseData.length)return[]; const supplier=doc?.supplier||"",lk=learnedKey(supplier,a); if(learned[lk]){const hit=baseData.find(x=>x.reference===learned[lk]);if(hit)return[{row:hit,score:1,reason:"Aprendido"}]}
+const ref=norm(a.reference),desc=a.description||a.source_text||"",sup=norm(supplier),out=[];
+for(const row of baseData){let score=0,parts=[];if(ref&&norm(row.reference)===ref){score=.98;parts.push("referência exata")}else{const d=jaccard(desc,row.description||"");score=d*.76;if(d>.45)parts.push("descrição")}if(sup&&row.supplier){const sm=jaccard(supplier,row.supplier);score+=sm*.16;if(sm>.5)parts.push("fornecedor")}if(a.reference&&row.supplier_ref&&norm(a.reference)===norm(row.supplier_ref)){score=Math.max(score,.96);parts.push("ref. fornecedor")}if(score>.25)out.push({row,score:Math.min(1,score),reason:parts.join(" + ")||"similaridade"})}
+return out.sort((a,b)=>b.score-a.score).slice(0,5);
+}
+function renderItems(){
+if(!articleState.length){$("itemsBody").innerHTML='<tr><td colspan="8"><div class="empty">Nenhum candidato suficientemente sustentado pelo OCR.</div></td></tr>';return}
+$("itemsBody").innerHTML=articleState.map((x,i)=>{const options=x.topMatches?.length?x.topMatches.map((m,j)=>`<option value="${j}" ${x.selectedSage?.reference===m.row.reference?"selected":""}>${esc(m.row.reference)} | ${esc(m.row.description)} (${Math.round(m.score*100)}%)</option>`).join(""):'<option value="">Sem sugestão</option>';let cls=x.approval==="Aprovado"?"confirmado":x.approval==="Rejeitado"?"rejeitado":"revisar";return`<tr class="clickable" data-lines="${esc((x.source_line_ids||[]).join(","))}"><td><span class="status ${cls}">${esc(x.approval)}</span></td><td>${esc((x.source_line_ids||[]).join(", "))}</td><td>${esc(x.reference??"—")}</td><td>${esc(x.description??x.source_text??"—")}</td><td>${esc(x.quantity??"—")}</td><td>${esc(x.unit_price??"—")}</td><td><select class="inline sageSelect" data-i="${i}"><option value="">— selecionar —</option>${options}</select></td><td><button class="btn approveBtn" data-i="${i}">✓</button> <button class="btn rejectBtn danger" data-i="${i}">✕</button></td></tr>`}).join("");
+document.querySelectorAll(".sageSelect").forEach(sel=>sel.onchange=e=>{const i=+e.target.dataset.i,idx=e.target.value===""?-1:+e.target.value;articleState[i].selectedSage=idx>=0?articleState[i].topMatches[idx].row:null;if(articleState[i].approval==="Aprovado")articleState[i].approval="Pendente";renderItems()});
+document.querySelectorAll(".approveBtn").forEach(b=>b.onclick=async e=>{e.stopPropagation();const x=articleState[+b.dataset.i];if(!x.selectedSage&&x.topMatches?.length)x.selectedSage=x.topMatches[0].row;if(!x.selectedSage){if(!confirm("Não há correspondência Sage selecionada. Aprovar apenas a leitura OCR? Esta linha não entrará no TXT de importação."))return;x.approval="Aprovado";renderItems();updateTxtButton();archiveCurrent("Revisar",false);return}x.approval="Aprovado";learned[learnedKey(analysis?.document?.supplier||"",x)]=x.selectedSage.reference;await idbPut("kv",{key:"learned",value:learned});renderItems();renderBase();updateTxtButton();archiveCurrent("Revisar",false)});
+document.querySelectorAll(".rejectBtn").forEach(b=>b.onclick=e=>{e.stopPropagation();articleState[+b.dataset.i].approval="Rejeitado";renderItems();updateTxtButton();archiveCurrent("Revisar",false)});wireSourceRows();updateTxtButton();
+}
+function wireSourceRows(){document.querySelectorAll('tr.clickable[data-lines]').forEach(r=>r.onclick=()=>{document.querySelectorAll(".ocrline").forEach(x=>x.classList.remove("hl"));const ids=(r.dataset.lines||"").split(",").filter(Boolean);ids.forEach(id=>document.getElementById("line-"+CSS.escape(id))?.classList.add("hl"));openTab("ocr");if(ids[0])document.getElementById("line-"+CSS.escape(ids[0]))?.scrollIntoView({behavior:"smooth",block:"center"})})}
+$("approveAllBtn").onclick=async()=>{for(const x of articleState){if(x.approval==="Pendente"&&x.topMatches?.[0]?.score>=.88){x.selectedSage=x.topMatches[0].row;x.approval="Aprovado";learned[learnedKey(analysis?.document?.supplier||"",x)]=x.selectedSage.reference}}await idbPut("kv",{key:"learned",value:learned});renderItems();renderBase();await archiveCurrent("Revisar",false)};
+function updateTxtButton(){$("txtBtn").disabled=!articleState.some(x=>x.approval==="Aprovado"&&x.selectedSage)}
+function generateTxtFromItems(items,name="fatura_sage_import.txt"){const sep=$("txtSeparator").value==="\\t"?"\t":$("txtSeparator").value;const rows=(items||[]).filter(x=>x.approval==="Aprovado"&&x.selectedSage).map(x=>{const arr=[x.selectedSage.reference];if($("txtQty").checked)arr.push(x.quantity??"");if($("txtPrice").checked)arr.push(x.unit_price??"");return arr.join(sep)});if(!rows.length)return alert("Esta fatura não tem artigos aprovados com correspondência Sage.");download("\ufeff"+rows.join("\r\n"),name,"text/plain;charset=utf-8");}
+$("txtBtn").onclick=()=>generateTxtFromItems(articleState,"fatura_sage_import.txt");
+$("csvBtn").onclick=()=>{if(!analysis)return;const H=["approval","source_line_ids","source_text","ocr_reference","ocr_description","quantity","unit_price","sage_reference","sage_description","pipeline"];const q=v=>'"'+String(v??"").replaceAll('"','""')+'"';const rows=articleState.map(x=>[x.approval,(x.source_line_ids||[]).join(" "),x.source_text,x.reference,x.description,x.quantity,x.unit_price,x.selectedSage?.reference,x.selectedSage?.description,analysis.pipeline]);download("\ufeff"+[H.join(";"),...rows.map(r=>r.map(q).join(";"))].join("\r\n"),"fatura_sage_auditoria.csv","text/csv;charset=utf-8")};
+async function archiveCurrent(status="Finalizada",clear=true){if(!analysis)return;const id=activeHistoryId||("INV-"+Date.now()+"-"+Math.random().toString(36).slice(2,7));const prev=activeHistoryId?await idbGet("invoices",activeHistoryId):null,doc=analysis.document||{},photoArchive=prev?.photos?.length?prev.photos:await archivePhotoData(),approved=articleState.filter(x=>x.approval==="Aprovado").length;const rec={id,createdAt:prev?.createdAt||nowIso(),updatedAt:nowIso(),status,supplier:doc.supplier||"",supplierTaxId:doc.supplier_tax_id||"",documentNumber:doc.document_number||"",documentDate:doc.document_date||"",articleCount:articleState.length,approvedCount:approved,pipeline:analysis.pipeline,mode:analysis.mode,analysis,items:articleState.map(x=>({...x,topMatches:undefined})),photos:photoArchive};await idbPut("invoices",rec);activeHistoryId=id;if(clear){activeHistoryId=null;resetAnalysis(true)}return rec;}
+$("finalizeBtn").onclick=async()=>{const pending=articleState.filter(x=>x.approval==="Pendente").length;if(pending){openTab("items");alert(`Ainda existem ${pending} artigo(s) pendentes. Aprove ou rejeite cada linha antes de finalizar.`);return}await archiveCurrent("Finalizada",true);msg("Fatura finalizada e guardada no histórico. Tela pronta para a próxima.","ok");openView("new")};
+async function renderHistory(){const all=(await idbAll("invoices")).sort((a,b)=>b.createdAt.localeCompare(a.createdAt)),q=norm($("histSearch").value),st=$("histStatus").value;const filtered=all.filter(x=>(!st||x.status===st)&&(!q||norm([x.supplier,x.documentNumber,x.supplierTaxId,x.pipeline].join(" ")).includes(q)));$("historyBody").innerHTML=filtered.length?filtered.map(x=>`<tr><td>${new Date(x.createdAt).toLocaleString()}</td><td>${esc(x.supplier||"—")}</td><td>${esc(x.documentNumber||"—")}</td><td>${x.articleCount}</td><td>${x.approvedCount}</td><td><span class="status ${x.status.toLowerCase()}">${esc(x.status)}</span><div class="small muted">${esc(modeLabel(x.mode||""))}</div></td><td><button class="btn histOpen" data-id="${esc(x.id)}">Abrir</button></td></tr>`).join(""):'<tr><td colspan="7"><div class="empty">Nenhuma fatura no histórico.</div></td></tr>';document.querySelectorAll(".histOpen").forEach(b=>b.onclick=()=>openHistory(b.dataset.id));}
+$("histSearch").oninput=renderHistory;$("histStatus").onchange=renderHistory;
+async function openHistory(id){const x=await idbGet("invoices",id);if(!x)return;const pics=(x.photos||[]).map(p=>`<img src="data:${p.mimeType};base64,${p.data}" style="max-width:180px;max-height:230px;border-radius:8px;border:1px solid var(--line)">`).join("");$("historyDetail").innerHTML=`<div class="detailGrid"><div class="kv"><small>Fornecedor</small><b>${esc(x.supplier||"—")}</b></div><div class="kv"><small>Documento</small><b>${esc(x.documentNumber||"—")}</b></div><div class="kv"><small>Data do documento</small><b>${esc(x.documentDate||"—")}</b></div><div class="kv"><small>Pipeline</small><b>${esc(x.pipeline||x.analysis?.pipeline||"—")}</b></div></div><div class="row" style="margin-top:12px">${pics||'<span class="muted">Sem miniaturas.</span>'}</div><h3 style="margin-top:16px">Artigos</h3><div class="tableWrap"><table><thead><tr><th>Estado</th><th>OCR</th><th>Qtd</th><th>Sage</th></tr></thead><tbody>${(x.items||[]).map(i=>`<tr><td>${esc(i.approval)}</td><td>${esc(i.description||i.source_text||"")}</td><td>${esc(i.quantity||"")}</td><td>${esc(i.selectedSage?i.selectedSage.reference+" | "+i.selectedSage.description:"—")}</td></tr>`).join("")}</tbody></table></div><h3 style="margin-top:16px">OCR bruto</h3><pre style="white-space:pre-wrap;background:var(--panel2);border:1px solid var(--line);padding:10px;border-radius:9px;max-height:240px;overflow:auto">${esc(x.analysis?.ocr_raw||"")}</pre><div class="row" style="justify-content:flex-end;margin-top:12px">${x.status==="Revisar"?'<button class="btn primary" id="resumeHistory">Reabrir para revisão</button>':""}<button class="btn" id="historyTxt">Gerar TXT novamente</button><button class="btn danger" id="deleteHistory">Apagar do histórico</button></div>`;$("historyModal").classList.add("show");if($("resumeHistory"))$("resumeHistory").onclick=()=>resumeHistoryInvoice(id);$("historyTxt").onclick=()=>generateTxtFromItems(x.items||[],`fatura_sage_${safeFilePart(x.documentNumber||x.id)}.txt`);$("deleteHistory").onclick=async()=>{if(confirm("Apagar definitivamente esta fatura do histórico?")){await idbDelete("invoices",id);$("historyModal").classList.remove("show");renderHistory()}};}
+function b64ToFile(p,i){const bin=atob(p.data||""),arr=new Uint8Array(bin.length);for(let j=0;j<bin.length;j++)arr[j]=bin.charCodeAt(j);return new File([arr],p.originalName||`fatura_${i+1}.jpg`,{type:p.mimeType||"image/jpeg"})}
+async function resumeHistoryInvoice(id){const x=await idbGet("invoices",id);if(!x)return;if(analysis&&activeHistoryId!==id){if(!confirm("Existe outra fatura aberta. Guardar como Revisar e continuar esta?"))return;await archiveCurrent("Revisar",true)}resetAnalysis(true);activeHistoryId=id;analysis=structuredClone(x.analysis);articleState=(x.items||[]).map((it,i)=>({...it,_id:i,topMatches:findMatches(it,analysis.document)}));photos=(x.photos||[]).map((p,i)=>{const f=b64ToFile(p,i);return{file:f,url:URL.createObjectURL(f)}});selected=0;renderPhotos();renderAnalysis();$("historyModal").classList.remove("show");openView("new");openTab("items");msg("Fatura reaberta do Histórico para revisão.","ok");}
+$("closeHistoryModal").onclick=()=>$("historyModal").classList.remove("show");$("historyModal").onclick=e=>{if(e.target===$("historyModal"))$("historyModal").classList.remove("show")};
+function parseCSV(t){t=t.replace(/^\uFEFF/,"");const first=t.split(/\r?\n/).find(x=>x.trim())||"",delim=(first.match(/;/g)||[]).length>=(first.match(/,/g)||[]).length?";":",";const rows=[];let row=[],cell="",q=false;for(let i=0;i<t.length;i++){const c=t[i];if(c==='"'){if(q&&t[i+1]==='"'){cell+='"';i++}else q=!q}else if(c===delim&&!q){row.push(cell);cell=""}else if((c==='\n'||c==='\r')&&!q){if(c==='\r'&&t[i+1]==='\n')i++;row.push(cell);if(row.some(x=>String(x).trim()))rows.push(row);row=[];cell=""}else cell+=c}if(cell.length||row.length){row.push(cell);rows.push(row)}return rows}
+$("importBaseBtn").onclick=()=>$("baseFile").click();$("baseFile").onchange=async e=>{const f=e.target.files[0];if(!f)return;const rows=parseCSV(await f.text());if(rows.length<2)return alert("Arquivo sem linhas suficientes.");tempParsed={name:f.name,headers:rows[0],rows:rows.slice(1)};const opts=(extra="")=>extra+tempParsed.headers.map((h,i)=>`<option value="${i}">${esc(h||"Coluna "+(i+1))}</option>`).join("");$("colRef").innerHTML=opts();$("colDesc").innerHTML=opts();$("colSupplier").innerHTML=opts('<option value="-1">— não usar —</option>');$("colSupplierRef").innerHTML=opts('<option value="-1">— não usar —</option>');$("colUnit").innerHTML=opts('<option value="-1">— não usar —</option>');$("colPrice").innerHTML=opts('<option value="-1">— não usar —</option>');$("colRef").value="0";$("colDesc").value=String(Math.min(1,tempParsed.headers.length-1));["colSupplier","colSupplierRef","colUnit","colPrice"].forEach(id=>$(id).value="-1");$("mappingBox").style.display="block";};
+$("saveBaseBtn").onclick=async()=>{if(!tempParsed)return;const idx=id=>+$(id).value,ir=idx("colRef"),idc=idx("colDesc"),is=idx("colSupplier"),isr=idx("colSupplierRef"),iu=idx("colUnit"),ip=idx("colPrice");baseData=tempParsed.rows.map(r=>({reference:(r[ir]||"").trim(),description:(r[idc]||"").trim(),supplier:is>=0?(r[is]||"").trim():"",supplier_ref:isr>=0?(r[isr]||"").trim():"",unit:iu>=0?(r[iu]||"").trim():"",price:ip>=0?(r[ip]||"").trim():""})).filter(x=>x.reference||x.description);baseMeta={source:tempParsed.name,updatedAt:nowIso(),count:baseData.length};await idbPut("kv",{key:"sageBase",rows:baseData,meta:baseMeta});$("mappingBox").style.display="none";tempParsed=null;$("stBase").textContent=baseData.length;if(analysis){articleState.forEach(x=>x.topMatches=findMatches(x,analysis.document));renderItems()}renderBase();alert(`Base guardada: ${baseData.length} artigos.`);};
+$("clearBaseBtn").onclick=async()=>{if(!confirm("Apagar a base Sage local? O histórico não será apagado."))return;baseData=[];baseMeta=null;await idbDelete("kv","sageBase");$("stBase").textContent="0";renderBase()};
+function renderBase(){$("baseCount").textContent=baseData.length;$("mappingCount").textContent=Object.keys(learned).length;$("baseUpdated").textContent=baseMeta?.updatedAt?new Date(baseMeta.updatedAt).toLocaleString():"—";$("baseSource").textContent=baseMeta?.source||"—";$("baseBody").innerHTML=baseData.length?baseData.slice(0,1000).map(x=>`<tr><td>${esc(x.reference)}</td><td>${esc(x.description)}</td><td>${esc(x.supplier)}</td><td>${esc(x.supplier_ref)}</td><td>${esc(x.unit)}</td><td>${esc(x.price)}</td></tr>`).join(""):'<tr><td colspan="6"><div class="empty">Importe uma exportação de artigos do Sage em CSV/TXT ou use o Companion.</div></td></tr>';}
+function companionBase(){return $("companionUrl").value.trim().replace(/\/$/,"")||"http://127.0.0.1:8766"}
+async function companionFetch(path,opts={}){const c=new AbortController(),timer=setTimeout(()=>c.abort(),3500);try{return await fetch(companionBase()+path,{...opts,signal:c.signal,headers:{...(opts.headers||{}),"Accept":"application/json"}})}finally{clearTimeout(timer)}}
+async function detectCompanion(){ $("detectSageBtn").disabled=true;$("sageDetectBadge").textContent="A procurar…";try{const r=await companionFetch("/api/status"),p=await r.json();if(!r.ok||!p.ok)throw new Error(p.error||`HTTP ${r.status}`);companionState=p;$("sageDetectBadge").textContent="Companion ligado";$("sageDetectBadge").style.color="var(--green)";$("syncCompanionBtn").disabled=false;$("exportSageDiagBtn").disabled=false;$("sageDetectResults").innerHTML=`<div class="detectItem"><b><span class="goodDot"></span>${esc(p.product||"Sage 50 Companion")}</b>${esc(p.company||p.companyId||"Empresa não selecionada")}<div class="codeish">${esc(companionBase())}</div></div>`;return p}catch(e){companionState=null;$("sageDetectBadge").textContent="Companion não encontrado";$("sageDetectBadge").style.color="var(--amber)";$("syncCompanionBtn").disabled=true;$("exportSageDiagBtn").disabled=true;$("sageDetectResults").innerHTML=`<div class="detectItem"><b><span class="warnDot"></span>Sem Companion</b>${esc(e.name==="AbortError"?"Tempo esgotado":e.message)}<div class="codeish">${esc(companionBase())}</div></div>`;return null}finally{$("detectSageBtn").disabled=false}}
+$("detectSageBtn").onclick=detectCompanion;$("saveSageProfileBtn").onclick=async()=>{await idbPut("kv",{key:"companion",url:companionBase(),updatedAt:nowIso()});alert("Endereço do Companion guardado.")};
+$("syncCompanionBtn").onclick=async()=>{try{msg("A sincronizar artigos do Sage via Companion…");const r=await companionFetch("/api/articles"),p=await r.json();if(!r.ok||!p.ok||!Array.isArray(p.rows))throw new Error(p.error||"Resposta inválida");baseData=p.rows.map(x=>({reference:String(x.reference??x.itemId??""),description:String(x.description??""),supplier:String(x.supplier??""),supplier_ref:String(x.supplier_ref??x.supplierRef??""),unit:String(x.unit??""),price:String(x.price??"")})).filter(x=>x.reference||x.description);baseMeta={source:"Companion Sage 50",updatedAt:nowIso(),count:baseData.length,company:p.company||companionState?.company||""};await idbPut("kv",{key:"sageBase",rows:baseData,meta:baseMeta});$("stBase").textContent=baseData.length;renderBase();msg(`Base sincronizada: ${baseData.length} artigos.`,"ok")}catch(e){msg("Falha na sincronização Companion: "+e.message,"err")}};
+$("exportSageDiagBtn").onclick=()=>download(JSON.stringify({generatedAt:nowIso(),url:companionBase(),state:companionState},null,2),"diagnostico_companion_sage50.json","application/json");
+$("exportBackupBtn").onclick=async()=>{const invoices=await idbAll("invoices"),sageBase=await idbGet("kv","sageBase"),maps=await idbGet("kv","learned"),comp=await idbGet("kv","companion");const backup={app:"FaturaSage",version:"0.6.6.1",exportedAt:nowIso(),invoices,sageBase:sageBase||null,learned:maps||null,companion:comp||null,settings:{theme:localStorage.getItem("themePref")||"system",txtSeparator:localStorage.getItem("txtSeparator")||";",txtQty:localStorage.getItem("txtQty")||"1",txtPrice:localStorage.getItem("txtPrice")||"1",ocrBackend:localStorage.getItem("ocrBackend")||"wasm",ocrMode:localStorage.getItem("ocrMode")||"hybrid"}};download(JSON.stringify(backup,null,2),`fatura_sage_backup_${new Date().toISOString().slice(0,10)}.json`,"application/json")};
+$("importBackupBtn").onclick=()=>$("backupFile").click();$("backupFile").onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const b=JSON.parse(await f.text());if(b.app!=="FaturaSage"||!Array.isArray(b.invoices))throw new Error("Backup inválido.");if(!confirm(`Restaurar backup com ${b.invoices.length} fatura(s)?`))return;for(const inv of b.invoices)await idbPut("invoices",inv);if(b.sageBase)await idbPut("kv",b.sageBase);if(b.learned)await idbPut("kv",b.learned);if(b.companion)await idbPut("kv",b.companion);if(b.settings){for(const [k,v] of Object.entries({themePref:b.settings.theme,txtSeparator:b.settings.txtSeparator,txtQty:b.settings.txtQty,txtPrice:b.settings.txtPrice,ocrBackend:b.settings.ocrBackend,ocrMode:b.settings.ocrMode}))if(v!=null)localStorage.setItem(k,String(v))}await loadPersisted();loadSettings();renderHistory();alert("Backup restaurado.")}catch(err){alert("Não foi possível restaurar: "+err.message)}finally{e.target.value=""}};
+(async function init(){
+loadSettings();await idbOpen();await migrateOldOnlineData();await loadPersisted();renderPhotos();applyTransform();renderHistory();
+$("apiBadge").textContent=getApiKey()?"API configurada":"API não configurada";
+$("settingsOcrStatus").textContent="Use Inicializar OCR local ou analise em modo Local/Híbrido.";
+const cp=await idbGet("kv","companion");if(cp?.url)detectCompanion();
+})().catch(e=>{console.error(e);msg("Falha ao iniciar app: "+e.message,"err")});
+</script>
+</body></html>
+<script>
+/* v0.6.6.2 numeric-column geometry patch */
+function reconstructLocalRows(lines){
+const byPage=new Map();for(const l of lines||[]){const page=+l.image_index||1;(byPage.get(page)||byPage.set(page,[]).get(page)).push({...l,_box:localBox(l)});}const out=[];
+for(const[page,items0]of[...byPage.entries()].sort((a,b)=>a[0]-b[0])){
+const usable=items0.filter(x=>x._box.h>1&&Number.isFinite(x._box.cy));const medianH=Math.max(6,medianNum(usable.map(x=>x._box.h))||20);const pageRight=Math.max(1,...usable.map(x=>x._box.right));const items=usable.slice().sort((a,b)=>a._box.cy-b._box.cy||a._box.left-b._box.left);const rows=[];
+for(const it of items){let best=null,bestScore=Infinity;for(const row of rows){const anchorCy=medianNum(row.items.map(x=>x._box.cy)),anchorH=Math.max(4,medianNum(row.items.map(x=>x._box.h))||medianH),dy=Math.abs(it._box.cy-anchorCy),limit=Math.max(3,Math.min(medianH*.38,Math.max(anchorH,it._box.h)*.48)),repTop=anchorCy-anchorH/2,repBottom=anchorCy+anchorH/2,overlap=Math.max(0,Math.min(it._box.bottom,repBottom)-Math.max(it._box.top,repTop)),ratio=overlap/Math.max(1,Math.min(it._box.h,anchorH));if(dy<=limit||ratio>=.72){const score=dy/Math.max(1,medianH)-(ratio*.30);if(score<bestScore){best=row;bestScore=score}}}if(best)best.items.push(it);else rows.push({items:[it]});}
+rows.sort((a,b)=>medianNum(a.items.map(x=>x._box.cy))-medianNum(b.items.map(x=>x._box.cy)));
+rows.forEach((row,idx)=>{row.items.sort((a,b)=>a._box.left-b._box.left);const source_line_ids=row.items.map(x=>x.id),cells=row.items.map(x=>({id:x.id,text:String(x.text||'').trim(),left:x._box.left,right:x._box.right,cx:(x._box.left+x._box.right)/2,top:x._box.top,bottom:x._box.bottom,cy:x._box.cy,h:x._box.h})).filter(x=>x.text),text=cells.map(x=>x.text).join(' ').replace(/\s+/g,' ').trim();if(text)out.push({id:`P${page}-R${String(idx+1).padStart(3,'0')}`,image_index:page,text,source_line_ids,poly:null,_row:true,_parts:row.items.length,_cy:medianNum(row.items.map(x=>x._box.cy)),_cells:cells,_pageRight:pageRight});});}
+return out;}
+function localNumericValue(t){const s=String(t||'').trim().replace(/\s+/g,'');if(!/^[+-]?\d{1,7}(?:[.,]\d{1,4})?%?$/.test(s))return null;return s;}
+function localHeaderKind(t){const n=norm(t);if(/^(QTD|QT|QUANT|QUANTIDADE|QTY)$/.test(n))return'quantity';if(/(P UNIT|PUNIT|PRECO UNIT|PRECO UNITARIO|UNIT PRICE|P\.UNIT)/.test(n))return'unit_price';if(/^(TOTAL|VALOR|LIQUIDO|TOTAL LIQUIDO)$/.test(n))return'total';if(/^(DESC|DESCONTO|DISC|DESCTO)$/.test(n))return'discount';return null;}
+function clusterAnchors(vals,tol){const a=vals.filter(Number.isFinite).slice().sort((x,y)=>x-y),groups=[];for(const x of a){let g=groups.find(z=>Math.abs(x-z.mean)<=tol);if(!g){g={xs:[],mean:x};groups.push(g)}g.xs.push(x);g.mean=g.xs.reduce((s,v)=>s+v,0)/g.xs.length;}return groups.filter(g=>g.xs.length>=2).sort((a,b)=>a.mean-b.mean);}
+function inferLocalColumns(rows){const byPage=new Map();for(const r of rows||[]){(byPage.get(r.image_index)||byPage.set(r.image_index,[]).get(r.image_index)).push(r);}const out=new Map();for(const[page,rs]of byPage){const pageRight=Math.max(1,...rs.map(r=>r._pageRight||0)),headers={},numericXs=[];for(const r of rs){for(const c of r._cells||[]){const k=localHeaderKind(c.text);if(k)headers[k]=c.cx;const v=localNumericValue(c.text);if(v&&c.cx>pageRight*.42)numericXs.push(c.cx)}}const clusters=clusterAnchors(numericXs,Math.max(12,pageRight*.018));const anchors=clusters.map(g=>g.mean);let quantity=headers.quantity??null,unit_price=headers.unit_price??null,total=headers.total??null,discount=headers.discount??null;if(quantity==null&&anchors.length>=2)quantity=anchors[0];if(unit_price==null&&anchors.length>=2)unit_price=anchors[Math.min(1,anchors.length-1)];if(total==null&&anchors.length>=3)total=anchors.at(-1);if(unit_price!=null&&total!=null&&Math.abs(unit_price-total)<pageRight*.04&&anchors.length>=3)unit_price=anchors.at(-2);out.set(page,{pageRight,quantity,unit_price,total,discount,anchors,headers});}return out;}
+function nearestNumericCell(cells,anchor,pageRight,used=new Set()){if(anchor==null)return null;let best=null,dist=Infinity;for(const c of cells||[]){if(used.has(c.id)||localNumericValue(c.text)==null)continue;const d=Math.abs(c.cx-anchor);if(d<dist){best=c;dist=d}}return best&&dist<=Math.max(34,pageRight*.075)?best:null;}
+function numericCellsOnRight(row){const pr=row._pageRight||1;return(row._cells||[]).filter(c=>c.cx>pr*.42&&localNumericValue(c.text)!=null).sort((a,b)=>a.cx-b.cx);}
+function localParseArticles(rows,rawLines=rows){
+const fiscal=/\b(TOTAL(?:\s+A\s+PAGAR)?|SUBTOTAL|IVA|VAT|NIF|FATURA|DOCUMENTO|DATA|CLIENTE|FORNECEDOR|MORADA|ENDEREÇO|PAGAMENTO|IBAN|EUR|TAXA|BASE\s+INCID|TRANSPORTE|TELEFONE|EMAIL|VENCIMENTO|CONTRIBUINTE)\b/i;const articles=[],rejected=[],doc=extractLocalDocument(rawLines),columns=inferLocalColumns(rows);
+for(const l of rows||[]){const text=String(l.text||'').trim(),ids=(l.source_line_ids?.length?l.source_line_ids:[l.id]).filter(Boolean),cells=l._cells||[];if(!text)continue;if(fiscal.test(text)||cells.some(c=>localHeaderKind(c.text))){rejected.push({source_line_ids:ids,source_text:text,reason_code:"CAMPO_NAO_ARTIGO",reason_detail:"Linha reconstruída identificada como cabeçalho, fiscal, total ou metadado."});continue}if((l._parts||ids.length)>12){rejected.push({source_line_ids:ids,source_text:text,reason_code:"AGRUPAMENTO_AMBIGUO",reason_detail:"Muitos blocos OCR na mesma linha visual. A linha foi recusada em vez de criar um artigo incorreto."});continue}
+const cfg=columns.get(l.image_index)||{pageRight:l._pageRight||1},rightNums=numericCellsOnRight(l),used=new Set();let qCell=nearestNumericCell(cells,cfg.quantity,cfg.pageRight,used);if(qCell)used.add(qCell.id);let pCell=nearestNumericCell(cells,cfg.unit_price,cfg.pageRight,used);if(pCell)used.add(pCell.id);let tCell=nearestNumericCell(cells,cfg.total,cfg.pageRight,used);if(tCell)used.add(tCell.id);
+if(!qCell&&rightNums.length>=2){qCell=rightNums[0];used.add(qCell.id)}if(!pCell&&rightNums.length>=2){pCell=rightNums.find(c=>!used.has(c.id))||null;if(pCell)used.add(pCell.id)}if(!tCell&&rightNums.length>=3)tCell=rightNums.at(-1);
+const quantity=qCell?localNumericValue(qCell.text):null,unit_price=pCell?localNumericValue(pCell.text):null,total=tCell?localNumericValue(tCell.text):null;const cutoffCandidates=[qCell?.left,pCell?.left,tCell?.left].filter(Number.isFinite),cutoff=cutoffCandidates.length?Math.min(...cutoffCandidates):cfg.pageRight*.72;const descCells=cells.filter(c=>c.right<cutoff+2&&!used.has(c.id)&&c.id!==tCell?.id);let description=descCells.map(c=>c.text).join(' ').replace(/\s+/g,' ').trim();const hasLetters=/[A-Za-zÀ-ÿ]/.test(description),first=descCells[0]?.text||text.split(/\s+/)[0]||"";let reference=/^(?=.*\d)[A-Z0-9._\/-]{3,}$/i.test(first)||/^\d{3,}$/.test(first)?first:null;if(reference){description=description.replace(new RegExp("^"+reference.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\s*","i"),"").trim();}
+const baseMatch=baseData.length?findMatches({reference,description:description||text},doc)[0]:null;const evidence=(quantity&&unit_price)||(unit_price&&baseMatch?.score>=.55)||(quantity&&baseMatch?.score>=.55)||(rightNums.length>=2&&hasLetters);if(!hasLetters||!evidence){if(text.length>=5)rejected.push({source_line_ids:ids,source_text:text,reason_code:"ESTRUTURA_INSUFICIENTE",reason_detail:"A linha visual não tem descrição + colunas numéricas suficientemente alinhadas para ser artigo."});continue}if(!description||description.length<2)description=descCells.map(c=>c.text).join(' ').trim()||text;articles.push({source_line_ids:ids,source_text:text,reference,description,quantity,unit_price,discount:null,total,vat:null,local_row_id:l.id,local_geometry:{quantity_x:qCell?.cx??null,unit_price_x:pCell?.cx??null,total_x:tCell?.cx??null}});}
+return{document:doc,articles,rejected,local_columns:[...columns.entries()].map(([page,c])=>({page,...c}))};}
+
+async function runLocalOnly(local){ const rows=reconstructLocalRows(local.lines);local.reconstructed_rows=rows;const p=localParseArticles(rows,local.lines);local.local_columns=p.local_columns;return{pipeline:"local_paddle_0_rows_v3_columns",document:p.document,ocr_lines:local.lines,ocr_raw:local.raw,articles:p.articles,rejected:p.rejected,gemini_calls:0,local_ocr:local}; }
+try{document.title="Fatura → Sage 50 | v0.6.6.2";const b=document.querySelector("header .brand small");if(b)b.textContent="v0.6.6.2 · Local + Gemini + Sage";}catch{}
+</script>
