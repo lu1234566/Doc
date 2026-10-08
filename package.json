@@ -3,7 +3,7 @@
   "version": "0.6.7",
   "private": true,
   "type": "module",
-  "scripts": {"dev":"vite","build":"vite build","preview":"vite preview"},
+  "scripts": {"dev":"vite","build":"vite build","preview":"vite preview","replay":"node scripts/replay-report.mjs","test":"node --test tests/*.test.mjs"},
   "dependencies": {"@paddleocr/paddleocr-js":"0.4.2"},
   "devDependencies": {"vite":"6.4.1"}
 }
